@@ -3,6 +3,7 @@ import { Tilemap, TILE_SIZE, TILE } from "../world/tilemap.js";
 import { Player } from "../entities/player.js";
 import { Npc } from "../entities/npc.js";
 import { isSectorActive, isSectorCompleted } from "../state.js";
+import { PauseScene } from "./pause-scene.js";
 
 const INTERACT_RADIUS = TILE_SIZE * 0.9;
 
@@ -26,6 +27,11 @@ export class WorldScene {
 
     if (this.dialog.isOpen) {
       this.dialog.update(dt, input);
+      return;
+    }
+
+    if (input.wasPressed("pause")) {
+      this.game.push(new PauseScene());
       return;
     }
 
