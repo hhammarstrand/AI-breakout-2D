@@ -28,13 +28,17 @@ Any other static server works too (`npx serve`, `caddy file-server`, etc.).
 
 ## Deploying to GitHub Pages
 
-The repo root already contains `index.html`, so Pages can serve it directly:
+A workflow at `.github/workflows/pages.yml` publishes the repo root to Pages on every push to
+`main` or the working branch. One-time setup:
 
-1. Push to `main` (or merge the working branch into it).
-2. Repo → Settings → Pages → **Source: Deploy from a branch** → branch `main`, folder `/`.
-3. Pages publishes at `https://<user>.github.io/<repo>/`.
+1. Repo → **Settings → Pages → Source: GitHub Actions**.
+2. Push to `main` or `claude/2d-ai-breakout-game-3DKQc`.
+3. Watch the run under **Actions → Deploy to GitHub Pages**.
+4. Pages publishes at `https://<user>.github.io/<repo>/`.
 
-No build step, no dependencies.
+You can also trigger the workflow manually from the Actions tab (`workflow_dispatch`).
+
+No build step, no dependencies — the workflow uploads the repo as-is.
 
 ## Project layout
 
