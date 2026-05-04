@@ -23,7 +23,7 @@ html, body {
   display: grid;
   grid-template-rows: auto 1fr auto;
   height: 100vh;
-  max-width: 1100px;
+  width: 100%;
   margin: 0 auto;
   padding: 8px 12px;
   gap: 8px;
@@ -61,20 +61,22 @@ html, body {
 
 #stage {
   position: relative;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: 1px solid var(--fg-dim);
   background: #000;
   overflow: hidden;
+  min-height: 0;
 }
 
 #game {
   display: block;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
-  width: min(100%, 1080px);
-  height: auto;
-  aspect-ratio: 720 / 480;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
   background: #000;
 }
 

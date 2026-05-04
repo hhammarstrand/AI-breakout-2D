@@ -1,7 +1,8 @@
 import { Camera } from "../engine/camera.js";
-import { Tilemap, TILE_SIZE } from "../world/tilemap.js";
+import { Tilemap, TILE_SIZE, TILE } from "../world/tilemap.js";
 import { Player } from "../entities/player.js";
 import { Npc } from "../entities/npc.js";
+import { isSectorActive, isSectorCompleted } from "../state.js";
 
 const INTERACT_RADIUS = TILE_SIZE * 0.9;
 
@@ -16,9 +17,11 @@ export class WorldScene {
     this.camera = new Camera(viewportWidth, viewportHeight);
     this.camera.setBounds(this.tilemap.widthPx, this.tilemap.heightPx);
     this.camera.snapTo(this.player.centerX, this.player.centerY);
+    this._time = 0;
   }
 
   update(dt, input) {
+    this._time += dt;
     this.hud.update(dt);
 
     if (this.dialog.isOpen) {
@@ -47,13 +50,40 @@ export class WorldScene {
 
     const door = this.tilemap.doorAtPx(reach.x, reach.y);
     if (door) {
-      const message = this.map.doorMessages?.[door.label] ?? `[${door.label}] Locked.`;
-      this.dialog.show("Sector lock", [message]);
+      const sectorNum = parseInt(door.label.slice(1), 10);
+      if (isSectorCompleted(sectorNum)) {
+        this.dialog.show("Sector clear", [
+          `[${door.label}] Already cleared. Nice work, op.`,
+        ]);
+      } else if (isSectorActive(sectorNum)) {
+        const message = this.map.doorMessages?.[door.label] ?? `[${door.label}] Locked.`;
+        this.dialog.show("Sector lock", [message]);
+      } else {
+        const prereq = sectorNum - 1;
+        this.dialog.show("Sealed", [
+          `[${door.label}] SEALED.`,
+          `Building authorisation requires sector ${prereq} to be cleared first.`,
+        ]);
+      }
+      return;
+    }
+
+    const interactive = this.tilemap.interactiveAtPx(reach.x, reach.y);
+    if (interactive) {
+      const key = `${interactive.row},${interactive.col}`;
+      const msg = this.map.tileMessages?.[key];
+      if (msg) {
+        this.dialog.show(msg.speaker, msg.lines);
+      } else if (interactive.tile === TILE.TERMINAL) {
+        this.dialog.show("Terminal", ["[ no signal ]", "Connection refused."]);
+      } else {
+        this.dialog.show("Notice", ["Sign is faded. Unreadable."]);
+      }
     }
   }
 
   render(renderer) {
-    this.tilemap.draw(renderer, this.camera);
+    this.tilemap.draw(renderer, this.camera, this._time);
     for (const npc of this.npcs) npc.draw(renderer, this.camera);
     this.player.draw(renderer, this.camera);
     this._drawInteractHint(renderer);
@@ -62,9 +92,9 @@ export class WorldScene {
   _drawInteractHint(renderer) {
     if (this.dialog.isOpen) return;
     const reach = this.player.facingTilePx();
-    const door = this.tilemap.doorAtPx(reach.x, reach.y);
     let target = null;
 
+    const door = this.tilemap.doorAtPx(reach.x, reach.y);
     if (door) {
       target = { x: door.col * TILE_SIZE + TILE_SIZE / 2, y: door.row * TILE_SIZE - 4 };
     } else {
@@ -74,6 +104,12 @@ export class WorldScene {
         if (dx * dx + dy * dy <= INTERACT_RADIUS * INTERACT_RADIUS) {
           target = { x: npc.x + npc.w / 2, y: npc.y - 12 };
           break;
+        }
+      }
+      if (!target) {
+        const interactive = this.tilemap.interactiveAtPx(reach.x, reach.y);
+        if (interactive) {
+          target = { x: interactive.col * TILE_SIZE + TILE_SIZE / 2, y: interactive.row * TILE_SIZE - 4 };
         }
       }
     }
