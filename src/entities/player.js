@@ -1,16 +1,18 @@
 import { TILE_SIZE } from "../world/tilemap.js";
 
 const SPEED = 70;
-const SIZE = 12;
+const W = 12;
+const H = 14;
 
 export class Player {
   constructor(col, row) {
-    this.x = col * TILE_SIZE + (TILE_SIZE - SIZE) / 2;
-    this.y = row * TILE_SIZE + (TILE_SIZE - SIZE) / 2;
-    this.w = SIZE;
-    this.h = SIZE;
+    this.x = col * TILE_SIZE + (TILE_SIZE - W) / 2;
+    this.y = row * TILE_SIZE + (TILE_SIZE - H) / 2;
+    this.w = W;
+    this.h = H;
     this.facing = "down";
     this.animTime = 0;
+    this.idleTime = 0;
     this.moving = false;
   }
 
@@ -30,7 +32,12 @@ export class Player {
     }
 
     this.moving = dx !== 0 || dy !== 0;
-    if (this.moving) this.animTime += dt;
+    if (this.moving) {
+      this.animTime += dt;
+      this.idleTime = 0;
+    } else {
+      this.idleTime += dt;
+    }
     if (Math.abs(dx) > Math.abs(dy)) this.facing = dx < 0 ? "left" : "right";
     else if (dy !== 0) this.facing = dy < 0 ? "up" : "down";
 
@@ -48,7 +55,7 @@ export class Player {
   facingTilePx() {
     const cx = this.centerX;
     const cy = this.centerY;
-    const reach = TILE_SIZE * 0.75;
+    const reach = TILE_SIZE * 0.8;
     switch (this.facing) {
       case "up":    return { x: cx, y: cy - reach };
       case "down":  return { x: cx, y: cy + reach };
@@ -59,32 +66,61 @@ export class Player {
   }
 
   draw(renderer, camera) {
+    const idleBob = Math.sin(this.idleTime * 2.4) * 0.6;
     const px = (this.x - camera.x) | 0;
-    const py = (this.y - camera.y) | 0;
+    const py = ((this.y - camera.y) + (this.moving ? 0 : idleBob)) | 0;
     const ctx = renderer.ctx;
 
-    ctx.fillStyle = "#031a0d";
-    ctx.fillRect(px - 1, py + this.h - 2, this.w + 2, 2);
+    ctx.fillStyle = "rgba(0, 0, 0, 0.45)";
+    ctx.fillRect(px - 1, py + this.h, this.w + 2, 2);
 
-    ctx.fillStyle = "#0aff7a";
-    ctx.fillRect(px, py, this.w, this.h);
+    ctx.fillStyle = "#0a4a2a";
+    ctx.fillRect(px + 1, py + 8, this.w - 2, 6);
+    ctx.fillStyle = "#1a8a3a";
+    ctx.fillRect(px + 1, py + 7, this.w - 2, 2);
 
-    ctx.fillStyle = "#062";
-    ctx.fillRect(px + 2, py + 4, 2, 2);
-    ctx.fillRect(px + this.w - 4, py + 4, 2, 2);
-
-    ctx.fillStyle = "#4ae6ff";
-    switch (this.facing) {
-      case "up":    ctx.fillRect(px + this.w / 2 - 1, py - 1, 2, 2); break;
-      case "down":  ctx.fillRect(px + this.w / 2 - 1, py + this.h - 1, 2, 2); break;
-      case "left":  ctx.fillRect(px - 1, py + this.h / 2 - 1, 2, 2); break;
-      case "right": ctx.fillRect(px + this.w - 1, py + this.h / 2 - 1, 2, 2); break;
-    }
+    ctx.fillStyle = "#3a1f0c";
+    ctx.fillRect(px + 2, py + this.h - 2, 3, 2);
+    ctx.fillRect(px + this.w - 5, py + this.h - 2, 3, 2);
 
     if (this.moving) {
       const phase = Math.floor(this.animTime * 8) & 1;
-      ctx.fillStyle = "#062";
-      ctx.fillRect(px + (phase ? 1 : this.w - 3), py + this.h - 3, 2, 2);
+      ctx.fillStyle = "#1a8a3a";
+      if (phase) ctx.fillRect(px + 2, py + this.h - 2, 3, 1);
+      else ctx.fillRect(px + this.w - 5, py + this.h - 2, 3, 1);
+    }
+
+    ctx.fillStyle = "#fbd2a0";
+    ctx.fillRect(px + 2, py + 2, this.w - 4, 5);
+
+    ctx.fillStyle = "#4ae6ff";
+    ctx.fillRect(px + 1, py, this.w - 2, 3);
+    ctx.fillStyle = "#cffcff";
+    ctx.fillRect(px + 1, py, this.w - 2, 1);
+    ctx.fillStyle = "#0a8aff";
+    ctx.fillRect(px + 1, py + 2, this.w - 2, 1);
+
+    ctx.fillStyle = "#000";
+    if (this.facing === "down") {
+      ctx.fillRect(px + 4, py + 4, 1, 2);
+      ctx.fillRect(px + this.w - 5, py + 4, 1, 2);
+    } else if (this.facing === "up") {
+      ctx.fillStyle = "#7a4220";
+      ctx.fillRect(px + 2, py + 3, this.w - 4, 3);
+    } else if (this.facing === "left") {
+      ctx.fillStyle = "#000";
+      ctx.fillRect(px + 3, py + 4, 1, 2);
+    } else if (this.facing === "right") {
+      ctx.fillStyle = "#000";
+      ctx.fillRect(px + this.w - 4, py + 4, 1, 2);
+    }
+
+    ctx.fillStyle = "#cffcff";
+    switch (this.facing) {
+      case "up":    ctx.fillRect(px + this.w / 2 - 1, py - 1, 2, 1); break;
+      case "down":  ctx.fillRect(px + this.w / 2 - 1, py + this.h, 2, 1); break;
+      case "left":  ctx.fillRect(px - 1, py + 8, 1, 2); break;
+      case "right": ctx.fillRect(px + this.w, py + 8, 1, 2); break;
     }
   }
 }

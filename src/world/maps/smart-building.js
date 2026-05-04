@@ -160,7 +160,7 @@ export const smartBuildingMap = {
     {
       id: "operator",
       col: 27, row: 24,
-      color: "#4ae6ff",
+      accent: "#4ae6ff", color: "#1a8acf", bodyDark: "#0a4a7a",
       name: "Operator",
       lines: [
         "We've got eyes on you, survivor. The building's gone dark.",
@@ -171,7 +171,7 @@ export const smartBuildingMap = {
     {
       id: "analyst",
       col: 14, row: 15,
-      color: "#ff5a5a",
+      accent: "#cfcfcf", color: "#ff5a5a", bodyDark: "#8a2828",
       name: "Analyst",
       lines: [
         "...did you see what came out of the lab?",
@@ -182,7 +182,7 @@ export const smartBuildingMap = {
     {
       id: "janitor",
       col: 39, row: 23,
-      color: "#0aff7a",
+      accent: "#aa8a1a", color: "#6a4a1a", bodyDark: "#3a2810",
       name: "Janitor",
       lines: [
         "Half my mops are in L4. Don't ask why.",
@@ -193,7 +193,7 @@ export const smartBuildingMap = {
     {
       id: "intern",
       col: 8, row: 22,
-      color: "#cffcff",
+      accent: "#fff15a", color: "#d8d8d8", bodyDark: "#6a6a3a",
       name: "Intern",
       lines: [
         "First day. They told me to monitor the CCTV in L1.",

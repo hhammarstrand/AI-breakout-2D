@@ -104,23 +104,37 @@ export class Tilemap {
   }
 }
 
-function floorCheckerColor(col, row) {
-  return ((col + row) & 1) === 0 ? "#021008" : "#031a0d";
+const T = TILE_SIZE;
+
+function drawFloor(ctx, x, y, col, row) {
+  const checker = ((col + row) & 1) === 0;
+  ctx.fillStyle = checker ? "#0a1410" : "#0e1814";
+  ctx.fillRect(x, y, T, T);
+  ctx.fillStyle = "#152018";
+  ctx.fillRect(x + 1, y + 1, 1, 1);
+  ctx.fillRect(x + T - 2, y + T - 2, 1, 1);
 }
 
 function drawTile(ctx, tile, x, y, col, row, time) {
   switch (tile) {
-    case TILE.WALL:
-      ctx.fillStyle = "#062";
-      ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
-      ctx.fillStyle = "#0aff7a";
-      ctx.fillRect(x, y, TILE_SIZE, 1);
-      ctx.fillRect(x, y + TILE_SIZE - 1, TILE_SIZE, 1);
-      ctx.fillRect(x, y, 1, TILE_SIZE);
-      ctx.fillRect(x + TILE_SIZE - 1, y, 1, TILE_SIZE);
-      ctx.fillStyle = "#094";
-      ctx.fillRect(x + 4, y + 7, 8, 1);
+    case TILE.WALL: {
+      ctx.fillStyle = "#1a6644";
+      ctx.fillRect(x, y, T, T);
+      ctx.fillStyle = "#2faa66";
+      ctx.fillRect(x, y, T, 2);
+      ctx.fillStyle = "#093822";
+      ctx.fillRect(x, y + T - 2, T, 2);
+      ctx.fillStyle = "#0e4a2a";
+      ctx.fillRect(x, y + 7, T, 1);
+      ctx.fillStyle = "#093822";
+      ctx.fillRect(x + 8, y + 2, 1, 5);
+      ctx.fillRect(x + 4, y + 8, 1, 6);
+      ctx.fillRect(x + 12, y + 8, 1, 6);
+      ctx.fillStyle = "#062612";
+      ctx.fillRect(x, y, 1, T);
+      ctx.fillRect(x + T - 1, y, 1, T);
       break;
+    }
 
     case TILE.DOOR_L1:
     case TILE.DOOR_L2:
@@ -130,193 +144,224 @@ function drawTile(ctx, tile, x, y, col, row, time) {
       const completed = isSectorCompleted(sectorNum);
       const active = isSectorActive(sectorNum);
 
-      const fill = completed ? "#022a18" : active ? "#003322" : "#0a0a0a";
-      const border = completed ? "#0aff7a" : active ? "#4ae6ff" : "#4a0808";
+      const fill = completed ? "#0a3a22" : active ? "#0a2a3a" : "#1a0a0a";
+      const border = completed ? "#0aff7a" : active ? "#4ae6ff" : "#5a1010";
       const label = completed ? "#0aff7a" : active ? "#4ae6ff" : "#3a1010";
 
       ctx.fillStyle = fill;
-      ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+      ctx.fillRect(x, y, T, T);
       ctx.strokeStyle = border;
-      ctx.lineWidth = 1;
-      ctx.strokeRect(x + 1.5, y + 1.5, TILE_SIZE - 3, TILE_SIZE - 3);
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x + 1, y + 1, T - 2, T - 2);
 
-      const blink = Math.floor(time * 2) & 1;
-      ctx.fillStyle = active && blink ? "#ff5a5a" : completed ? "#0aff7a" : "#4a0808";
-      ctx.fillRect(x + TILE_SIZE - 4, y + 2, 2, 2);
-
+      ctx.fillStyle = "#000";
+      ctx.fillRect(x + 5, y + 4, 6, 9);
       ctx.fillStyle = label;
+      ctx.font = "bold 8px ui-monospace, monospace";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.font = "bold 8px ui-monospace, monospace";
-      ctx.fillText(DOOR_LABELS[tile], x + TILE_SIZE / 2, y + TILE_SIZE / 2 + 1);
+      ctx.fillText(DOOR_LABELS[tile], x + T / 2, y + T / 2 + 1);
+
+      const blink = Math.floor(time * 2) & 1;
+      ctx.fillStyle = active && blink ? "#ff5a5a" : completed ? "#0aff7a" : "#3a0808";
+      ctx.fillRect(x + T - 4, y + 2, 2, 2);
 
       if (!active && !completed) {
-        ctx.strokeStyle = "#4a0808";
+        ctx.strokeStyle = "#7a1010";
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(x + 3, y + 3); ctx.lineTo(x + TILE_SIZE - 3, y + TILE_SIZE - 3);
-        ctx.moveTo(x + TILE_SIZE - 3, y + 3); ctx.lineTo(x + 3, y + TILE_SIZE - 3);
+        ctx.moveTo(x + 4, y + 4); ctx.lineTo(x + T - 4, y + T - 4);
+        ctx.moveTo(x + T - 4, y + 4); ctx.lineTo(x + 4, y + T - 4);
         ctx.stroke();
       }
       break;
     }
 
-    case TILE.CARPET:
-      ctx.fillStyle = ((col + row) & 1) === 0 ? "#1a0a04" : "#220e05";
-      ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
-      ctx.fillStyle = "#3a1a0a";
-      ctx.fillRect(x + 2, y + 2, 1, 1);
-      ctx.fillRect(x + 9, y + 6, 1, 1);
-      ctx.fillRect(x + 5, y + 12, 1, 1);
+    case TILE.CARPET: {
+      ctx.fillStyle = "#3a1810";
+      ctx.fillRect(x, y, T, T);
+      ctx.fillStyle = "#5a2818";
+      for (let i = 1; i < T; i += 4) {
+        ctx.fillRect(x + i, y + ((row * 3 + i) % 4), 1, 1);
+        ctx.fillRect(x + ((col * 3 + i) % T), y + i, 1, 1);
+      }
+      ctx.fillStyle = "#2a1008";
+      ctx.fillRect(x, y, T, 1);
+      ctx.fillRect(x, y + T - 1, T, 1);
       break;
+    }
 
     case TILE.GRATING: {
-      ctx.fillStyle = "#0a1010";
-      ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
-      ctx.fillStyle = "#1a2828";
-      for (let i = 0; i < TILE_SIZE; i += 4) {
-        ctx.fillRect(x, y + i, TILE_SIZE, 1);
-      }
-      ctx.fillStyle = "#0e1818";
-      ctx.fillRect(x, y, 1, TILE_SIZE);
-      ctx.fillRect(x + TILE_SIZE - 1, y, 1, TILE_SIZE);
+      ctx.fillStyle = "#0e1820";
+      ctx.fillRect(x, y, T, T);
+      ctx.fillStyle = "#22323e";
+      for (let i = 1; i < T; i += 3) ctx.fillRect(x + 1, y + i, T - 2, 1);
+      ctx.fillStyle = "#0a1218";
+      ctx.fillRect(x, y, 1, T);
+      ctx.fillRect(x + T - 1, y, 1, T);
       break;
     }
 
     case TILE.LIGHT: {
-      ctx.fillStyle = floorCheckerColor(col, row);
-      ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
-      const phase = (Math.sin(time * 6 + col * 0.7 + row * 1.1) + 1) * 0.5;
-      const flicker = Math.random() < 0.04 ? 0.4 : 1;
-      const a = (0.18 + 0.12 * phase) * flicker;
+      drawFloor(ctx, x, y, col, row);
+      const phase = (Math.sin(time * 5 + col * 0.7 + row * 1.1) + 1) * 0.5;
+      const a = 0.20 + 0.18 * phase;
       const grad = ctx.createRadialGradient(
-        x + TILE_SIZE / 2, y + TILE_SIZE / 2, 0,
-        x + TILE_SIZE / 2, y + TILE_SIZE / 2, TILE_SIZE * 0.7,
+        x + T / 2, y + T / 2, 0,
+        x + T / 2, y + T / 2, T * 0.85,
       );
-      grad.addColorStop(0, `rgba(120, 255, 200, ${a})`);
-      grad.addColorStop(1, "rgba(120, 255, 200, 0)");
+      grad.addColorStop(0, `rgba(180, 255, 220, ${a})`);
+      grad.addColorStop(1, "rgba(180, 255, 220, 0)");
       ctx.fillStyle = grad;
-      ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+      ctx.fillRect(x - 2, y - 2, T + 4, T + 4);
+      ctx.fillStyle = `rgba(220, 255, 240, ${0.5 + 0.3 * phase})`;
+      ctx.fillRect(x + T / 2 - 1, y + T / 2 - 1, 2, 2);
       break;
     }
 
-    case TILE.DESK:
-      ctx.fillStyle = floorCheckerColor(col, row);
-      ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
-      ctx.fillStyle = "#3b2410";
-      ctx.fillRect(x + 1, y + 4, TILE_SIZE - 2, TILE_SIZE - 6);
-      ctx.fillStyle = "#5a3818";
-      ctx.fillRect(x + 1, y + 4, TILE_SIZE - 2, 2);
-      ctx.fillStyle = "#1f1208";
-      ctx.fillRect(x + 1, y + TILE_SIZE - 3, TILE_SIZE - 2, 1);
-      ctx.fillStyle = "#2a180b";
-      ctx.fillRect(x + 3, y + 9, 3, 3);
-      ctx.fillRect(x + 10, y + 9, 3, 3);
+    case TILE.DESK: {
+      drawFloor(ctx, x, y, col, row);
+      ctx.fillStyle = "#5a3018";
+      ctx.fillRect(x + 1, y + 4, T - 2, 8);
+      ctx.fillStyle = "#7a4220";
+      ctx.fillRect(x + 1, y + 4, T - 2, 2);
+      ctx.fillStyle = "#3a1f0c";
+      ctx.fillRect(x + 1, y + 11, T - 2, 1);
+      ctx.fillStyle = "#2a1808";
+      ctx.fillRect(x + 2, y + 12, 2, 3);
+      ctx.fillRect(x + T - 4, y + 12, 2, 3);
+      ctx.fillStyle = "#3a1f0c";
+      ctx.fillRect(x + 4, y + 7, 4, 3);
       break;
+    }
 
     case TILE.TERMINAL: {
-      ctx.fillStyle = floorCheckerColor(col, row);
-      ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
-      ctx.fillStyle = "#181818";
-      ctx.fillRect(x + 2, y + 2, TILE_SIZE - 4, TILE_SIZE - 6);
-      ctx.fillStyle = "#0a8a4a";
-      ctx.fillRect(x + 3, y + 3, TILE_SIZE - 6, TILE_SIZE - 8);
-      ctx.fillStyle = "#0aff7a";
+      drawFloor(ctx, x, y, col, row);
+      ctx.fillStyle = "#5a3018";
+      ctx.fillRect(x + 1, y + 11, T - 2, 4);
+      ctx.fillStyle = "#3a1f0c";
+      ctx.fillRect(x + 1, y + 14, T - 2, 1);
+      ctx.fillStyle = "#1a1a1a";
+      ctx.fillRect(x + 2, y + 1, T - 4, 10);
+      ctx.fillStyle = "#0a3a22";
+      ctx.fillRect(x + 3, y + 2, T - 6, 8);
       const phase = Math.floor(time * 6 + col + row) % 4;
-      ctx.fillRect(x + 4, y + 4 + phase, 2, 1);
-      ctx.fillRect(x + 7, y + 4 + ((phase + 2) % 4), 1, 1);
-      ctx.fillRect(x + 4, y + 8, 6, 1);
-      ctx.fillStyle = "#222";
-      ctx.fillRect(x + 1, y + TILE_SIZE - 3, TILE_SIZE - 2, 2);
+      ctx.fillStyle = "#1aff7a";
+      ctx.fillRect(x + 4, y + 3, 4, 1);
+      ctx.fillRect(x + 4, y + 5, 6, 1);
+      ctx.fillRect(x + 4, y + 7, 3 + phase, 1);
+      ctx.fillStyle = "#4ae6ff";
+      ctx.fillRect(x + T - 5, y + 9, 1, 1);
+      ctx.fillStyle = "#2a2a2a";
+      ctx.fillRect(x + 6, y + 11, T - 12, 1);
       break;
     }
 
     case TILE.RACK: {
-      ctx.fillStyle = floorCheckerColor(col, row);
-      ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
-      ctx.fillStyle = "#101418";
-      ctx.fillRect(x + 1, y + 1, TILE_SIZE - 2, TILE_SIZE - 2);
-      ctx.fillStyle = "#1a2028";
-      ctx.fillRect(x + 1, y + 1, TILE_SIZE - 2, 1);
+      drawFloor(ctx, x, y, col, row);
+      ctx.fillStyle = "#202428";
+      ctx.fillRect(x + 1, y, T - 2, T);
+      ctx.fillStyle = "#2a3038";
+      ctx.fillRect(x + 1, y, T - 2, 1);
+      ctx.fillStyle = "#0a0e12";
+      ctx.fillRect(x + 1, y + T - 1, T - 2, 1);
       const blink = Math.floor(time * 4 + col * 1.7 + row * 0.3);
-      for (let i = 0; i < 4; i++) {
-        const lit = (blink + i) & 1;
-        ctx.fillStyle = lit ? (i & 1 ? "#0aff7a" : "#4ae6ff") : "#062";
-        ctx.fillRect(x + 3 + i * 2, y + 4, 1, 1);
+      const ledColors = ["#0aff7a", "#4ae6ff", "#ffaa1a", "#ff5a5a"];
+      for (let r = 0; r < 4; r++) {
+        const lit = (blink + r) & 1;
+        ctx.fillStyle = lit ? ledColors[r] : "#1a2228";
+        ctx.fillRect(x + 3, y + 2 + r * 3, 2, 2);
       }
-      ctx.fillStyle = "#0a8a4a";
-      ctx.fillRect(x + 3, y + 7, TILE_SIZE - 6, 1);
-      ctx.fillRect(x + 3, y + 9, TILE_SIZE - 6, 1);
-      ctx.fillRect(x + 3, y + 11, TILE_SIZE - 6, 1);
+      ctx.fillStyle = "#0a0e12";
+      for (let r = 0; r < 4; r++) {
+        ctx.fillRect(x + 7, y + 2 + r * 3, T - 10, 2);
+      }
+      ctx.fillStyle = "#1a2228";
+      for (let r = 0; r < 4; r++) {
+        ctx.fillRect(x + 8, y + 2 + r * 3 + 1, T - 12, 1);
+      }
       break;
     }
 
-    case TILE.PLANT:
-      ctx.fillStyle = floorCheckerColor(col, row);
-      ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
-      ctx.fillStyle = "#1a0a04";
-      ctx.fillRect(x + 4, y + 9, 8, 5);
-      ctx.fillStyle = "#3b2410";
-      ctx.fillRect(x + 4, y + 9, 8, 1);
-      ctx.fillStyle = "#0a4a2a";
-      ctx.fillRect(x + 6, y + 5, 4, 4);
-      ctx.fillRect(x + 4, y + 6, 2, 2);
-      ctx.fillRect(x + 10, y + 6, 2, 2);
-      ctx.fillStyle = "#0a8a4a";
-      ctx.fillRect(x + 7, y + 3, 2, 2);
+    case TILE.PLANT: {
+      drawFloor(ctx, x, y, col, row);
+      ctx.fillStyle = "#3a1810";
+      ctx.fillRect(x + 4, y + 10, 8, 5);
+      ctx.fillStyle = "#5a2818";
+      ctx.fillRect(x + 4, y + 10, 8, 1);
+      ctx.fillStyle = "#2a1008";
+      ctx.fillRect(x + 4, y + 14, 8, 1);
+      ctx.fillStyle = "#0a4a1a";
+      ctx.fillRect(x + 5, y + 5, 6, 5);
+      ctx.fillRect(x + 3, y + 7, 2, 3);
+      ctx.fillRect(x + 11, y + 7, 2, 3);
+      ctx.fillStyle = "#1a8a3a";
+      ctx.fillRect(x + 6, y + 4, 4, 4);
+      ctx.fillRect(x + 7, y + 2, 2, 3);
+      ctx.fillStyle = "#2faa55";
+      ctx.fillRect(x + 7, y + 5, 1, 1);
+      ctx.fillRect(x + 9, y + 6, 1, 1);
       break;
+    }
 
     case TILE.SIGN: {
-      ctx.fillStyle = floorCheckerColor(col, row);
-      ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
-      ctx.fillStyle = "#222";
-      ctx.fillRect(x + 4, y + 9, 8, 1);
-      ctx.fillStyle = "#181818";
-      ctx.fillRect(x + 2, y + 2, TILE_SIZE - 4, 7);
+      drawFloor(ctx, x, y, col, row);
+      ctx.fillStyle = "#3a3a3a";
+      ctx.fillRect(x + 7, y + 8, 2, 7);
+      ctx.fillStyle = "#0a2a3a";
+      ctx.fillRect(x + 2, y + 2, T - 4, 7);
       ctx.fillStyle = "#4ae6ff";
-      ctx.lineWidth = 1;
-      ctx.strokeStyle = "#4ae6ff";
-      ctx.strokeRect(x + 2.5, y + 2.5, TILE_SIZE - 5, 6);
-      ctx.fillStyle = "#4ae6ff";
+      ctx.fillRect(x + 2, y + 2, T - 4, 1);
+      ctx.fillRect(x + 2, y + 8, T - 4, 1);
+      ctx.fillRect(x + 2, y + 2, 1, 7);
+      ctx.fillRect(x + T - 3, y + 2, 1, 7);
+      const blink = Math.floor(time * 1.5) & 1;
+      ctx.fillStyle = blink ? "#cffcff" : "#4ae6ff";
       ctx.font = "bold 6px ui-monospace, monospace";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      const blink = Math.floor(time * 1.5) & 1;
-      if (blink) ctx.fillText("i", x + TILE_SIZE / 2, y + 5.5);
+      ctx.fillText("i", x + T / 2, y + 5.5);
       break;
     }
 
-    case TILE.DEBRIS:
-      ctx.fillStyle = floorCheckerColor(col, row);
-      ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
-      ctx.fillStyle = "#3a1a0a";
-      ctx.fillRect(x + 2, y + 6, 4, 2);
-      ctx.fillRect(x + 9, y + 8, 5, 2);
-      ctx.fillRect(x + 5, y + 11, 3, 2);
-      ctx.fillStyle = "#5a2010";
-      ctx.fillRect(x + 3, y + 6, 1, 1);
-      ctx.fillRect(x + 11, y + 8, 1, 1);
+    case TILE.DEBRIS: {
+      drawFloor(ctx, x, y, col, row);
+      ctx.fillStyle = "#4a2818";
+      ctx.fillRect(x + 2, y + 5, 4, 3);
+      ctx.fillRect(x + 9, y + 8, 5, 3);
+      ctx.fillRect(x + 5, y + 11, 4, 2);
+      ctx.fillStyle = "#6a3818";
+      ctx.fillRect(x + 2, y + 5, 4, 1);
+      ctx.fillRect(x + 9, y + 8, 5, 1);
+      ctx.fillStyle = "#2a1008";
+      ctx.fillRect(x + 2, y + 7, 1, 1);
+      ctx.fillRect(x + 13, y + 10, 1, 1);
       break;
+    }
 
-    case TILE.LOCKER:
-      ctx.fillStyle = floorCheckerColor(col, row);
-      ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
-      ctx.fillStyle = "#1f3a2a";
-      ctx.fillRect(x + 1, y, TILE_SIZE - 2, TILE_SIZE - 1);
-      ctx.fillStyle = "#0a8a4a";
-      ctx.fillRect(x + 1, y, TILE_SIZE - 2, 1);
-      ctx.fillStyle = "#062";
-      ctx.fillRect(x + TILE_SIZE / 2, y + 2, 1, TILE_SIZE - 4);
+    case TILE.LOCKER: {
+      drawFloor(ctx, x, y, col, row);
+      ctx.fillStyle = "#2a4030";
+      ctx.fillRect(x + 1, y, T - 2, T - 1);
+      ctx.fillStyle = "#3f5a48";
+      ctx.fillRect(x + 1, y, T - 2, 2);
+      ctx.fillStyle = "#1a2a20";
+      ctx.fillRect(x + 1, y + T - 2, T - 2, 1);
+      ctx.fillStyle = "#1a2a20";
+      ctx.fillRect(x + T / 2, y + 2, 1, T - 4);
+      ctx.fillStyle = "#cfd8d0";
+      ctx.fillRect(x + 5, y + 7, 1, 2);
+      ctx.fillRect(x + T - 6, y + 7, 1, 2);
       ctx.fillStyle = "#4ae6ff";
-      ctx.fillRect(x + 4, y + 7, 1, 1);
-      ctx.fillRect(x + TILE_SIZE - 5, y + 7, 1, 1);
+      ctx.fillRect(x + 4, y + 3, 2, 1);
+      ctx.fillRect(x + T - 6, y + 3, 2, 1);
       break;
+    }
 
     case TILE.FLOOR:
     case TILE.SPAWN:
     default:
-      ctx.fillStyle = floorCheckerColor(col, row);
-      ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+      drawFloor(ctx, x, y, col, row);
       break;
   }
 }
