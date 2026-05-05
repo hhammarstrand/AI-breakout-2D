@@ -4,6 +4,7 @@ const KEY_ALIASES = {
   ArrowLeft: "left", a: "left", A: "left",
   ArrowRight: "right", d: "right", D: "right",
   " ": "interact", Spacebar: "interact", e: "interact", E: "interact",
+  Enter: "submit",
   Escape: "pause",
 };
 
@@ -19,7 +20,7 @@ export class Input {
       if (!this._down.has(action)) this._pressed.add(action);
       this._down.add(action);
       this._anyPressed = true;
-      if (action === "interact" || action === "pause") event.preventDefault();
+      if (action === "interact" || action === "pause" || action === "submit") event.preventDefault();
     });
 
     target.addEventListener("keyup", (event) => {

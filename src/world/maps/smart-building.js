@@ -165,7 +165,8 @@ export const smartBuildingMap = {
       lines: [
         "We've got eyes on you, survivor. The building's gone dark.",
         "Four sectors. They must be cleared in order — L1 first, then L2, L3, L4.",
-        "Walk to a door and press [E] or [space]. We'll patch puzzles in soon.",
+        "L1 is live: surveillance grid. Find the human, flag the hostiles.",
+        "Read the L1 sign by the door for the sensor baselines.",
       ],
     },
     {
@@ -209,7 +210,12 @@ export const smartBuildingMap = {
     L4: "[L4] THE BREACH — final access. Auth code missing. Coming soon.",
   },
   tileMessages: {
-    "11,6":  { speaker: "Sign // L1", lines: ["SECTOR 1 — SURVEILLANCE", "Sensor & CCTV station. Authenticated personnel only."] },
+    "11,6":  { speaker: "Sign // L1", lines: [
+      "SECTOR 1 — SURVEILLANCE",
+      "Sensor & CCTV station. Authenticated personnel only.",
+      "Note: human baseline is ~36.5C with breathing motion.",
+      "Hostiles run hot — over 38C, with irregular or erratic motion.",
+    ] },
     "11,18": { speaker: "Sign // L2", lines: ["SECTOR 2 — RESEARCH LAB", "Bio-secure. Decrypt protocol required for access."] },
     "11,30": { speaker: "Sign // L3", lines: ["SECTOR 3 — DOOR CONTROL", "Pathfinding agent must be deployed before entry."] },
     "11,41": { speaker: "Sign // L4", lines: ["SECTOR 4 — UPLINK", "Final auth code required. Combine fragments from sectors 1–3."] },

@@ -4,8 +4,8 @@ A top-down 2D variant of [AI-breakout](https://hhammarstrand.github.io/AI-breako
 infected smart-building you escape with help from AI tools), but you walk a character through the world
 Pokémon-style instead of typing terminal commands.
 
-This first iteration is a **skeleton**: movement, tile-map, camera, and a dialog scaffold — no puzzles
-wired up yet. The four locked doors in the lobby are placeholders for the original game's four levels.
+**Status:** lobby + sector 1 (Locate the Survivor) playable. Sectors L2–L4 are sealed and unlock as
+you clear earlier sectors.
 
 ## Run locally
 
@@ -20,11 +20,19 @@ Any other static server works too (`npx serve`, `caddy file-server`, etc.).
 
 ## Controls
 
-| Action      | Key                 |
-| ----------- | ------------------- |
-| Move        | `WASD` / arrow keys |
-| Interact    | `Space` / `E`       |
-| Pause/close | `Esc`               |
+| Action                            | Key                 |
+| --------------------------------- | ------------------- |
+| Move / cursor                     | `WASD` / arrow keys |
+| Interact / cycle survivor-hostile | `Space` / `E`       |
+| Submit (inside a sector)          | `Enter`             |
+| Pause / close dialog / exit sector | `Esc`              |
+
+## Sector 1 — Locate the Survivor
+
+Walk to the cyan **L1** door in the north wall and press `E`. You enter a CCTV control room
+with six feeds. Read each room's sensor data (motion, thermal, audio) and tag exactly **one**
+room as `SURVIVOR` and **three** rooms as `HOSTILE`, then `Enter` to submit. Wrong submissions
+cost 2 points; clearing the sector awards 25.
 
 ## Deploying to GitHub Pages
 
@@ -47,18 +55,18 @@ index.html              entry point
 style.css               CRT theme + layout
 src/
   main.js               bootstraps the game
+  state.js              sector progress (which sectors are completed)
   engine/               loop, input, camera, canvas helpers
   world/                tilemap + map data
   entities/             player, npc
-  scenes/               title, world
+  scenes/               title, world, pause, sector1
   ui/                   dialog, hud
 ```
 
 ## Future iterations
 
-- Wire the four locked doors to puzzle scenes mirroring the original game's levels (sensors, ciphers,
-  pathfinding, breach).
-- LocalStorage progress (`src/state.js`).
+- Wire L2 (cipher decryption), L3 (pathfinding agent), and L4 (breach) to their own scenes.
+- LocalStorage persistence in `src/state.js`.
 - Real pixel-art sprites under `assets/`.
 - Audio + SFX toggle.
 - Lose condition when the containment timer hits 0.

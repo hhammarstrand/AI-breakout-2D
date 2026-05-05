@@ -2,8 +2,26 @@ import { Camera } from "../engine/camera.js";
 import { Tilemap, TILE_SIZE, TILE } from "../world/tilemap.js";
 import { Player } from "../entities/player.js";
 import { Npc } from "../entities/npc.js";
-import { isSectorActive, isSectorCompleted } from "../state.js";
+import {
+  isSectorActive,
+  isSectorCompleted,
+  completeSector,
+  gameState,
+} from "../state.js";
 import { PauseScene } from "./pause-scene.js";
+import { Sector1Scene } from "./sector1-scene.js";
+
+const SECTOR_LAUNCHERS = {
+  1: ({ hud, onResult }) => new Sector1Scene({ hud, onResult }),
+};
+
+const SECTOR_SUCCESS_DIALOG = {
+  1: [
+    "[L1] LOCATED. Survivor confirmed in WASHROOM. +25 pts.",
+    "Hostile profiles flagged in 7B, LAB ANNEX and STAIRWELL B.",
+    "Sector 2 — DECRYPT THE LAB LOGS — now unlocked.",
+  ],
+};
 
 const INTERACT_RADIUS = TILE_SIZE * 0.9;
 
@@ -42,6 +60,35 @@ export class WorldScene {
     if (input.wasPressed("interact")) this._tryInteract();
   }
 
+  _launchSector(sectorNum, label) {
+    const launcher = SECTOR_LAUNCHERS[sectorNum];
+    if (!launcher) {
+      const message = this.map.doorMessages?.[label] ?? `[${label}] Locked.`;
+      this.dialog.show("Sector lock", [message]);
+      return;
+    }
+    const scene = launcher({
+      hud: this.hud,
+      onResult: ({ success, aborted }) => {
+        this.game.pop();
+        if (success) {
+          completeSector(sectorNum);
+          this.hud.setProgress(gameState.completedSectors);
+          this.hud.setScore(this.hud.score + 25);
+          const lines = SECTOR_SUCCESS_DIALOG[sectorNum] ?? [
+            `[${label}] cleared. +25 pts.`,
+          ];
+          this.dialog.show("Sector clear", lines);
+        } else if (aborted) {
+          this.dialog.show("Aborted", [
+            `[${label}] Mission paused. Approach the door again to retry.`,
+          ]);
+        }
+      },
+    });
+    this.game.push(scene);
+  }
+
   _tryInteract() {
     const reach = this.player.facingTilePx();
 
@@ -62,8 +109,7 @@ export class WorldScene {
           `[${door.label}] Already cleared. Nice work, op.`,
         ]);
       } else if (isSectorActive(sectorNum)) {
-        const message = this.map.doorMessages?.[door.label] ?? `[${door.label}] Locked.`;
-        this.dialog.show("Sector lock", [message]);
+        this._launchSector(sectorNum, door.label);
       } else {
         const prereq = sectorNum - 1;
         this.dialog.show("Sealed", [
