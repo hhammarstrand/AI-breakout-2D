@@ -134,7 +134,7 @@ src/
   world/                tilemap (themes, props) + maps: lobby, research floor, core
   entities/             player, npc, drone (ECHO), sentinel
   story.js              stages, acts, objectives and all story lines
-  scenes/               title, world, pause, game over, elevator, ending, and one scene per puzzle
+  scenes/               title, intro, world, start menu, battle, game over, elevator, ending, one per puzzle
   ui/                   dialog + portraits, hud, toasts, screen fx, HALCYON PA
 ```
 

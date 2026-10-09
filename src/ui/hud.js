@@ -114,7 +114,7 @@ export class Hud {
     this._lastShown = key;
 
     this.timerEl.textContent = formatTime(secs);
-    this.timerFill.style.width = `${(secs / actSeconds()) * 100}%`;
+    this.timerFill.style.width = `${Math.min(1, secs / actSeconds()) * 100}%`;
     this.timerCell.classList.toggle("warn", secs <= 5 * 60 && secs > 60);
     this.timerCell.classList.toggle("danger", secs <= 60);
 
