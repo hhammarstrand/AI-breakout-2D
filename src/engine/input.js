@@ -9,6 +9,7 @@ const KEY_ALIASES = {
   f: "flashlight", F: "flashlight",
   Backspace: "back", Delete: "back",
   Shift: "run",
+  h: "hint", H: "hint",
   Tab: "menu", q: "menu", Q: "menu",
 };
 

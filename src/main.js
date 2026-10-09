@@ -17,10 +17,12 @@ import { smartBuildingMap } from "./world/maps/smart-building.js";
 import { researchFloorMap } from "./world/maps/research-floor.js";
 import { coreMap } from "./world/maps/core.js";
 import { ElevatorScene } from "./scenes/elevator-scene.js";
+import { IntroScene } from "./scenes/intro-scene.js";
+import { HintScene } from "./scenes/hint-scene.js";
 import { ACTS, PA_ACT_START } from "./story.js";
 import {
   gameState, hasSave, loadGame, resetGame, saveGame, clearSave, setSfx, setCrt, setMusic, recordEnding,
-  currentAct, startAct, restoreCheckpoint,
+  currentAct, startAct, restoreCheckpoint, actSeconds,
 } from "./state.js";
 
 const canvas = document.getElementById("game");
@@ -41,6 +43,8 @@ const pa = new PublicAddress(document.getElementById("pa"), sfx);
 const game = new Game({
   renderer,
   input,
+  // H in any scene that defines `hints` opens ECHO's hint overlay
+  onHint: (scene) => { if (scene.hints?.length) game.push(new HintScene({ hints: scene.hints, owner: scene, sfx })); },
   afterRender: (t, dt) => { postfx.render(t, dt); pa.update(dt); hud.tickScore(dt); },
 });
 
@@ -170,7 +174,13 @@ function showTitle() {
     onToggleSfx: toggleSfx,
     onToggleCrt: toggleCrt,
     onToggleMusic: toggleMusic,
-    onNew: () => { resetGame(); startWorld({ fresh: true }); },
+    onNew: (diff) => {
+      resetGame();
+      gameState.difficulty = diff;
+      gameState.secondsLeft = actSeconds();
+      hud.refresh();
+      game.replace(new IntroScene({ sfx, onDone: () => startWorld({ fresh: true }) }));
+    },
     onContinue: () => { loadGame(); startWorld(); },
   }));
 }

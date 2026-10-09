@@ -1,5 +1,5 @@
 import { music } from "../audio/music.js";
-import { gameState } from "../state.js";
+import { gameState, penalize, scaledPenalty } from "../state.js";
 
 // Sector 2 — rotate a Caesar cipher wheel to decrypt HALCYON's logs. The live preview only reveals
 // the three most frequent ciphertext letters, so the player has to reason with the frequency
@@ -49,6 +49,7 @@ function wrap(text, width) {
 
 export class Sector2Scene {
   constructor({ hud, sfx, fx, onResult }) {
+    this.hints = ["Look at the frequency bars. The tallest one is almost certainly the letter E.", "Turn the wheel until that tallest letter decodes to E. The other revealed letters should start forming THE.", "The key is the distance from E to the tallest letter, counting forward through the alphabet."];
     this.hud = hud;
     this.sfx = sfx;
     this.fx = fx;
@@ -119,11 +120,11 @@ export class Sector2Scene {
       this.fx.flash("#0aff7a");
     } else {
       this.hud.addScore(-2);
-      gameState.secondsLeft = Math.max(1, gameState.secondsLeft - TIME_PENALTY);
+      penalize(TIME_PENALTY);
       this.sfx.play("error");
       this.fx.shake();
       this.fx.flash("#ff5a5a");
-      this.message = { text: `CHECKSUM FAIL — HALCYON logged the attempt. (-${TIME_PENALTY}s)`, color: "#ff5a5a", time: 2.4 };
+      this.message = { text: `CHECKSUM FAIL — HALCYON logged the attempt. (-${scaledPenalty(TIME_PENALTY)}s)`, color: "#ff5a5a", time: 2.4 };
     }
   }
 

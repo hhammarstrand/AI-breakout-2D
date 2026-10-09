@@ -62,6 +62,7 @@ function generate({ cols, rows, outlets, bolts }) {
 
 export class PowerScene {
   constructor({ hud, sfx, fx, onResult }) {
+    this.hints = ["Start at the battery and work outward, one piece at a time.", "Pieces at the edges can only point inward — those are your anchors.", "Bolted pieces can't turn: they show you part of the intended route."];
     this.hud = hud;
     this.sfx = sfx;
     this.fx = fx;

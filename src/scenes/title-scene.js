@@ -25,11 +25,19 @@ export class TitleScene {
 
     const items = [];
     if (hasSave) items.push({ label: "CONTINUE", action: onContinue });
-    items.push({ label: "NEW GAME", action: onNew });
+    items.push({ label: "NEW GAME", action: () => { this.menu = this.diffMenu; } });
     items.push({ label: () => `SOUND: ${gameState.sfxOn ? "ON" : "OFF"}`, action: onToggleSfx });
     items.push({ label: () => `MUSIC: ${gameState.musicOn ? "ON" : "OFF"}`, action: onToggleMusic });
     items.push({ label: () => `CRT FX: ${gameState.crtOn ? "ON" : "OFF"}`, action: onToggleCrt });
-    this.menu = new Menu(items, sfx);
+    this.mainMenu = new Menu(items, sfx);
+    this.menu = this.mainMenu;
+    this.diffMenu = new Menu([
+      { label: "STORY — relaxed timers", action: () => onNew("story") },
+      { label: "NORMAL", action: () => onNew("normal") },
+      { label: "HARD — for veterans", action: () => onNew("hard") },
+      { label: "BACK", action: () => { this.menu = this.mainMenu; } },
+    ], sfx);
+    this.diffMenu.index = 1;
   }
 
   onEnter() { document.body.classList.add("no-objective"); music.play("title"); }

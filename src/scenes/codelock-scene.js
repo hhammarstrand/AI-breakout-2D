@@ -1,6 +1,7 @@
 // Four-digit combination lock overlay used by the floor safes.
 export class CodeLockScene {
   constructor({ sfx, fx, code, title, onResult }) {
+    this.hints = ["The code is somewhere on this floor: in a data log, on a sign, or on a terminal.", "Lobby: whose badge number shows up on the reception terminal? Research: read the plaque by the lift. Core: when was HALCYON switched on?"];
     this.sfx = sfx;
     this.fx = fx;
     this.code = code;

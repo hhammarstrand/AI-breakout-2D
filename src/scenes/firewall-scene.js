@@ -1,4 +1,4 @@
-import { gameState } from "../state.js";
+import { gameState, penalize, scaledPenalty } from "../state.js";
 import { music } from "../audio/music.js";
 
 // C1 — firewall run. An action beat: steer a data packet up and down through scrolling firewall
@@ -18,6 +18,7 @@ const BOTTOM = 290;
 
 export class FirewallScene {
   constructor({ hud, sfx, fx, onResult }) {
+    this.hints = ["Follow ECHO's dotted cyan line — it always points at the next gap.", "Use short taps. The packet keeps drifting after you let go.", "Past the halfway mark the gaps start sliding. Aim for the middle of each one."];
     this.hud = hud;
     this.sfx = sfx;
     this.fx = fx;
@@ -118,7 +119,7 @@ export class FirewallScene {
         if (this.hp <= 0) {
           this.mode = "dead";
           this.timer = 1.8;
-          gameState.secondsLeft = Math.max(1, gameState.secondsLeft - TIME_PENALTY);
+          penalize(TIME_PENALTY);
           this.sfx.play("error");
           this.fx.glitch();
         }
@@ -219,7 +220,7 @@ export class FirewallScene {
       renderer.text(`Survive ${RUN_TIME}s. Three hits and you're deleted.`, w / 2, 156, { color: "#ffc0c8", size: 8, align: "center", baseline: "middle" });
       if (Math.floor(this._t * 2) & 1) renderer.text("[space] start run", w / 2, 174, { color: "#4ae6ff", size: 9, align: "center", baseline: "middle" });
     }
-    if (this.mode === "dead") renderer.text(`DELETED (-${TIME_PENALTY}s)`, w / 2, 160, { color: "#ff3a5a", size: 16, align: "center", baseline: "middle", weight: "bold" });
+    if (this.mode === "dead") renderer.text(`DELETED (-${scaledPenalty(TIME_PENALTY)}s)`, w / 2, 160, { color: "#ff3a5a", size: 16, align: "center", baseline: "middle", weight: "bold" });
     if (this.mode === "won") renderer.text("FIREWALL BREACHED", w / 2, 160, { color: "#0aff7a", size: 16, align: "center", baseline: "middle", weight: "bold" });
   }
 }

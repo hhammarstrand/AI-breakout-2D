@@ -38,7 +38,7 @@ export class Sentinel {
     };
   }
 
-  update(dt, player, tilemap, flashOn) {
+  update(dt, player, tilemap, flashOn, detectRate = 1) {
     this._t += dt;
     this._flashOn = flashOn;
     if (this.cooldown > 0) this.cooldown -= dt;
@@ -53,7 +53,7 @@ export class Sentinel {
 
     if (this.seen) {
       const closeness = 1 - dist / this.range;
-      this.meter = Math.min(1, this.meter + dt * (flashOn ? 0.9 : 0.45) * (0.6 + closeness * 1.6));
+      this.meter = Math.min(1, this.meter + dt * detectRate * (flashOn ? 0.9 : 0.45) * (0.6 + closeness * 1.6));
       this._lostT = 1.2;
       this._turnToward(toPlayer, dt);
       if (this.meter >= 1) {

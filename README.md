@@ -49,10 +49,20 @@ Any other static server works too (`npx serve`, `caddy file-server`, etc.).
 | Undo (L3 command, R3 move)        | `Backspace`         |
 | Pause / close dialog / exit sector | `Esc`              |
 | Flashlight on/off                 | `F`                 |
+| Hint from ECHO (in puzzles/battles) | `H`               |
 | Sound on/off                      | `M`                 |
 
 Progress (sectors, score, remaining containment time) autosaves to `localStorage`; pick
 **CONTINUE** on the title screen to resume. If the containment timer hits `00:00` the run ends.
+
+## Difficulty, hints and the opening
+
+- **Opening cinematic** — the tower at night, the lockdown, waking up at your desk, ECHO's first
+  words. Skippable.
+- **Difficulty** — STORY (×1.6 time, half-speed sentinels, half penalties), NORMAL, HARD
+  (×0.75 time, sharper sentinels, ×1.5 penalties), chosen at NEW GAME.
+- **Hints** — press `H` (or `?` on touch) in any puzzle, battle or safe for ECHO's hints, from a
+  nudge to nearly the answer.
 
 ## Explore like it's a Pokémon game
 

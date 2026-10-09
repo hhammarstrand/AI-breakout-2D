@@ -21,6 +21,7 @@ const INTRO_TIME = 1.1;
 
 export class BattleScene {
   constructor({ sentinel, sfx, fx, onResult }) {
+    this.hints = ["Read NEXT: under its HP bar. That's what it will do after your move.", "SPOOF right before a PURGE BOLT — it blocks the whole hit.", "PATCH when you drop below 40. OVERLOAD is your big hit; PING fills the cooldowns."];
     this.sentinel = sentinel;
     this.sfx = sfx;
     this.fx = fx;

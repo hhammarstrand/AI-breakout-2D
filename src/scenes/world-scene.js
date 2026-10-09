@@ -19,6 +19,9 @@ import {
   hasCollected,
   collect,
   addItem,
+  penalize,
+  scaledPenalty,
+  difficulty,
 } from "../state.js";
 import { Sector1Scene } from "./sector1-scene.js";
 import { Sector2Scene } from "./sector2-scene.js";
@@ -536,7 +539,7 @@ export class WorldScene {
     let danger = 0;
     for (const s of this.sentinels) {
       const before = s.meter;
-      const result = s.update(dt, this.player, this.tilemap, this.flashOn);
+      const result = s.update(dt, this.player, this.tilemap, this.flashOn, difficulty().detect);
       if (before === 0 && s.meter > 0) this.sfx.play("detect");
       danger = Math.max(danger, s.meter);
       if (result === "caught") { this._spotted(s); break; }
@@ -579,13 +582,13 @@ export class WorldScene {
   _caught(sentinel) {
     gameState.timesCaught++;
     this.pa.say(PA_CAUGHT[Math.min(gameState.timesCaught - 1, PA_CAUGHT.length - 1)]);
-    gameState.secondsLeft = Math.max(0, gameState.secondsLeft - CAUGHT_TIME_PENALTY);
+    penalize(CAUGHT_TIME_PENALTY);
     this.hud.addScore(-CAUGHT_SCORE_PENALTY);
     this.sfx.play("zap");
     this.fx.shake();
     this.fx.flash("#ff2020");
     this.fx.glitch();
-    this.toast.show(`⚡ SPOTTED BY ${sentinel.name} — -${CAUGHT_TIME_PENALTY}s`, "danger");
+    this.toast.show(`⚡ SPOTTED BY ${sentinel.name} — -${scaledPenalty(CAUGHT_TIME_PENALTY)}s`, "danger");
     const x = this.player.centerX, y = this.player.centerY;
     this.particles.burst(36, () => {
       const a = Math.random() * Math.PI * 2, v = 40 + Math.random() * 120;

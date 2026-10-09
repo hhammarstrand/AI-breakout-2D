@@ -1,7 +1,8 @@
 const FIXED_DT = 1000 / 60;
 
 export class Game {
-  constructor({ renderer, input, afterRender }) {
+  constructor({ renderer, input, afterRender, onHint }) {
+    this.onHint = onHint;
     this.renderer = renderer;
     this.afterRender = afterRender;
     this.input = input;
@@ -60,6 +61,7 @@ export class Game {
 
   _update(dt) {
     const top = this.top;
+    if (top?.hints && this.onHint && this.input.wasPressed("hint")) { this.onHint(top); return; }
     if (top && top.update) top.update(dt, this.input);
   }
 

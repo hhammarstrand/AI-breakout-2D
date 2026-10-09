@@ -436,3 +436,5 @@ kbd {
 #touch .t-start, #touch .t-select { height: 22px; border-radius: 11px !important; font-size: 7px; letter-spacing: 0; padding: 0; }
 .t-a, .t-b { width: 56px; height: 56px; font-size: 18px; }
 .t-a { transform: translateY(-14px); }
+#touch .t-hint { position: absolute; right: 14px; top: -34px; width: 30px; height: 30px; font-size: 12px; }
+.abtns { position: relative; }

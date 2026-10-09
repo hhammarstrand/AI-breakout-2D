@@ -38,6 +38,7 @@ const MOVES = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
 
 export class CoolantScene {
   constructor({ hud, sfx, fx, onResult }) {
+    this.hints = ["Never push a canister into a corner that isn't a vent — it's stuck there for good.", "Backspace undoes a move; space restarts the bay.", "Decide which canister goes to which vent before you start pushing."];
     this.hud = hud;
     this.sfx = sfx;
     this.fx = fx;

@@ -16,6 +16,7 @@ export const gameState = {
   checkpoint: null,
   collected: [],
   items: {},
+  difficulty: "normal",
   endingsSeen: readJson(SETTINGS_KEY)?.endingsSeen ?? [],
   sfxOn: readJson(SETTINGS_KEY)?.sfxOn ?? true,
   crtOn: readJson(SETTINGS_KEY)?.crtOn ?? true,
@@ -41,7 +42,26 @@ export function currentAct() {
   return next.act;
 }
 
-export function actSeconds(act = currentAct()) { return ACTS[act].seconds; }
+// Story mode is for players who want the plot and puzzles without the pressure; Hard is for
+// people who have already seen both endings.
+export const DIFFICULTY = {
+  story: { label: "STORY", time: 1.6, detect: 0.5, penalty: 0.5 },
+  normal: { label: "NORMAL", time: 1, detect: 1, penalty: 1 },
+  hard: { label: "HARD", time: 0.75, detect: 1.4, penalty: 1.5 },
+};
+
+export function difficulty() { return DIFFICULTY[gameState.difficulty] ?? DIFFICULTY.normal; }
+
+export function actSeconds(act = currentAct()) { return Math.round(ACTS[act].seconds * difficulty().time); }
+
+export function scaledPenalty(seconds) { return Math.round(seconds * difficulty().penalty); }
+
+// Mistakes cost time, scaled by difficulty; never ends the game by itself.
+export function penalize(seconds) {
+  const cost = Math.round(seconds * difficulty().penalty);
+  gameState.secondsLeft = Math.max(1, gameState.secondsLeft - cost);
+  return cost;
+}
 
 // Called on arriving at an act: refill the clock and remember where to restart.
 export function startAct() {
@@ -68,9 +88,9 @@ export function restoreCheckpoint() {
 export function resetGame() {
   gameState.completedSectors = 0;
   gameState.score = 0;
-  gameState.secondsLeft = ACTS[1].seconds;
   gameState.timesCaught = 0;
   gameState.checkpoint = null;
+  gameState.difficulty = "normal";
   gameState.collected = [];
   gameState.items = {};
   clearSave();
@@ -88,6 +108,7 @@ export function loadGame() {
   gameState.score = Number(save.score) || 0;
   gameState.timesCaught = Number(save.timesCaught) || 0;
   gameState.checkpoint = save.checkpoint ?? null;
+  gameState.difficulty = DIFFICULTY[save.difficulty] ? save.difficulty : "normal";
   gameState.collected = Array.isArray(save.collected) ? save.collected : [];
   gameState.items = save.items && typeof save.items === "object" ? save.items : {};
   gameState.secondsLeft = Math.max(0, Math.min(actSeconds(), Number(save.secondsLeft) || actSeconds()));
@@ -102,6 +123,7 @@ export function saveGame() {
     secondsLeft: gameState.secondsLeft,
     timesCaught: gameState.timesCaught,
     checkpoint: gameState.checkpoint,
+    difficulty: gameState.difficulty,
     collected: gameState.collected,
     items: gameState.items,
   });

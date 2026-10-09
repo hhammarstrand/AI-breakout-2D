@@ -1,3 +1,4 @@
+import { penalize, scaledPenalty } from "../state.js";
 import { music } from "../audio/music.js";
 import { gameState, FRAGMENTS } from "../state.js";
 import { Drone } from "../entities/drone.js";
@@ -37,6 +38,7 @@ const shuffle = (arr) => {
 
 export class Sector4Scene {
   constructor({ hud, sfx, fx, onResult }) {
+    this.hints = ["The order is the order you found them in.", "LUMEN, then ORION, then AURORA. Watch the red bar — the list reshuffles when it empties."];
     this.hud = hud;
     this.sfx = sfx;
     this.fx = fx;
@@ -135,12 +137,12 @@ export class Sector4Scene {
         this.fx.flash("#0aff7a");
       }
     } else {
-      gameState.secondsLeft = Math.max(1, gameState.secondsLeft - TIME_PENALTY);
+      penalize(TIME_PENALTY);
       this.words.push(...this.slots);
       this.slots = [];
       shuffle(this.words);
       this.eyeAnger = 1.2;
-      this.taunt = { text: `${TAUNTS[Math.floor(Math.random() * TAUNTS.length)]} (-${TIME_PENALTY}s)`, time: 2.6 };
+      this.taunt = { text: `${TAUNTS[Math.floor(Math.random() * TAUNTS.length)]} (-${scaledPenalty(TIME_PENALTY)}s)`, time: 2.6 };
       this.sfx.play("error");
       this.fx.shake();
       this.fx.flash("#ff2020");

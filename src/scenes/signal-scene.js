@@ -1,4 +1,4 @@
-import { gameState } from "../state.js";
+import { gameState, penalize, scaledPenalty } from "../state.js";
 import { music } from "../audio/music.js";
 
 // R2 — tune the signal. Match HALCYON's carrier wave by adjusting frequency, amplitude and phase,
@@ -17,6 +17,7 @@ const rnd = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
 
 export class SignalScene {
   constructor({ hud, sfx, fx, onResult }) {
+    this.hints = ["Match FREQ first: count how many red peaks cross the screen.", "Then AMP: how tall the red wave is, from 1 to 5.", "PHASE last: slide your wave sideways until the peaks line up exactly."];
     this.hud = hud;
     this.sfx = sfx;
     this.fx = fx;
@@ -77,10 +78,10 @@ export class SignalScene {
       this.fx.flash("#4ae6ff");
       return;
     }
-    gameState.secondsLeft = Math.max(1, gameState.secondsLeft - TIME_PENALTY);
+    penalize(TIME_PENALTY);
     this.sfx.play("error");
     this.fx.shake();
-    this.message = { text: `CARRIER REJECTED — HALCYON heard a stranger. (-${TIME_PENALTY}s)`, time: 2.4 };
+    this.message = { text: `CARRIER REJECTED — HALCYON heard a stranger. (-${scaledPenalty(TIME_PENALTY)}s)`, time: 2.4 };
   }
 
   _next() {

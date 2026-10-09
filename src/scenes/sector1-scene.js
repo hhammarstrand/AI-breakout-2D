@@ -1,5 +1,5 @@
 import { music } from "../audio/music.js";
-import { gameState } from "../state.js";
+import { gameState, penalize, scaledPenalty } from "../state.js";
 
 // Each visit generates a fresh set of feeds. The rules are spread across the lobby:
 //  - L1 sign / Analyst: humans read 36-37C, hostiles run over 38C
@@ -72,6 +72,7 @@ const TIME_PENALTY = 30;
 
 export class Sector1Scene {
   constructor({ hud, sfx, fx, onResult }) {
+    this.hints = ["Humans read 36–37C, move calmly, and make human sounds: coughing, sobbing, whispers.", "Every hostile runs hotter than 38C and is always moving.", "The cleanbot is human-warm but whirs, hums or ticks. It's neither survivor nor hostile — leave it unmarked."];
     this.hud = hud;
     this.sfx = sfx;
     this.fx = fx;
@@ -157,11 +158,11 @@ export class Sector1Scene {
       });
     } else {
       this.hud.addScore(-2);
-      gameState.secondsLeft = Math.max(1, gameState.secondsLeft - TIME_PENALTY);
+      penalize(TIME_PENALTY);
       this.sfx.play("error");
       this.fx.shake();
       this.fx.flash("#ff5a5a");
-      this._setMessage(`WRONG TARGETS. HALCYON noticed. (-${TIME_PENALTY}s)`, "#ff5a5a");
+      this._setMessage(`WRONG TARGETS. HALCYON noticed. (-${scaledPenalty(TIME_PENALTY)}s)`, "#ff5a5a");
     }
   }
 

@@ -1,5 +1,5 @@
 import { music } from "../audio/music.js";
-import { gameState } from "../state.js";
+import { gameState, penalize, scaledPenalty } from "../state.js";
 import { Drone } from "../entities/drone.js";
 
 // Sector 3 — program ECHO. The player writes a queue of commands (moves and waits); ECHO then
@@ -49,6 +49,7 @@ export function gateLive(tile, step) {
 
 export class Sector3Scene {
   constructor({ hud, sfx, fx, onResult }) {
+    this.hints = ["Count every command as one step, starting from 1. A gates are live on even steps, B gates on odd.", "A WAIT (space) before a gate shifts your timing by one step. Never wait while standing on a gate.", "Level 2: get the keycard (C) first, then come back west. You'll need two waits in total."];
     this.hud = hud;
     this.sfx = sfx;
     this.fx = fx;
@@ -186,10 +187,10 @@ export class Sector3Scene {
 
   _fail(kind, text) {
     const penalty = PENALTY[kind];
-    gameState.secondsLeft = Math.max(1, gameState.secondsLeft - penalty);
+    penalize(penalty);
     this.mode = "fail";
     this.runTimer = 1.4;
-    this.message = { text: `${text} (-${penalty}s)`, color: "#ff5a5a", time: 2.8 };
+    this.message = { text: `${text} (-${scaledPenalty(penalty)}s)`, color: "#ff5a5a", time: 2.8 };
     this.sfx.play(kind === "gate" ? "zap" : "error");
     this.fx.shake();
     if (kind === "gate") this.fx.flash("#ff4040");
