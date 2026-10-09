@@ -1,12 +1,13 @@
 // Screen-level CSS effects layered over the canvas.
 export class Fx {
-  constructor(stageEl) {
+  constructor(stageEl, postfx) {
     this.stage = stageEl;
+    this.postfx = postfx;
     this.flashEl = stageEl.querySelector("#flash");
   }
 
-  shake() { this._retrigger(this.stage, "shake"); }
-  glitch() { this._retrigger(this.stage, "glitch"); }
+  shake() { this._retrigger(this.stage, "shake"); this.postfx.kick(0.35); }
+  glitch() { this._retrigger(this.stage, "glitch"); this.postfx.kick(1); }
 
   flash(color = "#0aff7a") {
     this.flashEl.style.setProperty("--flash", color);

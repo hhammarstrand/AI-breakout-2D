@@ -8,7 +8,7 @@ const WARNINGS = [
 
 const OBJECTIVES = [
   "Reach the cyan L1 door (north-west) and locate the survivor",
-  "L2 — Decrypt the lab logs (sector offline, coming soon)",
+  "Reach the L2 door (north, second from left) and decrypt the lab logs",
   "L3 — Build the door agent (coming soon)",
   "L4 — The breach (coming soon)",
   "All sectors cleared. Get out of there, op.",
@@ -98,7 +98,7 @@ export class Hud {
     if (diff === 0) return;
     const step = Math.max(1, Math.ceil(Math.abs(diff) * dt * 6));
     this.displayScore += Math.sign(diff) * Math.min(step, Math.abs(diff));
-    this.scoreEl.textContent = String(this.displayScore).padStart(4, "0");
+    this.scoreEl.textContent = formatScore(this.displayScore);
   }
 
   _render(force = false) {
@@ -118,11 +118,15 @@ export class Hud {
                         : i === gameState.completedSectors ? "active" : "";
     }
 
-    if (force) this.scoreEl.textContent = String(this.displayScore).padStart(4, "0");
+    if (force) this.scoreEl.textContent = formatScore(this.displayScore);
     this.sfxEl.textContent = gameState.sfxOn ? "♪ SFX ON" : "♪ SFX OFF";
     this.sfxEl.classList.toggle("off", !gameState.sfxOn);
     this.objectiveEl.textContent = OBJECTIVES[gameState.completedSectors] ?? "";
   }
+}
+
+function formatScore(n) {
+  return `${n < 0 ? "-" : ""}${String(Math.abs(n)).padStart(4, "0")}`;
 }
 
 function formatTime(seconds) {

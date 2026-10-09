@@ -3,6 +3,7 @@ import { Tilemap, TILE_SIZE, TILE } from "../world/tilemap.js";
 import { Player } from "../entities/player.js";
 import { Npc } from "../entities/npc.js";
 import { Drone } from "../entities/drone.js";
+import { Sentinel } from "../entities/sentinel.js";
 import { Lighting, collectLights } from "../engine/lighting.js";
 import { Particles } from "../engine/particles.js";
 import {
@@ -13,9 +14,16 @@ import {
 } from "../state.js";
 import { PauseScene } from "./pause-scene.js";
 import { Sector1Scene } from "./sector1-scene.js";
+import { Sector2Scene } from "./sector2-scene.js";
 
 const SECTOR_LAUNCHERS = {
   1: (ctx) => new Sector1Scene(ctx),
+  2: (ctx) => new Sector2Scene(ctx),
+};
+
+const ECHO_CLEAR_LINES = {
+  1: "Survivor's safe. One down, three to go!",
+  2: "ORION SEVEN... I'll remember that. Two down!",
 };
 
 const SECTOR_NAMES = {
@@ -28,6 +36,9 @@ const SECTOR_REWARD = 25;
 const ALARM_SECONDS = 5 * 60;
 const IRIS_TIME = 0.45;
 const ECHO_GAP = 5;
+
+const CAUGHT_TIME_PENALTY = 60;
+const CAUGHT_SCORE_PENALTY = 5;
 
 const DOOR_COLORS = { done: "10,255,122", active: "74,230,255", sealed: "255,40,40" };
 
@@ -42,7 +53,7 @@ const INTERACT_RADIUS = TILE_SIZE * 0.9;
 const STEP_INTERVAL = 0.3;
 
 export class WorldScene {
-  constructor({ map, dialog, hud, sfx, fx, toast, onToggleSfx, onQuit, viewportWidth, viewportHeight }) {
+  constructor({ map, dialog, hud, sfx, fx, toast, postfx, onToggleSfx, onToggleCrt, onQuit, viewportWidth, viewportHeight }) {
     this.map = map;
     this.dialog = dialog;
     this.hud = hud;
@@ -50,6 +61,11 @@ export class WorldScene {
     this.fx = fx;
     this.toast = toast;
     this.onToggleSfx = onToggleSfx;
+    this.onToggleCrt = onToggleCrt;
+    this.postfx = postfx;
+    this.sentinels = (map.sentinels || []).map((cfg) => new Sentinel(cfg));
+    this.flashOn = true;
+    this._danger = 0;
     this.onQuit = onQuit;
     this.tilemap = new Tilemap(map.grid);
     this.player = new Player(map.spawn.col, map.spawn.row);
@@ -82,7 +98,10 @@ export class WorldScene {
   }
 
   onEnter() { this.sfx.setAmbient(this._alarm ? "alarm" : "hum"); }
-  onExit() { this.sfx.setAmbient(null); }
+  onExit() {
+    this.sfx.setAmbient(null);
+    if (this.postfx) this.postfx.danger = 0;
+  }
 
   npcProfile(id) {
     const npc = this.npcs.find((n) => n.id === id);
@@ -111,11 +130,20 @@ export class WorldScene {
     }
 
     if (input.wasPressed("pause")) {
-      this.game.push(new PauseScene({ sfx: this.sfx, onToggleSfx: this.onToggleSfx, onQuit: this.onQuit }));
+      this.game.push(new PauseScene({
+        sfx: this.sfx, onToggleSfx: this.onToggleSfx, onToggleCrt: this.onToggleCrt, onQuit: this.onQuit,
+      }));
       return;
     }
 
+    if (input.wasPressed("flashlight")) {
+      this.flashOn = !this.flashOn;
+      this.sfx.play("click");
+      if (!this.flashOn) this._echoOnce("dark", "Lights off. Stay in the shadows.");
+    }
+
     this.player.update(dt, input, this.tilemap);
+    this._updateSentinels(dt);
     if (this.player.moving) {
       this._idle = 0;
       this._stepTimer -= dt;
@@ -166,7 +194,7 @@ export class WorldScene {
           this.toast.show(`✓ SECTOR ${sectorNum} CLEARED`, "good");
           this._dataBurst();
           this._echoCooldown = 0;
-          this._echo("Survivor's safe. One down, three to go!", true);
+          this._echo(ECHO_CLEAR_LINES[sectorNum] ?? "Sector secure. Keep going!", true);
           const next = sectorNum + 1;
           if (SECTOR_NAMES[next]) {
             setTimeout(() => this.toast.show(`🔓 L${next} UNLOCKED — ${SECTOR_NAMES[next]}`, "info"), 700);
@@ -247,7 +275,7 @@ export class WorldScene {
     this.tilemap.draw(renderer, cam, this._time);
     this.particles.draw(ctx, cam, "under");
 
-    const sprites = [...this.npcs, this.player].sort((a, b) => a.y - b.y);
+    const sprites = [...this.npcs, this.player, ...this.sentinels].sort((a, b) => a.y - b.y);
     for (const s of sprites) s.draw(renderer, cam);
     this.drone.draw(renderer, cam);
 
@@ -258,14 +286,20 @@ export class WorldScene {
       lights: [
         ...this.mapLights.lights,
         ...this.tempLights,
-        { x: this.player.centerX, y: this.player.centerY, radius: 30, intensity: 0.6 },
+        { x: this.player.centerX, y: this.player.centerY, radius: this.flashOn ? 30 : 22, intensity: this.flashOn ? 0.6 : 0.4 },
+        ...this.sentinels.map((s) => ({ x: s.x, y: s.y, radius: 20, intensity: 0.5, color: "255,40,40" })),
         { x: this.drone.lightX, y: this.drone.lightY, radius: 46, intensity: 0.45, color: "74,230,255" },
       ],
-      flashlight: {
-        x: this.player.centerX, y: this.player.centerY - 2,
-        angle: this.flashAngle, spread: 0.55, range: 135, intensity: 1,
-      },
+      cones: [
+        ...(this.flashOn ? [{
+          x: this.player.centerX, y: this.player.centerY - 2,
+          angle: this.flashAngle, spread: 0.55, range: 135, intensity: 1, color: "255,240,200", glow: 0.1,
+        }] : []),
+        ...this.sentinels.map((s) => s.cone),
+      ],
     });
+    for (const s of this.sentinels) s.drawIndicator(renderer, cam);
+    this._drawDanger(renderer);
 
     this.particles.draw(ctx, cam, "over");
     if (this._alarm) this._drawAlarm(renderer);
@@ -360,6 +394,65 @@ export class WorldScene {
     this.tempLights.push({ x, y, radius: 120, base: 1, intensity: 1, color: "10,255,122", life: 0.8, maxLife: 0.8 });
   }
 
+  // --- sentinels -----------------------------------------------------------
+
+  _updateSentinels(dt) {
+    let danger = 0;
+    for (const s of this.sentinels) {
+      const before = s.meter;
+      const result = s.update(dt, this.player, this.tilemap, this.flashOn);
+      if (before === 0 && s.meter > 0) this.sfx.play("detect");
+      danger = Math.max(danger, s.meter);
+      if (result === "caught") { this._caught(s); break; }
+      const dx = s.x - this.player.centerX, dy = s.y - this.player.centerY;
+      if (dx * dx + dy * dy < (TILE_SIZE * 8) ** 2) {
+        this._echoOnce("sentinel", "Sentinel bot! Kill the light with F and sneak past.");
+      }
+    }
+    this._danger += (danger - this._danger) * Math.min(1, dt * 8);
+    if (this.postfx) this.postfx.danger = this._danger * 0.6;
+  }
+
+  _caught(sentinel) {
+    gameState.secondsLeft = Math.max(0, gameState.secondsLeft - CAUGHT_TIME_PENALTY);
+    this.hud.addScore(-CAUGHT_SCORE_PENALTY);
+    this.sfx.play("zap");
+    this.fx.shake();
+    this.fx.flash("#ff2020");
+    this.fx.glitch();
+    this.toast.show(`⚡ SPOTTED BY ${sentinel.name} — -${CAUGHT_TIME_PENALTY}s`, "danger");
+    const x = this.player.centerX, y = this.player.centerY;
+    this.particles.burst(36, () => {
+      const a = Math.random() * Math.PI * 2, v = 40 + Math.random() * 120;
+      return { x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, drag: 3, life: 0.5 + Math.random() * 0.5,
+               color: Math.random() < 0.5 ? "#ff4040" : "#ffe0e0", additive: true, trail: true };
+    });
+    this.tempLights.push({ x, y, radius: 90, base: 1, intensity: 1, color: "255,40,40", life: 0.4, maxLife: 0.4 });
+    this._iris = {
+      dir: "close", t: -0.35, // brief hold so the zap reads before the screen closes
+      onDone: () => {
+        this.player.x = this.map.spawn.col * TILE_SIZE + 2;
+        this.player.y = this.map.spawn.row * TILE_SIZE + 1;
+        this.camera.snapTo(this.player.centerX, this.player.centerY);
+        this.drone.x = this.player.centerX; this.drone.y = this.player.centerY - 20;
+        this._iris = { dir: "open", t: 0 };
+        this._echoCooldown = 0;
+        this._echo("Ow. They tagged us. Stay out of the red beams.", true);
+      },
+    };
+  }
+
+  _drawDanger(renderer) {
+    if (this._danger < 0.02 || (this.postfx && this.postfx.enabled)) return;
+    const ctx = renderer.ctx;
+    const w = renderer.width, h = renderer.height;
+    const g = ctx.createRadialGradient(w / 2, h / 2, h * 0.35, w / 2, h / 2, w * 0.7);
+    g.addColorStop(0, "rgba(255,0,0,0)");
+    g.addColorStop(1, `rgba(255,0,0,${0.45 * this._danger})`);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+  }
+
   // --- ECHO ----------------------------------------------------------------
 
   _echo(text, force = false) {
@@ -436,7 +529,7 @@ export class WorldScene {
 
   _drawIris(renderer) {
     if (!this._iris) return;
-    const p = Math.min(1, this._iris.t / IRIS_TIME);
+    const p = Math.max(0, Math.min(1, this._iris.t / IRIS_TIME));
     const ease = p * p * (3 - 2 * p);
     const k = this._iris.dir === "close" ? 1 - ease : ease;
     const maxR = Math.hypot(renderer.width, renderer.height);

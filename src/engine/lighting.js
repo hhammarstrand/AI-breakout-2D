@@ -21,7 +21,7 @@ export class Lighting {
     this.height = height;
   }
 
-  render(target, camera, { darkness, tint, lights, flashlight, tilemap }) {
+  render(target, camera, { darkness, tint, lights, cones = [], tilemap }) {
     const ctx = this.ctx;
     const w = this.width, h = this.height;
 
@@ -47,16 +47,18 @@ export class Lighting {
       ctx.fillRect(sx - l.radius, sy - l.radius, l.radius * 2, l.radius * 2);
     }
 
-    let cone = null;
-    if (flashlight) {
-      cone = visibilityCone(tilemap, flashlight);
-      const ox = flashlight.x - camera.x, oy = flashlight.y - camera.y;
-      const g = ctx.createRadialGradient(ox, oy, 0, ox, oy, flashlight.range);
-      g.addColorStop(0, `rgba(0,0,0,${flashlight.intensity})`);
-      g.addColorStop(0.7, `rgba(0,0,0,${flashlight.intensity * 0.75})`);
+    const polys = [];
+    for (const c of cones) {
+      const cx = c.x - camera.x, cy = c.y - camera.y;
+      if (cx < -c.range || cy < -c.range || cx > w + c.range || cy > h + c.range) continue;
+      const poly = visibilityCone(tilemap, c);
+      polys.push({ c, poly, cx, cy });
+      const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, c.range);
+      g.addColorStop(0, `rgba(0,0,0,${c.intensity})`);
+      g.addColorStop(0.7, `rgba(0,0,0,${c.intensity * 0.75})`);
       g.addColorStop(1, "rgba(0,0,0,0)");
       ctx.fillStyle = g;
-      tracePolygon(ctx, cone, camera);
+      tracePolygon(ctx, poly, camera);
       ctx.fill();
     }
 
@@ -75,13 +77,12 @@ export class Lighting {
       target.fillStyle = g;
       target.fillRect(sx - r, sy - r, r * 2, r * 2);
     }
-    if (cone) {
-      const ox = flashlight.x - camera.x, oy = flashlight.y - camera.y;
-      const g = target.createRadialGradient(ox, oy, 0, ox, oy, flashlight.range);
-      g.addColorStop(0, "rgba(255,240,200,0.10)");
-      g.addColorStop(1, "rgba(255,240,200,0)");
+    for (const { c, poly, cx, cy } of polys) {
+      const g = target.createRadialGradient(cx, cy, 0, cx, cy, c.range);
+      g.addColorStop(0, `rgba(${c.color},${c.glow ?? 0.2})`);
+      g.addColorStop(1, `rgba(${c.color},0)`);
       target.fillStyle = g;
-      tracePolygon(target, cone, camera);
+      tracePolygon(target, poly, camera);
       target.fill();
     }
     target.restore();
@@ -111,6 +112,19 @@ function visibilityCone(tilemap, { x, y, angle, spread, range }) {
     pts.push({ x: x + dx * Math.min(d, range), y: y + dy * Math.min(d, range) });
   }
   return pts;
+}
+
+// True when nothing opaque sits on the straight line between two points.
+export function lineOfSight(tilemap, x0, y0, x1, y1) {
+  const dist = Math.hypot(x1 - x0, y1 - y0);
+  const steps = Math.ceil(dist / 4);
+  for (let i = 1; i < steps; i++) {
+    const t = i / steps;
+    const col = Math.floor((x0 + (x1 - x0) * t) / TILE_SIZE);
+    const row = Math.floor((y0 + (y1 - y0) * t) / TILE_SIZE);
+    if (OPAQUE.has(tilemap.tileAt(col, row))) return false;
+  }
+  return true;
 }
 
 // Builds static light sources from the map. `time` drives flicker; door colours follow sector state.

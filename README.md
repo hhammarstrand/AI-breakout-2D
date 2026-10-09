@@ -4,8 +4,8 @@ A top-down 2D variant of [AI-breakout](https://hhammarstrand.github.io/AI-breako
 infected smart-building you escape with help from AI tools), but you walk a character through the world
 Pokémon-style instead of typing terminal commands.
 
-**Status:** lobby + sector 1 (Locate the Survivor) playable. Sectors L2–L4 are sealed and unlock as
-you clear earlier sectors.
+**Status:** lobby, sector 1 (Locate the Survivor) and sector 2 (Decrypt the Lab Logs) playable.
+Sectors L3–L4 are sealed and unlock as you clear earlier sectors.
 
 ## Run locally
 
@@ -26,12 +26,21 @@ Any other static server works too (`npx serve`, `caddy file-server`, etc.).
 | Interact / cycle survivor-hostile | `Space` / `E`       |
 | Submit (inside a sector)          | `Enter`             |
 | Pause / close dialog / exit sector | `Esc`              |
+| Flashlight on/off                 | `F`                 |
 | Sound on/off                      | `M`                 |
 
 Progress (sectors, score, remaining containment time) autosaves to `localStorage`; pick
 **CONTINUE** on the title screen to resume. If the containment timer hits `00:00` the run ends.
 
 ## What's in the lobby
+
+- **CRT post-processing (WebGL)** — the whole frame is drawn through a shader: curved glass,
+  bloom, chromatic aberration, scanlines, aperture grille, grain and glitch tears on impacts.
+  Toggle **CRT FX** in the title or pause menu; without WebGL it falls back to the plain canvas.
+- **Sentinels** — patrol bots sweep the corridor and lobby with red, ray-cast vision cones. A
+  detection meter fills while they can see you (faster up close, much faster with your flashlight
+  on). Get caught and you lose 60 seconds and are sent back to the spawn. Kill your light with
+  `F` to sneak.
 
 - **Dynamic lighting** — the building is dark. Your flashlight is ray-cast against the walls and
   casts real shadows; lamps, terminals, server racks and doors glow in their own colours, some
@@ -50,6 +59,13 @@ with six feeds, randomised on every visit. Read each room's sensor data (motion,
 and tag exactly **one** room as `SURVIVOR` and **three** rooms as `HOSTILE` (`Space` cycles
 hostile → survivor → unmarked), then `Enter` to submit. Wrong submissions
 cost 2 points; clearing the sector awards 25.
+
+## Sector 2 — Decrypt the Lab Logs
+
+Three intercepted logs, each Caesar-shifted by a different key. Rotate the cipher wheel with the
+arrow keys; the decoded output re-scrambles live as you turn. A letter-frequency histogram of the
+ciphertext is your cryptanalysis aid — the tallest bar is usually `E`. `Enter` locks in a key;
+wrong keys cost 2 points.
 
 ## Deploying to GitHub Pages
 
@@ -74,16 +90,15 @@ src/
   main.js               bootstraps the game
   state.js              progress, score, timer + localStorage save
   audio/                WebAudio synth SFX (no asset files)
-  engine/               loop, input, camera, canvas helpers, lighting, particles
+  engine/               loop, input, camera, canvas helpers, lighting, particles, WebGL post-fx
   world/                tilemap + map data
-  entities/             player, npc, drone (ECHO)
-  scenes/               title, world, pause, game over, sector1
+  entities/             player, npc, drone (ECHO), sentinel
+  scenes/               title, world, pause, game over, sector1, sector2
   ui/                   dialog + portraits, hud, toasts, screen fx
 ```
 
 ## Future iterations
 
-- Wire L2 (cipher decryption), L3 (pathfinding agent), and L4 (breach) to their own scenes.
+- Wire L3 (pathfinding agent) and L4 (breach) to their own scenes.
 - Real pixel-art sprites under `assets/`.
-- Patrolling hostiles that react to the flashlight.
 - Touch controls for mobile.

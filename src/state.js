@@ -9,6 +9,7 @@ export const gameState = {
   score: 0,
   secondsLeft: TOTAL_SECONDS,
   sfxOn: readJson(SETTINGS_KEY)?.sfxOn ?? true,
+  crtOn: readJson(SETTINGS_KEY)?.crtOn ?? true,
 };
 
 export function isSectorUnlocked(num) { return num <= gameState.completedSectors + 1; }
@@ -59,7 +60,16 @@ export function clearSave() {
 
 export function setSfx(on) {
   gameState.sfxOn = on;
-  writeJson(SETTINGS_KEY, { sfxOn: on });
+  writeSettings();
+}
+
+export function setCrt(on) {
+  gameState.crtOn = on;
+  writeSettings();
+}
+
+function writeSettings() {
+  writeJson(SETTINGS_KEY, { sfxOn: gameState.sfxOn, crtOn: gameState.crtOn });
 }
 
 function clampInt(v, lo, hi) { return Math.max(lo, Math.min(hi, v | 0)); }

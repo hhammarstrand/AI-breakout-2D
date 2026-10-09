@@ -25,6 +25,11 @@ const SOUNDS = {
   drone:   [{ freq: 1400, to: 1900, dur: 0.05, type: "sine", vol: 0.04 },
             { freq: 1900, to: 1500, dur: 0.06, type: "sine", vol: 0.04, delay: 0.06 }],
   iris:    [{ freq: 400, to: 80, dur: 0.4, type: "triangle", vol: 0.07 }],
+  click:   [{ freq: 1800, dur: 0.02, type: "square", vol: 0.05 },
+            { freq: 900, dur: 0.02, type: "square", vol: 0.04, delay: 0.03 }],
+  detect:  [{ freq: 500, to: 1100, dur: 0.18, type: "triangle", vol: 0.08 }],
+  zap:     [{ freq: 1800, to: 60, dur: 0.5, type: "sawtooth", vol: 0.12 },
+            { freq: 90, dur: 0.4, type: "square", vol: 0.08, delay: 0.05 }],
   gameover:[{ freq: 440, to: 40, dur: 1.4, type: "sawtooth", vol: 0.1 }],
 };
 

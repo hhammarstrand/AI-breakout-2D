@@ -167,6 +167,7 @@ export const smartBuildingMap = {
         "Four sectors. They must be cleared in order — L1 first, then L2, L3, L4.",
         "L1 is live: surveillance grid. Find the human, flag the hostiles.",
         "Read the L1 sign by the door for the sensor baselines.",
+        "And watch out for the sentinel bots. They hunt anything with a light on.",
       ],
     },
     {
@@ -203,6 +204,10 @@ export const smartBuildingMap = {
       ],
     },
   ],
+  sentinels: [
+    { name: "SENTINEL-A", path: [{ c: 2, r: 10, wait: 2 }, { c: 45, r: 10, wait: 2 }] },
+    { name: "SENTINEL-B", path: [{ c: 44, r: 16, wait: 2.5 }, { c: 3, r: 16, wait: 2.5 }] },
+  ],
   doorMessages: {
     L1: "[L1] LOCATE THE SURVIVOR — sensors locked behind authentication. Coming soon.",
     L2: "[L2] DECRYPT THE LAB LOGS — three encrypted feeds. Coming soon.",
@@ -217,7 +222,11 @@ export const smartBuildingMap = {
       "Hostiles run hot — over 38C — and never stop moving: irregular, erratic, twitching.",
       "Empty rooms show no motion. Machinery can run hot. Don't be fooled.",
     ] },
-    "11,18": { speaker: "Sign // L2", lines: ["SECTOR 2 — RESEARCH LAB", "Bio-secure. Decrypt protocol required for access."] },
+    "11,18": { speaker: "Sign // L2", lines: [
+      "SECTOR 2 — RESEARCH LAB",
+      "Lab logs are sealed with a rotating-alphabet cipher (Caesar shift).",
+      "Field tip: in English text, E is the most common letter. Line the peak up with E.",
+    ] },
     "11,30": { speaker: "Sign // L3", lines: ["SECTOR 3 — DOOR CONTROL", "Pathfinding agent must be deployed before entry."] },
     "11,41": { speaker: "Sign // L4", lines: ["SECTOR 4 — UPLINK", "Final auth code required. Combine fragments from sectors 1–3."] },
     "18,23": { speaker: "Reception", lines: ["WELCOME TO BLACKOUT TOWER", "If you are reading this, you are the rescue.", "Press [E] near doors and people to interact."] },

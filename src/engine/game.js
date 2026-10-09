@@ -1,8 +1,9 @@
 const FIXED_DT = 1000 / 60;
 
 export class Game {
-  constructor({ renderer, input }) {
+  constructor({ renderer, input, afterRender }) {
     this.renderer = renderer;
+    this.afterRender = afterRender;
     this.input = input;
     this.scenes = [];
     this._lastTime = 0;
@@ -49,6 +50,7 @@ export class Game {
     }
 
     this._render();
+    if (this.afterRender) this.afterRender(now / 1000, delta / 1000);
     requestAnimationFrame(this._frame);
   };
 

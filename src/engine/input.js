@@ -6,6 +6,7 @@ const KEY_ALIASES = {
   " ": "interact", Spacebar: "interact", e: "interact", E: "interact",
   Enter: "submit",
   Escape: "pause",
+  f: "flashlight", F: "flashlight",
 };
 
 export class Input {

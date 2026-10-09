@@ -189,6 +189,12 @@ html, body {
   background: #000;
 }
 
+#screen { display: none; }
+body.postfx #screen { display: block; image-rendering: auto; }
+body.postfx #game { position: absolute; opacity: 0; pointer-events: none; }
+body.postfx #crt { display: none; }
+body.postfx #stage.glitch #game { animation: none; }
+
 #flash {
   pointer-events: none;
   position: absolute;

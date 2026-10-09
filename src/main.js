@@ -9,9 +9,10 @@ import { Dialog } from "./ui/dialog.js";
 import { Hud } from "./ui/hud.js";
 import { Toasts } from "./ui/toast.js";
 import { Fx } from "./ui/fx.js";
+import { PostFx } from "./engine/postfx.js";
 import { smartBuildingMap } from "./world/maps/smart-building.js";
 import {
-  gameState, hasSave, loadGame, resetGame, saveGame, clearSave, setSfx,
+  gameState, hasSave, loadGame, resetGame, saveGame, clearSave, setSfx, setCrt,
 } from "./state.js";
 
 const canvas = document.getElementById("game");
@@ -21,9 +22,17 @@ const renderer = new Renderer(canvas);
 const input = new Input(window);
 const sfx = new Sfx(gameState.sfxOn);
 const toast = new Toasts(document.getElementById("toasts"), sfx);
-const fx = new Fx(stageEl);
+const postfx = new PostFx(canvas);
+postfx.setEnabled(gameState.crtOn);
+const fx = new Fx(stageEl, postfx);
 const dialog = new Dialog(document.getElementById("dialog"), sfx);
-const game = new Game({ renderer, input });
+const game = new Game({ renderer, input, afterRender: (t, dt) => postfx.render(t, dt) });
+
+const toggleCrt = () => {
+  setCrt(!gameState.crtOn);
+  postfx.setEnabled(gameState.crtOn);
+  fx.glitch();
+};
 
 const toggleSfx = () => {
   setSfx(!gameState.sfxOn);
@@ -65,6 +74,8 @@ const startWorld = (fresh) => {
     fx,
     toast,
     onToggleSfx: toggleSfx,
+    onToggleCrt: toggleCrt,
+    postfx,
     onQuit: () => { saveGame(); showTitle(); },
     viewportWidth: renderer.width,
     viewportHeight: renderer.height,
@@ -86,6 +97,7 @@ function showTitle() {
     hasSave: hasSave(),
     sfx,
     onToggleSfx: toggleSfx,
+    onToggleCrt: toggleCrt,
     onNew: () => { resetGame(); startWorld(true); },
     onContinue: () => { loadGame(); startWorld(false); },
   }));
@@ -95,4 +107,4 @@ showTitle();
 game.start();
 
 // ?debug exposes internals for automated smoke tests.
-if (new URLSearchParams(location.search).has("debug")) window.__blackout = { game, gameState };
+if (new URLSearchParams(location.search).has("debug")) window.__blackout = { game, gameState, postfx };
