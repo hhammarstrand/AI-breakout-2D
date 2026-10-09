@@ -16,7 +16,8 @@ export class Npc {
     this.accent = config.accent || "#cffcff";
     this.bodyDark = config.bodyDark || "#1a3a4a";
     this.name = config.name || "?";
-    this.lines = config.lines || [];
+    this.stagedLines = config.lines || [];
+    this.appearsAt = config.appearsAt ?? 0;
     this._bobTime = Math.random() * 10;
     this._hop = 0;
   }
@@ -24,6 +25,13 @@ export class Npc {
   update(dt) {
     this._bobTime += dt;
     if (this._hop > 0) this._hop = Math.max(0, this._hop - dt);
+  }
+
+  linesFor(stage) {
+    for (let i = Math.min(stage, this.stagedLines.length - 1); i >= 0; i--) {
+      if (this.stagedLines[i]?.length) return this.stagedLines[i];
+    }
+    return ["..."];
   }
 
   // Little "!" hop when the player starts a conversation.

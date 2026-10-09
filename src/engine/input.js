@@ -7,6 +7,7 @@ const KEY_ALIASES = {
   Enter: "submit",
   Escape: "pause",
   f: "flashlight", F: "flashlight",
+  Backspace: "back", Delete: "back",
 };
 
 export class Input {
@@ -21,7 +22,7 @@ export class Input {
       if (!this._down.has(action)) this._pressed.add(action);
       this._down.add(action);
       this._anyPressed = true;
-      if (action === "interact" || action === "pause" || action === "submit") event.preventDefault();
+      if (action === "interact" || action === "pause" || action === "submit" || action === "back") event.preventDefault();
     });
 
     target.addEventListener("keyup", (event) => {

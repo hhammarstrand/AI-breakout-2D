@@ -1,4 +1,4 @@
-import { gameState, saveGame, TOTAL_SECONDS } from "../state.js";
+import { gameState, saveGame, TOTAL_SECONDS, FRAGMENTS, collectedFragments } from "../state.js";
 
 const AUTOSAVE_INTERVAL = 5;
 const WARNINGS = [
@@ -7,11 +7,11 @@ const WARNINGS = [
 ];
 
 const OBJECTIVES = [
-  "Reach the cyan L1 door (north-west) and locate the survivor",
-  "Reach the L2 door (north, second from left) and decrypt the lab logs",
-  "L3 — Build the door agent (coming soon)",
-  "L4 — The breach (coming soon)",
-  "All sectors cleared. Get out of there, op.",
+  "L1 (north-west): find the survivor on the CCTV grid. Ask around for the sensor rules",
+  "L2: decrypt HALCYON's lab logs. Dr. Lind knows how its cipher works",
+  "L3: program ECHO to walk the door-control maze",
+  "L4 (north-east): enter the uplink code and override HALCYON",
+  "The tower is open. It's over.",
 ];
 
 export class Hud {
@@ -27,6 +27,7 @@ export class Hud {
     this.timerCell = root.querySelector("#hud-timer");
     this.timerFill = root.querySelector("#hud-timer-fill");
     this.sfxEl = root.querySelector("#hud-sfx");
+    this.codeEl = root.querySelector("#hud-code-value");
     this.objectiveEl = document.getElementById("objective");
     this.displayScore = gameState.score;
     this._saveTimer = 0;
@@ -54,7 +55,6 @@ export class Hud {
   }
 
   update(dt) {
-    this.tickScore(dt);
     if (this._timedOut) return;
     gameState.secondsLeft = Math.max(0, gameState.secondsLeft - dt);
 
@@ -122,6 +122,8 @@ export class Hud {
     this.sfxEl.textContent = gameState.sfxOn ? "♪ SFX ON" : "♪ SFX OFF";
     this.sfxEl.classList.toggle("off", !gameState.sfxOn);
     this.objectiveEl.textContent = OBJECTIVES[gameState.completedSectors] ?? "";
+    const got = collectedFragments();
+    this.codeEl.textContent = FRAGMENTS.map((f, i) => got[i] ?? "·".repeat(f.length)).join(" ");
   }
 }
 

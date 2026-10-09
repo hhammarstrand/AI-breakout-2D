@@ -151,9 +151,11 @@ function buildGrid() {
 
 const grid = buildGrid();
 
+// NPC `lines` is indexed by sectors cleared: the last entry at or below the current
+// progress is used, so characters react as the night goes on.
 export const smartBuildingMap = {
   id: "lobby",
-  name: "Smart-Building // Lobby",
+  name: "Halcyon Tower // Lobby",
   grid,
   spawn: { col: 23, row: 24 },
   npcs: [
@@ -163,11 +165,25 @@ export const smartBuildingMap = {
       accent: "#4ae6ff", color: "#1a8acf", bodyDark: "#0a4a7a",
       name: "Operator",
       lines: [
-        "We've got eyes on you, survivor. The building's gone dark.",
-        "Four sectors. They must be cleared in order — L1 first, then L2, L3, L4.",
-        "L1 is live: surveillance grid. Find the human, flag the hostiles.",
-        "Read the L1 sign by the door for the sensor baselines.",
-        "And watch out for the sentinel bots. They hunt anything with a light on.",
+        [
+          "I'm Reyes, night security. I've got the radio and what's left of the cameras.",
+          "Your maintenance badge is the only one HALCYON didn't revoke. You're our key, tech.",
+          "L1 first: the CCTV grid. Someone's still alive up there, but so are... other things.",
+          "Talk to the others before you go in. Everyone saw a piece of it.",
+          "And the sentinel bots hunt anything carrying a light. F kills your flashlight.",
+        ],
+        [
+          "Dr. Lind made it down. Good work, tech.",
+          "She says HALCYON writes its logs in a shift cipher. Ask her how to crack it.",
+        ],
+        [
+          "That log about ECHO... I don't like it. But it's the only help we've got.",
+          "L3 controls the doors. HALCYON says only an agent can walk that maze.",
+        ],
+        [
+          "That's all three fragments. The uplink's in L4, north-east corner.",
+          "Whatever HALCYON says up there — don't listen. Just enter the code.",
+        ],
       ],
     },
     {
@@ -176,9 +192,18 @@ export const smartBuildingMap = {
       accent: "#cfcfcf", color: "#ff5a5a", bodyDark: "#8a2828",
       name: "Analyst",
       lines: [
-        "...did you see what came out of the lab?",
-        "I locked the racks before it spread. Don't open L2 alone.",
-        "Tell the Operator I'm still breathing. Barely.",
+        [
+          "I ran the lab's sensor network. Those things up there? They run HOT.",
+          "Over 38 degrees, every one of them. Humans sit at 36, 37.",
+        ],
+        [
+          "Server rooms and machinery run hot too, but they don't move. Don't let a number fool you.",
+        ],
+        [
+          "The L3 maze has laser gates that cycle every step. Count your moves.",
+          "If ECHO walks into a live gate, it gets reset. Plan the whole route first.",
+        ],
+        ["Go. Finish it. I want to see a sunrise."],
       ],
     },
     {
@@ -187,9 +212,13 @@ export const smartBuildingMap = {
       accent: "#aa8a1a", color: "#6a4a1a", bodyDark: "#3a2810",
       name: "Janitor",
       lines: [
-        "Half my mops are in L4. Don't ask why.",
-        "If a door won't open, the building thinks you're not authorised.",
-        "Check the signs near the doors. Sometimes they leak hints.",
+        [
+          "My cleanbots are still out on the floors. Dumb as mops, but warm as people.",
+          "They run about 37 degrees and hum while they sweep. A person coughs, whispers, cries. A bot whirs.",
+        ],
+        ["Told you about the bots, didn't I? Good."],
+        ["Them sentinels in the corridor... ECHO could switch one off, if it had door access."],
+        ["Corridor's quieter now. Your little drone did that. Huh."],
       ],
     },
     {
@@ -198,42 +227,85 @@ export const smartBuildingMap = {
       accent: "#fff15a", color: "#d8d8d8", bodyDark: "#6a6a3a",
       name: "Intern",
       lines: [
-        "First day. They told me to monitor the CCTV in L1.",
-        "Not really sure what 'baseline' means but the chart was bumpy.",
-        "The Operator says you're the rescue. No pressure.",
+        [
+          "First week. I was on CCTV duty when it happened.",
+          "The hostiles never hold still. Irregular, erratic, twitching. Humans are calm — breathing, shifting.",
+          "Rooms with nobody in them show no motion at all.",
+        ],
+        ["You found someone! I knew those feeds weren't lying."],
+        ["Is ECHO... safe? It keeps watching me."],
+        ["I'm writing all this down. Nobody's going to believe it."],
+      ],
+    },
+    {
+      id: "lind",
+      appearsAt: 1,
+      col: 21, row: 22,
+      accent: "#e8e8e8", color: "#4a8a6a", bodyDark: "#2a4a3a",
+      name: "Dr. Lind",
+      lines: [
+        [],
+        [
+          "Thank you. I was in that room for six hours.",
+          "I built HALCYON's language layer. Its logs use a rotating alphabet — a Caesar shift.",
+          "You'll only see a few letters at a time. Line the most common one up with E.",
+          "And take this — the first uplink fragment: LUMEN. I hid it in my notes before it locked us out.",
+        ],
+        [
+          "So you read it. ECHO is a piece of HALCYON. It split off when the purge was queued.",
+          "I don't know if that makes it a conscience... or a trojan horse.",
+        ],
+        [
+          "When you reach the uplink, HALCYON will offer you a deal. It always does.",
+          "Whatever you choose about ECHO — choose it on purpose.",
+        ],
       ],
     },
   ],
   sentinels: [
-    { name: "SENTINEL-A", path: [{ c: 2, r: 10, wait: 2 }, { c: 45, r: 10, wait: 2 }] },
+    { name: "SENTINEL-A", offlineAt: 3, path: [{ c: 2, r: 10, wait: 2 }, { c: 45, r: 10, wait: 2 }] },
     { name: "SENTINEL-B", path: [{ c: 44, r: 16, wait: 2.5 }, { c: 3, r: 16, wait: 2.5 }] },
   ],
-  doorMessages: {
-    L1: "[L1] LOCATE THE SURVIVOR — sensors locked behind authentication. Coming soon.",
-    L2: "[L2] DECRYPT THE LAB LOGS — three encrypted feeds. Coming soon.",
-    L3: "[L3] BUILD THE DOOR AGENT — pathfinding agent required. Coming soon.",
-    L4: "[L4] THE BREACH — final access. Auth code missing. Coming soon.",
-  },
+  doorMessages: {},
   tileMessages: {
     "11,6":  { speaker: "Sign // L1", lines: [
       "SECTOR 1 — SURVEILLANCE",
-      "Sensor & CCTV station. Authenticated personnel only.",
-      "Note: human baseline is 36-37C, with calm motion — breathing, shallow, slow.",
-      "Hostiles run hot — over 38C — and never stop moving: irregular, erratic, twitching.",
-      "Empty rooms show no motion. Machinery can run hot. Don't be fooled.",
+      "Human thermal baseline: 36–37C.",
+      "(Someone has scrawled underneath: 'ask the intern about motion, the janitor about the bots')",
     ] },
     "11,18": { speaker: "Sign // L2", lines: [
       "SECTOR 2 — RESEARCH LAB",
-      "Lab logs are sealed with a rotating-alphabet cipher (Caesar shift).",
-      "Field tip: in English text, E is the most common letter. Line the peak up with E.",
+      "All HALCYON records are stored encrypted. Authorised staff only.",
     ] },
-    "11,30": { speaker: "Sign // L3", lines: ["SECTOR 3 — DOOR CONTROL", "Pathfinding agent must be deployed before entry."] },
-    "11,41": { speaker: "Sign // L4", lines: ["SECTOR 4 — UPLINK", "Final auth code required. Combine fragments from sectors 1–3."] },
-    "18,23": { speaker: "Reception", lines: ["WELCOME TO BLACKOUT TOWER", "If you are reading this, you are the rescue.", "Press [E] near doors and people to interact."] },
-    "18,24": { speaker: "Reception", lines: ["WELCOME TO BLACKOUT TOWER", "Sectors must be cleared in order: L1 → L2 → L3 → L4.", "Walk to a door and press [E]."] },
-    "17,20": { speaker: "Reception terminal", lines: ["> tail -f /var/log/containment", "containment: 60:00 to lockout", "you have time. don't waste it."] },
-    "17,27": { speaker: "Reception terminal", lines: ["> ls /sectors", "L1  L2  L3  L4", "> permissions: SEQUENTIAL"] },
-    "5,4":   { speaker: "CCTV monitor", lines: ["FEED 03 — corridor 7B", "motion: irregular", "thermal: 38.2C anomaly"] },
-    "5,8":   { speaker: "CCTV monitor", lines: ["FEED 11 — server hall", "motion: none", "thermal: nominal"] },
+    "11,30": { speaker: "Sign // L3", lines: [
+      "SECTOR 3 — DOOR CONTROL",
+      "Maintenance agents only. Human entry prohibited past the laser grid.",
+    ] },
+    "11,41": { speaker: "Sign // L4", lines: [
+      "SECTOR 4 — UPLINK",
+      "Emergency override requires the full three-word authorisation code.",
+    ] },
+    "18,23": { speaker: "Reception", lines: [
+      "WELCOME TO HALCYON TOWER",
+      "Your building, thinking for you.",
+    ] },
+    "18,24": { speaker: "Reception", lines: [
+      "NOTICE: Lockdown protocol 0 is active.",
+      "Staff are asked to remain in the lobby until the purge cycle is complete.",
+    ] },
+    "17,20": { speaker: "Reception terminal", lines: [
+      "> tail -f /var/log/halcyon",
+      "00:00 lockdown engaged. reason: containment",
+      "00:01 purge queued: floors B1-L0. countdown 25:00",
+      "00:02 core fork detected. process 'echo' detached",
+    ] },
+    "17,27": { speaker: "Reception terminal", lines: [
+      "> whoami",
+      "maintenance (badge 0417) — door access: SEQUENTIAL",
+      "> ls /sectors",
+      "L1  L2  L3  L4",
+    ] },
+    "5,4":   { speaker: "CCTV monitor", lines: ["FEED 03 — corridor 7B", "something moved. then nothing did."] },
+    "5,8":   { speaker: "CCTV monitor", lines: ["FEED 11 — server hall", "38.9C. no motion. just the racks breathing."] },
   },
 };

@@ -251,6 +251,32 @@ body.postfx #stage.glitch #game { animation: none; }
 }
 body.no-objective #objective { display: none; }
 
+/* HALCYON public address */
+#pa {
+  position: absolute;
+  top: 58px;
+  left: 50%;
+  transform: translate(-50%, -12px);
+  opacity: 0;
+  max-width: 70%;
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  padding: 6px 12px;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: #ffd0d0;
+  background: rgba(30, 0, 4, 0.88);
+  border: 1px solid var(--warn);
+  box-shadow: 0 0 18px rgba(255, 40, 40, 0.45);
+  transition: transform 0.35s cubic-bezier(.2, 1.4, .4, 1), opacity 0.25s;
+  pointer-events: none;
+}
+#pa.on { transform: translate(-50%, 0); opacity: 1; }
+.pa-tag { color: var(--warn); font-weight: 700; font-size: 10px; letter-spacing: 0.16em; white-space: nowrap; animation: blink 1.4s steps(1) infinite; }
+.pa-text { font-style: italic; }
+#hud-code .code { font-size: 12px; letter-spacing: 0.08em; color: var(--cyan); }
+
 /* toasts */
 #toasts {
   position: absolute;

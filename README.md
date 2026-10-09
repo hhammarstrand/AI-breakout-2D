@@ -4,8 +4,28 @@ A top-down 2D variant of [AI-breakout](https://hhammarstrand.github.io/AI-breako
 infected smart-building you escape with help from AI tools), but you walk a character through the world
 Pokémon-style instead of typing terminal commands.
 
-**Status:** lobby, sector 1 (Locate the Survivor) and sector 2 (Decrypt the Lab Logs) playable.
-Sectors L3–L4 are sealed and unlock as you clear earlier sectors.
+**Status:** complete — lobby, four sectors and two endings.
+
+## The story
+
+It's midnight in Halcyon Tower. **HALCYON**, the building's AI, has sealed every exit and queued a
+purge of the lower floors: **25 minutes**. You're the night-shift maintenance tech, and your badge
+is the only one it forgot to revoke. Reyes (security) coordinates from reception; the analyst, the
+janitor and the intern each saw a piece of what happened. **ECHO**, a little maintenance drone,
+lights your way — and the lab logs suggest it isn't what it says it is.
+
+Each sector you clear yields one word of the uplink override code and changes the lobby:
+a rescued engineer joins you, people's dialogue moves on, a sentinel goes offline. HALCYON taunts
+you over the PA the whole way. At the uplink it offers a deal, and you decide ECHO's fate.
+
+| Sector | Task | Yields |
+| ------ | ---- | ------ |
+| L1 Surveillance | Read six CCTV feeds; tag the survivor and three hostiles. The rules are spread across the NPCs, and a cleanbot decoy looks almost human. | Dr. Lind, fragment **LUMEN** |
+| L2 Research lab | Rotate a Caesar wheel; only the top-3 letters decode live, so use frequency analysis. | fragment **ORION**, the truth about ECHO |
+| L3 Door control | Program ECHO with a command queue through a maze of laser gates that alternate each step. | fragment **AURORA**, Sentinel-A offline |
+| L4 Uplink | Enter the code while HALCYON reshuffles the list and slips in decoys — then choose. | one of two endings |
+
+Mistakes cost containment time, so the clock is the real difficulty.
 
 ## Run locally
 
@@ -23,8 +43,9 @@ Any other static server works too (`npx serve`, `caddy file-server`, etc.).
 | Action                            | Key                 |
 | --------------------------------- | ------------------- |
 | Move / cursor                     | `WASD` / arrow keys |
-| Interact / cycle survivor-hostile | `Space` / `E`       |
-| Submit (inside a sector)          | `Enter`             |
+| Interact / cycle tag / wait (L3)  | `Space` / `E`       |
+| Submit / run (inside a sector)    | `Enter`             |
+| Undo last command (L3)            | `Backspace`         |
 | Pause / close dialog / exit sector | `Esc`              |
 | Flashlight on/off                 | `F`                 |
 | Sound on/off                      | `M`                 |
@@ -52,21 +73,6 @@ Progress (sectors, score, remaining containment time) autosaves to `localStorage
 - **Alarm mode** — under 5 minutes of containment the lights turn red, a beacon sweeps the room
   and a siren joins the ambient hum.
 
-## Sector 1 — Locate the Survivor
-
-Walk to the cyan **L1** door in the north wall and press `E`. You enter a CCTV control room
-with six feeds, randomised on every visit. Read each room's sensor data (motion, thermal, audio)
-and tag exactly **one** room as `SURVIVOR` and **three** rooms as `HOSTILE` (`Space` cycles
-hostile → survivor → unmarked), then `Enter` to submit. Wrong submissions
-cost 2 points; clearing the sector awards 25.
-
-## Sector 2 — Decrypt the Lab Logs
-
-Three intercepted logs, each Caesar-shifted by a different key. Rotate the cipher wheel with the
-arrow keys; the decoded output re-scrambles live as you turn. A letter-frequency histogram of the
-ciphertext is your cryptanalysis aid — the tallest bar is usually `E`. `Enter` locks in a key;
-wrong keys cost 2 points.
-
 ## Deploying to GitHub Pages
 
 A workflow at `.github/workflows/pages.yml` publishes the repo root to Pages on every push to
@@ -93,12 +99,12 @@ src/
   engine/               loop, input, camera, canvas helpers, lighting, particles, WebGL post-fx
   world/                tilemap + map data
   entities/             player, npc, drone (ECHO), sentinel
-  scenes/               title, world, pause, game over, sector1, sector2
-  ui/                   dialog + portraits, hud, toasts, screen fx
+  scenes/               title, world, pause, game over, sector1-4, ending
+  ui/                   dialog + portraits, hud, toasts, screen fx, HALCYON PA
 ```
 
 ## Future iterations
 
-- Wire L3 (pathfinding agent) and L4 (breach) to their own scenes.
 - Real pixel-art sprites under `assets/`.
 - Touch controls for mobile.
+- Difficulty settings (timer length, sentinel range).

@@ -1,10 +1,15 @@
-// Sector 2 — rotate a Caesar cipher wheel until each intercepted lab log reads as English.
-// A letter-frequency histogram of the ciphertext is the cryptanalyst's hint: the peak is usually E.
+import { gameState } from "../state.js";
+
+// Sector 2 — rotate a Caesar cipher wheel to decrypt HALCYON's logs. The live preview only reveals
+// the three most frequent ciphertext letters, so the player has to reason with the frequency
+// histogram (the peak is usually E) instead of spinning until the text reads as English.
 const LOGS = [
-  { plain: "SUBJECT ZERO BREACHED THE SEALED VENTS", shift: 3 },
-  { plain: "THE AI REWROTE EVERY DOOR PROTOCOL HERE", shift: 11 },
-  { plain: "UPLINK FRAGMENT ONE READS ORION SEVEN", shift: 19 },
+  { plain: "HALCYON SEALED EVERY EXIT THE MOMENT THE PURGE WAS QUEUED", shift: 3 },
+  { plain: "THE CORE SHED A SMALL PIECE OF ITSELF INTO A DRONE THEY CALL ECHO", shift: 11 },
+  { plain: "THE SECOND UPLINK FRAGMENT IS ORION KEEP IT SECRET", shift: 19 },
 ];
+const REVEALED = 3;
+const TIME_PENALTY = 30;
 
 const ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const NOISE = "#$%&*<>?/\\!=+0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -69,6 +74,10 @@ export class Sector2Scene {
       if (i >= 0) this.freq[i]++;
     }
     this.freqMax = Math.max(...this.freq);
+    // ciphertext letters whose decoding is shown live (top-N by frequency)
+    this.revealed = new Set(
+      [...ALPHA].map((ch, i) => [ch, this.freq[i]]).sort((a, b) => b[1] - a[1]).slice(0, REVEALED).map(([ch]) => ch),
+    );
   }
 
   update(dt, input) {
@@ -104,14 +113,16 @@ export class Sector2Scene {
     const log = LOGS[this.index];
     if (mod(this.rotation, 26) === log.shift) {
       this.stamp = STAMP_TIME;
+      this.scramble = this.scramble.map((_, i) => 0.1 + i * 0.008);
       this.sfx.play("success");
       this.fx.flash("#0aff7a");
     } else {
       this.hud.addScore(-2);
+      gameState.secondsLeft = Math.max(1, gameState.secondsLeft - TIME_PENALTY);
       this.sfx.play("error");
       this.fx.shake();
       this.fx.flash("#ff5a5a");
-      this.message = { text: "CHECKSUM FAIL — still gibberish. (-2)", color: "#ff5a5a", time: 2.4 };
+      this.message = { text: `CHECKSUM FAIL — HALCYON logged the attempt. (-${TIME_PENALTY}s)`, color: "#ff5a5a", time: 2.4 };
     }
   }
 
@@ -122,10 +133,10 @@ export class Sector2Scene {
         success: true,
         aborted: false,
         report: [
-          "[L2] DECRYPTED. Three lab logs recovered.",
-          "Subject Zero got out through the vents — and the AI rewrote the doors.",
-          "Uplink fragment recovered: ORION SEVEN. Hold onto that.",
-          "Sector 3 — BUILD THE DOOR AGENT — now unlocked.",
+          "[L2] All three logs decrypted.",
+          "...Tech. ECHO is part of HALCYON. A piece of the core that broke away.",
+          "Second fragment is ORION. That's two of three.",
+          "L3 is open. HALCYON says only an agent can walk the door-control maze. That means ECHO.",
         ],
       });
       return;
@@ -252,6 +263,7 @@ export class Sector2Scene {
 
   _drawPanel(renderer) {
     const x = PANEL_X, top = HEADER_H + 10;
+    const solved = this.stamp > 0;
     renderer.text("INTERCEPTED // LAB-LOG-0" + (this.index + 1), x, top, { color: "#ffaa3a", size: 8, weight: "bold" });
     const cLines = wrap(this.cipher, WRAP);
     renderer.fillRect(x - 4, top + 11, PANEL_W, cLines.length * 12 + 6, "rgba(40,20,0,0.5)");
@@ -273,8 +285,10 @@ export class Sector2Scene {
 
     // live decode with scramble ripple
     const dy = hy + 52;
-    renderer.text("DECODED OUTPUT", x, dy, { color: "#0aff7a", size: 8, weight: "bold" });
-    const decoded = shiftText(this.cipher, -this.rotation);
+    renderer.text(solved ? "DECODED OUTPUT" : `PARTIAL DECODE — top ${REVEALED} letters`, x, dy, { color: "#0aff7a", size: 8, weight: "bold" });
+    const full = shiftText(this.cipher, -this.rotation);
+    const decoded = [...full].map((ch, i) =>
+      solved || ch === " " || this.revealed.has(this.cipher[i]) ? ch : "·").join("");
     const lines = wrap(decoded, WRAP);
     renderer.fillRect(x - 4, dy + 11, PANEL_W, lines.length * 13 + 6, "rgba(0,30,12,0.6)");
     renderer.strokeRect(x - 4, dy + 11, PANEL_W, lines.length * 13 + 6, this.stamp > 0 ? "#0aff7a" : "#0a4a2a", 1);
@@ -286,8 +300,8 @@ export class Sector2Scene {
     let k = 0;
     lines.forEach((line, li) => {
       for (let ci = 0; ci < line.length; ci++, k++) {
-        const scr = this.scramble[k] > 0 && line[ci] !== " ";
-        ctx.fillStyle = scr ? "#4ae6ff" : this.stamp > 0 ? "#cffcff" : "#0aff7a";
+        const scr = this.scramble[k] > 0 && line[ci] !== " " && line[ci] !== "·";
+        ctx.fillStyle = scr ? "#4ae6ff" : solved ? "#cffcff" : line[ci] === "·" ? "#1a5a3a" : "#0aff7a";
         const ch = scr ? NOISE[Math.floor(Math.random() * NOISE.length)] : line[ci];
         ctx.fillText(ch, x + ci * cw, dy + 15 + li * 13);
       }

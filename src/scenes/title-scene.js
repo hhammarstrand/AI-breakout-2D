@@ -5,7 +5,7 @@ const GLYPHS = "01アイウエオカキクケコサシスセソ$#%&*<>/\\{}=+";
 const BOOT_LINES = [
   "BIOS v4.2 ...................... OK",
   "mounting /dev/building ......... OK",
-  "containment daemon ............. FAILING",
+  "HALCYON core .................. ROGUE",
   "camera mesh .................... 6/48 ONLINE",
   "operator uplink ................ ESTABLISHED",
 ];
@@ -78,7 +78,7 @@ export class TitleScene {
     renderer.text("// OPERATION LIFELINE //", w / 2, 134, {
       color: "#4ae6ff", size: 11, align: "center", baseline: "middle", weight: "bold",
     });
-    renderer.text("2D RECON BUILD", w / 2, 150, {
+    renderer.text(gameState.endingsSeen.length ? `HALCYON TOWER · ENDINGS FOUND ${gameState.endingsSeen.length}/2` : "HALCYON TOWER · 00:00 · LOCKDOWN", w / 2, 150, {
       color: "#0a8a4a", size: 8, align: "center", baseline: "middle",
     });
 
@@ -112,7 +112,7 @@ export class TitleScene {
     const shown = Math.floor(this._t / 0.35);
     for (let i = 0; i < Math.min(shown, BOOT_LINES.length); i++) {
       const line = BOOT_LINES[i];
-      const bad = line.includes("FAILING");
+      const bad = line.includes("ROGUE");
       renderer.fillRect(14, 28 + i * 16, 330, 13, "rgba(0,0,0,0.8)");
       renderer.text(line, 18, 30 + i * 16, { color: bad ? "#ff5a5a" : "#0aff7a", size: 10 });
     }

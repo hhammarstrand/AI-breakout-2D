@@ -1,6 +1,10 @@
-// Each visit generates a fresh set of feeds from the same sensor rules the L1 sign teaches:
-// humans read ~36-37C with breathing motion; hostiles run >38C and always move;
-// empty rooms show no motion (some run hot from machinery, as a decoy).
+import { gameState } from "../state.js";
+
+// Each visit generates a fresh set of feeds. The rules are spread across the lobby:
+//  - L1 sign / Analyst: humans read 36-37C, hostiles run over 38C
+//  - Intern: hostiles never hold still; humans are calm; empty rooms show no motion
+//  - Janitor: cleanbots are ~37C too, but they whir instead of making human sounds
+//  - Analyst (later): machinery runs hot but doesn't move
 const ROOM_NAMES = [
   "LOBBY", "SERVER HALL", "CORRIDOR 7B", "WASHROOM", "LAB ANNEX", "STAIRWELL B",
   "BREAK ROOM", "MAILROOM", "ELEVATOR 3", "ARCHIVE", "COLD STORAGE", "BOARDROOM",
@@ -16,6 +20,11 @@ const HOSTILE_PROFILES = [
   { motion: "erratic", audio: "skittering" },
   { motion: "twitching", audio: "static hiss" },
   { motion: "irregular", audio: "dragging" },
+];
+const CLEANBOT_PROFILES = [
+  { motion: "slow sweep", audio: "brush whir" },
+  { motion: "slow shift", audio: "motor hum" },
+  { motion: "breathing?", audio: "servo tick" },
 ];
 const EMPTY_PROFILES = [
   { motion: "none", audio: "ambient", temp: [19.5, 23.5] },
@@ -35,12 +44,13 @@ function shuffle(arr) {
 }
 
 function generateRooms() {
-  const roles = shuffle(["survivor", "hostile", "hostile", "hostile", "empty", "empty"]);
+  const roles = shuffle(["survivor", "hostile", "hostile", "hostile", "cleanbot", "empty"]);
   const names = shuffle(ROOM_NAMES.slice());
   return roles.map((role, i) => {
     let p, thermal;
     if (role === "survivor") { p = pick(SURVIVOR_PROFILES); thermal = temp(36.1, 37.2); }
     else if (role === "hostile") { p = pick(HOSTILE_PROFILES); thermal = temp(38.1, 42.0); }
+    else if (role === "cleanbot") { p = pick(CLEANBOT_PROFILES); thermal = temp(36.3, 37.1); }
     else { p = pick(EMPTY_PROFILES); thermal = temp(...p.temp); }
     return { id: i + 1, name: names[i], role, motion: p.motion, thermal, audio: p.audio };
   });
@@ -57,6 +67,7 @@ const CARD_H = 116;
 const CYCLE = { none: "hostile", hostile: "survivor", survivor: "none" };
 
 const STAMP_TIME = 0.25;
+const TIME_PENALTY = 30;
 
 export class Sector1Scene {
   constructor({ hud, sfx, fx, onResult }) {
@@ -137,17 +148,19 @@ export class Sector1Scene {
         success: true,
         aborted: false,
         report: [
-          `[L1] LOCATED. Survivor confirmed in ${survivor}.`,
-          `Hostile profiles flagged in ${hostileNames.slice(0, -1).join(", ")} and ${hostileNames.at(-1)}.`,
-          "Sector 2 — DECRYPT THE LAB LOGS — now unlocked.",
+          `[L1] Survivor confirmed in ${survivor}. It's Dr. Ines Lind — HALCYON's lead engineer.`,
+          `Hostiles flagged in ${hostileNames.slice(0, -1).join(", ")} and ${hostileNames.at(-1)}. I've sealed those rooms.`,
+          "Lind's on her way down to the lobby. Go talk to her — she says she has something for you.",
+          "And L2 just unlocked.",
         ],
       });
     } else {
       this.hud.addScore(-2);
+      gameState.secondsLeft = Math.max(1, gameState.secondsLeft - TIME_PENALTY);
       this.sfx.play("error");
       this.fx.shake();
       this.fx.flash("#ff5a5a");
-      this._setMessage("INCORRECT. Re-check the sensor profiles. (-2)", "#ff5a5a");
+      this._setMessage(`WRONG TARGETS. HALCYON noticed. (-${TIME_PENALTY}s)`, "#ff5a5a");
     }
   }
 

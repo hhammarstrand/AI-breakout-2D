@@ -18,9 +18,13 @@
           <span class="hud-label">SCORE</span>
           <span class="hud-value" id="hud-score-value">0000</span>
         </div>
+        <div class="hud-cell" id="hud-code">
+          <span class="hud-label">UPLINK CODE</span>
+          <span class="hud-value code" id="hud-code-value">····· ····· ·····</span>
+        </div>
         <div class="hud-cell" id="hud-timer">
           <span class="hud-label">CONTAINMENT</span>
-          <span class="hud-value" id="hud-timer-value">60:00</span>
+          <span class="hud-value" id="hud-timer-value">25:00</span>
           <span class="timer-bar"><span id="hud-timer-fill"></span></span>
         </div>
         <button type="button" class="hud-btn" id="hud-sfx" tabindex="-1">♪ SFX ON</button>
@@ -30,6 +34,7 @@
         <canvas id="game" width="480" height="320"></canvas>
         <div id="objective" aria-live="polite"></div>
         <div id="toasts" aria-live="polite"></div>
+        <div id="pa" aria-live="polite"><span class="pa-tag">◉ HALCYON</span><span class="pa-text"></span></div>
         <div id="dialog" class="dialog hidden" role="dialog" aria-live="polite">
           <canvas class="dialog-portrait" width="48" height="48"></canvas>
           <div class="dialog-body">

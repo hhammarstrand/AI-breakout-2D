@@ -25,10 +25,10 @@ export class GameOverScene {
     }
 
     const shake = this._t < 0.6 ? (Math.random() * 6 - 3) : 0;
-    renderer.text("CONTAINMENT FAILED", w / 2 + shake, h / 2 - 40, {
+    renderer.text("PURGE COMPLETE", w / 2 + shake, h / 2 - 40, {
       color: "#ff5a5a", size: 24, align: "center", baseline: "middle", weight: "bold",
     });
-    renderer.text("The building has sealed itself. Lockout complete.", w / 2, h / 2 - 12, {
+    renderer.text("HALCYON sealed the lower floors. Nobody walked out.", w / 2, h / 2 - 12, {
       color: "#ffaaaa", size: 9, align: "center", baseline: "middle",
     });
     renderer.text(`SECTORS CLEARED  ${gameState.completedSectors}/${gameState.totalSectors}`, w / 2, h / 2 + 14, {

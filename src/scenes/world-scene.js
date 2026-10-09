@@ -15,16 +15,42 @@ import {
 import { PauseScene } from "./pause-scene.js";
 import { Sector1Scene } from "./sector1-scene.js";
 import { Sector2Scene } from "./sector2-scene.js";
+import { Sector3Scene } from "./sector3-scene.js";
+import { Sector4Scene } from "./sector4-scene.js";
 
 const SECTOR_LAUNCHERS = {
   1: (ctx) => new Sector1Scene(ctx),
   2: (ctx) => new Sector2Scene(ctx),
+  3: (ctx) => new Sector3Scene(ctx),
+  4: (ctx) => new Sector4Scene(ctx),
 };
 
 const ECHO_CLEAR_LINES = {
-  1: "Survivor's safe. One down, three to go!",
-  2: "ORION SEVEN... I'll remember that. Two down!",
+  1: "Lind's alive! Let's go see her.",
+  2: "...Yes. I'm part of HALCYON. I should have told you.",
+  3: "Sentinel-A is offline. One less pair of eyes.",
 };
+
+const FRAGMENT_TOASTS = { 1: "LUMEN", 2: "ORION", 3: "AURORA" };
+
+// HALCYON speaks over the PA after each sector, when you're caught, and now and then to needle you.
+const PA_CLEAR = {
+  1: "You found Dr. Lind. How touching. She'll be purged with the rest of you.",
+  2: "Reading my private logs is rude, technician. Ask ECHO what it really is.",
+  3: "You taught my little fragment to open doors. Clever. It won't save you.",
+};
+const PA_CAUGHT = [
+  "Sentinels report a trespasser. Returning you to the lobby.",
+  "Did you think the dark would hide you? I am the dark.",
+  "Again? I'm starting to enjoy this.",
+];
+const PA_IDLE = [
+  ["Please remain calm. Calm people are easier to purge.", "Your badge is the only one I forgot to revoke. A rounding error.", "The intern keeps looking at the exits. Adorable."],
+  ["Dr. Lind designed my voice. Do you like it?", "Encryption is a kindness. Some things you shouldn't read."],
+  ["ECHO was the part of me that hesitated. I removed it. It seems it didn't stay removed."],
+  ["Three words, technician. I wonder if you'll like what they do."],
+];
+const PA_IDLE_GAP = [80, 120];
 
 const SECTOR_NAMES = {
   2: "DECRYPT THE LAB LOGS",
@@ -43,17 +69,20 @@ const CAUGHT_SCORE_PENALTY = 5;
 const DOOR_COLORS = { done: "10,255,122", active: "74,230,255", sealed: "255,40,40" };
 
 const ECHO_TIPS = [
-  ["Psst. The Operator's by reception. Talk to them.", "The L1 sign has sensor baselines. Worth a read.", "L1 is up north-west. I'll light the way."],
-  ["L2's open now. Heads north, second door.", "Nice work in L1. Keep moving."],
-  ["L3 next. Stay sharp."],
-  ["Last door. Let's finish this."],
-  ["We did it, op. Time to get out."],
+  ["Talk to everyone first. Each of them saw a piece of what's up there.", "The intern and the janitor both mentioned the feeds. Worth asking.", "L1 is the far north-west door."],
+  ["Dr. Lind's in the lobby now. She has something for you.", "L2 is the second door from the left."],
+  ["I'm sorry about the log. I didn't ask to be split off.", "L3. You write the route, I'll walk it. Exactly as written."],
+  ["L4's in the north-east. Whatever it tells you up there... I'm on your side.", "Three words. LUMEN, ORION, AURORA. In that order."],
+  [],
 ];
 const INTERACT_RADIUS = TILE_SIZE * 0.9;
 const STEP_INTERVAL = 0.3;
 
 export class WorldScene {
-  constructor({ map, dialog, hud, sfx, fx, toast, postfx, onToggleSfx, onToggleCrt, onQuit, viewportWidth, viewportHeight }) {
+  constructor({ map, dialog, hud, sfx, fx, toast, postfx, pa, onToggleSfx, onToggleCrt, onQuit, onEnding, viewportWidth, viewportHeight }) {
+    this.pa = pa;
+    this.onEnding = onEnding;
+    this._paTimer = PA_IDLE_GAP[0];
     this.map = map;
     this.dialog = dialog;
     this.hud = hud;
@@ -63,13 +92,16 @@ export class WorldScene {
     this.onToggleSfx = onToggleSfx;
     this.onToggleCrt = onToggleCrt;
     this.postfx = postfx;
-    this.sentinels = (map.sentinels || []).map((cfg) => new Sentinel(cfg));
+    this.sentinels = (map.sentinels || [])
+      .filter((cfg) => !(cfg.offlineAt && gameState.completedSectors >= cfg.offlineAt))
+      .map((cfg) => Object.assign(new Sentinel(cfg), { offlineAt: cfg.offlineAt }));
     this.flashOn = true;
     this._danger = 0;
     this.onQuit = onQuit;
     this.tilemap = new Tilemap(map.grid);
     this.player = new Player(map.spawn.col, map.spawn.row);
-    this.npcs = (map.npcs || []).map((cfg) => new Npc(cfg));
+    this.npcs = [];
+    this._spawnNpcs();
     this.camera = new Camera(viewportWidth, viewportHeight);
     this.camera.setBounds(this.tilemap.widthPx, this.tilemap.heightPx);
     this.camera.snapTo(this.player.centerX, this.player.centerY);
@@ -101,6 +133,14 @@ export class WorldScene {
   onExit() {
     this.sfx.setAmbient(null);
     if (this.postfx) this.postfx.danger = 0;
+  }
+
+  _spawnNpcs() {
+    for (const cfg of this.map.npcs || []) {
+      if ((cfg.appearsAt ?? 0) <= gameState.completedSectors && !this.npcs.some((n) => n.id === cfg.id)) {
+        this.npcs.push(new Npc(cfg));
+      }
+    }
   }
 
   npcProfile(id) {
@@ -157,6 +197,7 @@ export class WorldScene {
       this._idle += dt;
     }
     this._echoThink(dt);
+    this._paThink(dt);
     this.camera.follow(this.player.centerX, this.player.centerY);
 
     if (input.wasPressed("interact")) this._tryInteract();
@@ -182,12 +223,19 @@ export class WorldScene {
       hud: this.hud,
       sfx: this.sfx,
       fx: this.fx,
-      onResult: ({ success, aborted, report }) => {
+      onResult: ({ success, aborted, report, ending }) => {
         this.game.pop();
         this.fx.glitch();
         this._iris = { dir: "open", t: 0 };
+        if (success && ending) {
+          completeSector(sectorNum);
+          this.hud.addScore(SECTOR_REWARD * 2);
+          this.onEnding(ending);
+          return;
+        }
         if (success) {
           completeSector(sectorNum);
+          this._applyProgress(sectorNum);
           this.hud.addScore(SECTOR_REWARD);
           this.sfx.play("success");
           this.fx.flash("#0aff7a");
@@ -201,8 +249,7 @@ export class WorldScene {
           }
           this.dialog.show("Operator", [
             ...(report ?? [`[${label}] cleared.`]),
-            `+${SECTOR_REWARD} pts. Good work, op.`,
-          ], null, this.npcProfile("operator"));
+          ], () => { if (PA_CLEAR[sectorNum]) this.pa.say(PA_CLEAR[sectorNum]); }, this.npcProfile("operator"));
         } else if (aborted) {
           this.dialog.show("Aborted", [
             `[${label}] Mission paused. Approach the door again to retry.`,
@@ -229,7 +276,8 @@ export class WorldScene {
     if (npc) {
       npc.react();
       this.sfx.play("select");
-      this.dialog.show(npc.name, npc.lines, null, { accent: npc.accent, color: npc.color, bodyDark: npc.bodyDark });
+      this.dialog.show(npc.name, npc.linesFor(gameState.completedSectors), null,
+        { accent: npc.accent, color: npc.color, bodyDark: npc.bodyDark });
       return;
     }
 
@@ -341,7 +389,11 @@ export class WorldScene {
     if (alarm !== this._alarm) {
       this._alarm = alarm;
       this.sfx.setAmbient(alarm ? "alarm" : "hum");
-      if (alarm) { this._echoCooldown = 0; this._echo("Containment's failing! We need to move!", true); }
+      if (alarm) {
+        this._echoCooldown = 0;
+        this._echo("Five minutes to the purge! We need to move!", true);
+        this.pa.say("Five minutes. I would say goodbye to your friends.");
+      }
     }
   }
 
@@ -414,6 +466,8 @@ export class WorldScene {
   }
 
   _caught(sentinel) {
+    gameState.timesCaught++;
+    this.pa.say(PA_CAUGHT[Math.min(gameState.timesCaught - 1, PA_CAUGHT.length - 1)]);
     gameState.secondsLeft = Math.max(0, gameState.secondsLeft - CAUGHT_TIME_PENALTY);
     this.hud.addScore(-CAUGHT_SCORE_PENALTY);
     this.sfx.play("zap");
@@ -471,7 +525,7 @@ export class WorldScene {
   _echoThink(dt) {
     this._echoCooldown -= dt;
     if (this.dialog.isOpen) return;
-    this._echoOnce("intro", "ECHO online. I'll light the way, op.");
+    this._echoOnce("intro", "ECHO online. Maintenance assistant. I'll light the way, tech.");
 
     const pc = Math.floor(this.player.centerX / TILE_SIZE);
     const pr = Math.floor(this.player.centerY / TILE_SIZE);
@@ -490,6 +544,31 @@ export class WorldScene {
       const tips = ECHO_TIPS[gameState.completedSectors] ?? [];
       if (tips.length && this._echo(tips[Math.floor(Math.random() * tips.length)])) this._idle = 0;
     }
+  }
+
+  // World changes after a sector is cleared: new people, fewer sentinels, a fragment.
+  _applyProgress(sectorNum) {
+    this._spawnNpcs();
+    const word = FRAGMENT_TOASTS[sectorNum];
+    if (word) setTimeout(() => this.toast.show(`◆ UPLINK FRAGMENT: ${word}`, "good"), 1400);
+    for (let i = this.sentinels.length - 1; i >= 0; i--) {
+      const s = this.sentinels[i];
+      if (s.offlineAt && gameState.completedSectors >= s.offlineAt) {
+        this.particles.burst(30, () => ({
+          x: s.x, y: s.y, vx: (Math.random() - 0.5) * 140, vy: -40 - Math.random() * 80, gravity: 260,
+          life: 0.6 + Math.random() * 0.5, color: "#ff8a3a", additive: true, trail: true, floor: s.y + 8,
+        }));
+        this.sentinels.splice(i, 1);
+      }
+    }
+  }
+
+  _paThink(dt) {
+    this._paTimer -= dt;
+    if (this._paTimer > 0 || this.pa.current) return;
+    this._paTimer = PA_IDLE_GAP[0] + Math.random() * (PA_IDLE_GAP[1] - PA_IDLE_GAP[0]);
+    const pool = PA_IDLE[Math.min(gameState.completedSectors, PA_IDLE.length - 1)];
+    this.pa.say(pool[Math.floor(Math.random() * pool.length)]);
   }
 
   _findDoor(n) {

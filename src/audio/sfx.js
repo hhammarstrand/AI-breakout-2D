@@ -30,6 +30,9 @@ const SOUNDS = {
   detect:  [{ freq: 500, to: 1100, dur: 0.18, type: "triangle", vol: 0.08 }],
   zap:     [{ freq: 1800, to: 60, dur: 0.5, type: "sawtooth", vol: 0.12 },
             { freq: 90, dur: 0.4, type: "square", vol: 0.08, delay: 0.05 }],
+  pa:      [{ freq: 330, dur: 0.18, type: "sine", vol: 0.07 },
+            { freq: 262, dur: 0.3, type: "sine", vol: 0.07, delay: 0.2 }],
+  paBlip:  [{ freq: 140, dur: 0.03, type: "sawtooth", vol: 0.03 }],
   gameover:[{ freq: 440, to: 40, dur: 1.4, type: "sawtooth", vol: 0.1 }],
 };
 
