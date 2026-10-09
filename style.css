@@ -391,3 +391,47 @@ kbd {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
 }
+
+/* ---------- touch controls (phones/tablets) ---------- */
+
+#touch { display: none; }
+@media (hover: none) and (pointer: coarse) {
+  #touch {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    position: absolute;
+    inset: auto 0 0 0;
+    padding: 10px 14px;
+    pointer-events: none;
+    z-index: 5;
+  }
+  #legend { display: none; }
+  #objective { bottom: auto; top: 8px; max-width: 46%; font-size: 9px; }
+  #app { padding: 4px; gap: 4px; }
+  #hud { font-size: 10px; gap: 6px; padding: 4px 6px; }
+  #hud .brand { display: none; }
+}
+#touch button {
+  pointer-events: auto;
+  font: inherit;
+  font-weight: 700;
+  color: var(--fg);
+  background: rgba(0, 20, 8, 0.55);
+  border: 2px solid rgba(10, 255, 122, 0.6);
+  border-radius: 50%;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+#touch button.held { background: rgba(10, 255, 122, 0.35); }
+.dpad { position: relative; width: 132px; height: 132px; }
+.dpad button { position: absolute; width: 44px; height: 44px; border-radius: 8px; }
+.t-up { left: 44px; top: 0; }
+.t-down { left: 44px; bottom: 0; }
+.t-left { left: 0; top: 44px; }
+.t-right { right: 0; top: 44px; }
+.abtns { display: grid; grid-template-columns: 56px 56px; grid-template-rows: auto 56px; gap: 24px 8px; align-items: end; }
+#touch .t-start, #touch .t-select { height: 22px; border-radius: 11px !important; font-size: 7px; letter-spacing: 0; padding: 0; }
+.t-a, .t-b { width: 56px; height: 56px; font-size: 18px; }
+.t-a { transform: translateY(-14px); }

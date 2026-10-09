@@ -53,6 +53,13 @@ export const coreMap = {
     1: { label: "C1", stage: 9 },
     2: { label: "UP", stage: 10 },
   },
+  safe: { id: "safe-core", col: 3, row: 19, code: "0202", title: "CORE STRONGBOX" },
+  pickups: [
+    { id: "log-first", kind: "log", col: 6, row: 5 },
+    { id: "log-echo", kind: "log", col: 26, row: 4 },
+    { id: "log-why", kind: "log", col: 28, row: 18 },
+    { id: "cell-core", kind: "item", item: "cell", col: 1, row: 10 },
+  ],
   echoZones: [
     { key: "pillars", c0: 3, c1: 28, r0: 12, r1: 17, text: "Every pillar is a piece of its mind. Mine too." },
   ],

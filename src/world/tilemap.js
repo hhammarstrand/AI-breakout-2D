@@ -1,4 +1,4 @@
-import { isSectorActive, isSectorCompleted } from "../state.js";
+import { isSectorActive, isSectorCompleted, hasCollected } from "../state.js";
 
 export const TILE_SIZE = 16;
 
@@ -28,16 +28,17 @@ export const TILE = {
   CABLE: 25,
   VENT: 26,
   HAZARD: 27,
+  SAFE: 28,
 };
 
 const SOLID = new Set([
   TILE.WALL,
   TILE.DOOR_L1, TILE.DOOR_L2, TILE.DOOR_L3, TILE.DOOR_L4,
   TILE.DESK, TILE.TERMINAL, TILE.RACK, TILE.PLANT, TILE.DEBRIS, TILE.LOCKER,
-  TILE.GLASS, TILE.TANK, TILE.BENCH, TILE.CORE,
+  TILE.GLASS, TILE.TANK, TILE.BENCH, TILE.CORE, TILE.SAFE,
 ]);
 
-const INTERACTIVE = new Set([TILE.TERMINAL, TILE.SIGN]);
+const INTERACTIVE = new Set([TILE.TERMINAL, TILE.SIGN, TILE.SAFE]);
 
 // Wall palettes per floor.
 export const THEMES = {
@@ -62,7 +63,7 @@ const DOOR_TILES = [TILE.DOOR_L1, TILE.DOOR_L2, TILE.DOOR_L3, TILE.DOOR_L4];
 
 export class Tilemap {
   // doors: { 1: { label, stage }, ... } keyed by door slot (DOOR_L1 = slot 1)
-  constructor(grid, { doors = {}, theme = "lobby" } = {}) {
+  constructor(grid, { doors = {}, theme = "lobby", safe = null } = {}) {
     this.rows = grid.length;
     this.cols = grid[0].length;
     this.grid = grid.map((row) => row.slice());
@@ -71,6 +72,8 @@ export class Tilemap {
     this.doors = doors;
     this.theme = THEMES[theme] ?? THEMES.lobby;
     this.themeName = theme;
+    this.safe = safe;
+    if (safe) this.grid[safe.row][safe.col] = TILE.SAFE;
   }
 
   tileAt(col, row) {
@@ -130,6 +133,9 @@ export class Tilemap {
         const py = (r * TILE_SIZE - camera.y) | 0;
         if (tile === TILE.WALL) {
           drawWall(ctx, this.theme, px, py, c, r, !isWallLike(this.tileAt(c, r + 1)), time);
+        } else if (tile === TILE.SAFE) {
+          drawFloorKind(ctx, this.floorAt(c, r), px, py, c, r);
+          drawSafe(ctx, px, py, this.safe && hasCollected(this.safe.id), time);
         } else if (DOOR_TILES.includes(tile)) {
           drawDoor(ctx, this.theme, px, py, this.doors[this.doorSlot(tile)], time);
         } else {
@@ -225,6 +231,23 @@ function drawDoor(ctx, th, x, y, cfg, time) {
   ctx.fillText(cfg?.label ?? "?", x + T / 2, y + 7.5);
   const blink = Math.floor(time * 2) & 1;
   rect(ctx, x + 13, y + 1, 2, 1, active && blink ? "#ff5a5a" : done ? "#0aff7a" : "#3a0808");
+}
+
+function drawSafe(ctx, x, y, open, time) {
+  propShadow(ctx, x, y);
+  box(ctx, x + 1, y - 2, T - 2, T, "#4a4e56");
+  rect(ctx, x + 2, y - 1, T - 4, 2, "#7a808a");
+  if (open) {
+    rect(ctx, x + 3, y + 2, 10, 9, "#0a0a0e");
+    rect(ctx, x + 1, y + 2, 2, 9, "#6a707a");
+    return;
+  }
+  box(ctx, x + 3, y + 2, 10, 9, "#363a42");
+  ctx.fillStyle = "#c8ccd4";
+  ctx.beginPath(); ctx.arc(x + 8, y + 6.5, 2.5, 0, Math.PI * 2); ctx.fill();
+  const a = time * 1.5;
+  rect(ctx, x + 8 + Math.round(Math.cos(a) * 2) - 0, y + 6 + Math.round(Math.sin(a) * 2), 1, 1, "#20242a");
+  rect(ctx, x + 11, y + 9, 1, 1, Math.floor(time * 2) & 1 ? "#ffaa3a" : "#5a3a10");
 }
 
 function drawFloorKind(ctx, kind, x, y, col, row) {

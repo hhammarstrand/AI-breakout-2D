@@ -1,85 +1,113 @@
 import { TILE_SIZE } from "../world/tilemap.js";
 import { character, FRAME_W, FRAME_H } from "../gfx/characters.js";
 
-const SPEED = 70;
+const WALK_SPEED = 72;   // px/s — 4.5 tiles per second
+const RUN_SPEED = 128;
+const TURN_DELAY = 0.09; // tap a direction to turn on the spot, hold to walk
 const W = 12;
 const H = 14;
-const SLIDE_REACH = 7;
+const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+const ORDER = ["up", "down", "left", "right"];
 
+// Pokémon-style grid movement: the player always stands on a tile and walks tile to tile.
 export class Player {
   constructor(col, row) {
-    this.x = col * TILE_SIZE + (TILE_SIZE - W) / 2;
-    this.y = row * TILE_SIZE + (TILE_SIZE - H) / 2;
     this.w = W;
     this.h = H;
+    this.teleport(col, row);
     this.facing = "down";
     this.animTime = 0;
     this.idleTime = 0;
-    this.moving = false;
     this.dirX = 0;
     this.dirY = 1;
+    this._turnHold = 0;
+    this._lastDir = null;
+    this.bumped = false;
   }
 
+  teleport(col, row) {
+    this.x = col * TILE_SIZE + (TILE_SIZE - W) / 2;
+    this.y = row * TILE_SIZE + (TILE_SIZE - H) / 2;
+    this.target = null;
+    this.moving = false;
+  }
+
+  get col() { return Math.round((this.x - (TILE_SIZE - W) / 2) / TILE_SIZE); }
+  get row() { return Math.round((this.y - (TILE_SIZE - H) / 2) / TILE_SIZE); }
   get centerX() { return this.x + this.w / 2; }
   get centerY() { return this.y + this.h / 2; }
 
-  update(dt, input, tilemap) {
-    let dx = 0, dy = 0;
-    if (input.isDown("left")) dx -= 1;
-    if (input.isDown("right")) dx += 1;
-    if (input.isDown("up")) dy -= 1;
-    if (input.isDown("down")) dy += 1;
-
-    if (dx !== 0 && dy !== 0) {
-      const inv = 1 / Math.SQRT2;
-      dx *= inv; dy *= inv;
-    }
-
-    this.moving = dx !== 0 || dy !== 0;
-    if (this.moving) {
-      this.dirX = dx;
-      this.dirY = dy;
-      this.animTime += dt;
-      this.idleTime = 0;
-    } else {
-      this.idleTime += dt;
-    }
-    if (Math.abs(dx) > Math.abs(dy)) this.facing = dx < 0 ? "left" : "right";
-    else if (dy !== 0) this.facing = dy < 0 ? "up" : "down";
-
-    const stepX = dx * SPEED * dt;
-    const stepY = dy * SPEED * dt;
-
-    if (stepX !== 0) {
-      if (!tilemap.rectCollides(this.x + stepX, this.y, this.w, this.h)) this.x += stepX;
-      else if (dy === 0) this._slideAround(tilemap, "y", stepX, Math.abs(stepX));
-    }
-    if (stepY !== 0) {
-      if (!tilemap.rectCollides(this.x, this.y + stepY, this.w, this.h)) this.y += stepY;
-      else if (dx === 0) this._slideAround(tilemap, "x", stepY, Math.abs(stepY));
-    }
+  _heldDir(input) {
+    let tapped = null;
+    for (const d of ORDER) if (input.wasPressed(d)) { this._lastDir = d; tapped = d; }
+    // a tap that was released within the same frame still counts (turns on the spot)
+    if (tapped && !input.isDown(tapped)) return tapped;
+    if (this._lastDir && input.isDown(this._lastDir)) return this._lastDir;
+    return ORDER.find((d) => input.isDown(d)) ?? null;
   }
 
-  // Corner assist: when bumping into a wall next to a 1-tile gap, nudge sideways
-  // toward the gap instead of requiring pixel-perfect alignment.
-  _slideAround(tilemap, axis, step, speed) {
-    for (let off = 1; off <= SLIDE_REACH; off++) {
-      for (const sign of [-1, 1]) {
-        const ox = axis === "x" ? sign * off : step;
-        const oy = axis === "y" ? sign * off : step;
-        if (!tilemap.rectCollides(this.x + ox, this.y + oy, this.w, this.h)) {
-          const nudge = sign * Math.min(speed, off);
-          if (axis === "x") this.x += nudge; else this.y += nudge;
-          return;
-        }
+  // isBlocked(col, row) -> true when the tile can't be entered (walls, props, people)
+  update(dt, input, isBlocked) {
+    this.bumped = false;
+    const dir = this._heldDir(input);
+    const speed = input.isDown("run") ? RUN_SPEED : WALK_SPEED;
+
+    if (this.target) {
+      this.animTime += dt * (speed / WALK_SPEED);
+      const tx = this.target.x - this.x, ty = this.target.y - this.y;
+      const dist = Math.hypot(tx, ty);
+      const step = speed * dt;
+      if (step < dist) {
+        this.x += (tx / dist) * step;
+        this.y += (ty / dist) * step;
+        return;
       }
+      this.x = this.target.x;
+      this.y = this.target.y;
+      this.target = null;
+      // keep walking without a pause if a direction is still held
+      if (dir) this._tryStep(dir, isBlocked, true);
+      this.moving = !!this.target;
+      return;
     }
+
+    if (!dir) {
+      this.moving = false;
+      this.idleTime += dt;
+      this._turnHold = 0;
+      return;
+    }
+    if (dir !== this.facing) {
+      this._face(dir);
+      this._turnHold = TURN_DELAY;
+      return;
+    }
+    if (this._turnHold > 0) { this._turnHold -= dt; return; }
+    this._tryStep(dir, isBlocked, false);
+    this.moving = !!this.target;
+  }
+
+  _face(dir) {
+    this.facing = dir;
+    [this.dirX, this.dirY] = DIRS[dir];
+  }
+
+  _tryStep(dir, isBlocked, chained) {
+    this._face(dir);
+    const [dx, dy] = DIRS[dir];
+    const nc = this.col + dx, nr = this.row + dy;
+    if (isBlocked(nc, nr)) {
+      if (!chained) this.bumped = true;
+      return;
+    }
+    this.idleTime = 0;
+    this.target = { x: nc * TILE_SIZE + (TILE_SIZE - W) / 2, y: nr * TILE_SIZE + (TILE_SIZE - H) / 2 };
   }
 
   facingTilePx() {
     const cx = this.centerX;
     const cy = this.centerY;
-    const reach = TILE_SIZE * 0.8;
+    const reach = TILE_SIZE;
     switch (this.facing) {
       case "up":    return { x: cx, y: cy - reach };
       case "down":  return { x: cx, y: cy + reach };

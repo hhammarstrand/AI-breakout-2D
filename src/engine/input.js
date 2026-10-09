@@ -8,6 +8,8 @@ const KEY_ALIASES = {
   Escape: "pause",
   f: "flashlight", F: "flashlight",
   Backspace: "back", Delete: "back",
+  Shift: "run",
+  Tab: "menu", q: "menu", Q: "menu",
 };
 
 export class Input {
@@ -22,7 +24,7 @@ export class Input {
       if (!this._down.has(action)) this._pressed.add(action);
       this._down.add(action);
       this._anyPressed = true;
-      if (action === "interact" || action === "pause" || action === "submit" || action === "back") event.preventDefault();
+      if (action !== "flashlight") event.preventDefault();
     });
 
     target.addEventListener("keyup", (event) => {
@@ -33,6 +35,15 @@ export class Input {
 
     target.addEventListener("blur", () => this._down.clear());
   }
+
+  // virtual buttons (touch controls) feed the same action stream as the keyboard
+  press(action) {
+    if (!this._down.has(action)) this._pressed.add(action);
+    this._down.add(action);
+    this._anyPressed = true;
+  }
+
+  release(action) { this._down.delete(action); }
 
   isDown(action) { return this._down.has(action); }
   wasPressed(action) { return this._pressed.has(action); }

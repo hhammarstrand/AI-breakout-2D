@@ -82,6 +82,17 @@ const hud = new Hud(document.getElementById("hud"), {
   },
 });
 
+// on-screen buttons feed the same input actions as the keyboard
+for (const btn of document.querySelectorAll("#touch button")) {
+  const action = btn.dataset.action;
+  const down = (e) => { e.preventDefault(); btn.classList.add("held"); input.press(action); };
+  const up = (e) => { e.preventDefault(); btn.classList.remove("held"); input.release(action); };
+  btn.addEventListener("pointerdown", down);
+  btn.addEventListener("pointerup", up);
+  btn.addEventListener("pointercancel", up);
+  btn.addEventListener("pointerleave", up);
+}
+
 window.addEventListener("keydown", (e) => {
   if (e.key === "m" || e.key === "M") toggleSfx();
 });

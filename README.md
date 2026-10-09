@@ -41,7 +41,9 @@ Any other static server works too (`npx serve`, `caddy file-server`, etc.).
 
 | Action                            | Key                 |
 | --------------------------------- | ------------------- |
-| Move / cursor                     | `WASD` / arrow keys |
+| Move (tap to turn, hold to walk)  | `WASD` / arrow keys |
+| Run                               | `Shift`             |
+| Menu (bag, logs, map, options)    | `Tab` / `Q` / `Enter` / `Esc` |
 | Interact / cycle tag / wait (L3)  | `Space` / `E`       |
 | Submit / run (inside a sector)    | `Enter`             |
 | Undo (L3 command, R3 move)        | `Backspace`         |
@@ -51,6 +53,17 @@ Any other static server works too (`npx serve`, `caddy file-server`, etc.).
 
 Progress (sectors, score, remaining containment time) autosaves to `localStorage`; pick
 **CONTINUE** on the title screen to resume. If the containment timer hits `00:00` the run ends.
+
+## Explore like it's a Pokémon game
+
+- **Grid movement** — you walk tile to tile; tap a direction to turn on the spot, hold to walk,
+  `Shift` to run. People and objects block your path.
+- **Data capsules** — glinting capsules hide nine data logs (three per floor) and backup cells.
+- **Escape-room safes** — every floor has a four-digit safe. The code is hidden in that floor's
+  logs, signs and terminals; inside is a backup cell that buys +90 s on the purge clock.
+- **Start menu** — BAG (use cells, see code chips), LOGS (re-read what you found), MAP (the floor
+  with you, people, sentinels, capsules and the safe), OPTIONS and SAVE.
+- **Touch controls** — on phones and tablets a D-pad with A / B / START / SELECT appears.
 
 ## What's in the lobby
 

@@ -77,7 +77,7 @@ export class Dialog {
       }
       return;
     }
-    if (input.wasPressed("pause")) {
+    if (input.wasPressed("pause") || input.wasPressed("back")) {
       this._queue = [];
       this._advance();
       return;

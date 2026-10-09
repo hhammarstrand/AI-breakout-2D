@@ -4,6 +4,9 @@ import { Player } from "../entities/player.js";
 import { Npc } from "../entities/npc.js";
 import { Drone } from "../entities/drone.js";
 import { Sentinel } from "../entities/sentinel.js";
+import { Pickup } from "../entities/pickup.js";
+import { StartMenuScene } from "./start-menu-scene.js";
+import { CodeLockScene } from "./codelock-scene.js";
 import { Lighting, collectLights } from "../engine/lighting.js";
 import { Particles } from "../engine/particles.js";
 import { music } from "../audio/music.js";
@@ -12,8 +15,10 @@ import {
   isSectorCompleted,
   completeSector,
   gameState,
+  hasCollected,
+  collect,
+  addItem,
 } from "../state.js";
-import { PauseScene } from "./pause-scene.js";
 import { Sector1Scene } from "./sector1-scene.js";
 import { Sector2Scene } from "./sector2-scene.js";
 import { Sector3Scene } from "./sector3-scene.js";
@@ -23,7 +28,7 @@ import { SignalScene } from "./signal-scene.js";
 import { CoolantScene } from "./coolant-scene.js";
 import { FirewallScene } from "./firewall-scene.js";
 import {
-  stageInfo, ECHO_TIPS, ECHO_CLEAR, PA_CLEAR, PA_CAUGHT, PA_IDLE, FRAGMENTS,
+  stageInfo, ECHO_TIPS, ECHO_CLEAR, PA_CLEAR, PA_CAUGHT, PA_IDLE, FRAGMENTS, LOGS, CELL_BONUS,
 } from "../story.js";
 
 // stage id -> puzzle scene
@@ -74,7 +79,9 @@ export class WorldScene {
     this.flashOn = true;
     this._danger = 0;
     this.onQuit = onQuit;
-    this.tilemap = new Tilemap(map.grid, { doors: map.doors, theme: map.theme });
+    this.tilemap = new Tilemap(map.grid, { doors: map.doors, theme: map.theme, safe: map.safe });
+    this.pickups = (map.pickups ?? []).filter((p) => !hasCollected(p.id)).map((p) => new Pickup(p));
+    this._bumpCooldown = 0;
     this.player = new Player(map.spawn.col, map.spawn.row);
     this.npcs = [];
     this._spawnNpcs();
@@ -153,9 +160,10 @@ export class WorldScene {
       return;
     }
 
-    if (input.wasPressed("pause")) {
-      this.game.push(new PauseScene({
-        sfx: this.sfx, onToggleSfx: this.onToggleSfx, onToggleCrt: this.onToggleCrt, onToggleMusic: this.onToggleMusic, onQuit: this.onQuit,
+    if (input.wasPressed("pause") || input.wasPressed("menu") || input.wasPressed("submit")) {
+      this.game.push(new StartMenuScene({
+        world: this, sfx: this.sfx, hud: this.hud, toast: this.toast,
+        onToggleSfx: this.onToggleSfx, onToggleCrt: this.onToggleCrt, onToggleMusic: this.onToggleMusic, onQuit: this.onQuit,
       }));
       return;
     }
@@ -166,7 +174,10 @@ export class WorldScene {
       if (!this.flashOn) this._echoOnce("dark", "Lights off. Stay in the shadows.");
     }
 
-    this.player.update(dt, input, this.tilemap);
+    this.player.update(dt, input, (c, r) => this._blocked(c, r));
+    this._bumpCooldown -= dt;
+    if (this.player.bumped && this._bumpCooldown <= 0) { this.sfx.play("bump"); this._bumpCooldown = 0.25; }
+    for (const p of this.pickups) p.update(dt);
     this._updateSentinels(dt);
     if (this.player.moving) {
       this._idle = 0;
@@ -253,6 +264,65 @@ export class WorldScene {
     this.game.push(scene);
   }
 
+  _blocked(c, r) {
+    return this.tilemap.isSolidAt(c, r) ||
+      this.npcs.some((n) => n.col === c && n.row === r) ||
+      this.pickups.some((p) => p.col === c && p.row === r);
+  }
+
+  _pickupAt(reach) {
+    const c = Math.floor(reach.x / TILE_SIZE), r = Math.floor(reach.y / TILE_SIZE);
+    return this.pickups.find((p) => p.col === c && p.row === r) ?? null;
+  }
+
+  _takePickup(p) {
+    this.pickups.splice(this.pickups.indexOf(p), 1);
+    collect(p.id);
+    this.sfx.play("item");
+    this.hud.addScore(5);
+    if (p.kind === "log") {
+      const log = LOGS[p.id];
+      this.toast.show("◆ DATA LOG FOUND", "good");
+      this.dialog.show("Data log", [
+        `You found a data log: ${log.title}!`,
+        ...log.lines,
+        "(Saved to LOGS. Press TAB to open the menu.)",
+      ]);
+    } else {
+      addItem(p.item);
+      this.toast.show("◆ BACKUP CELL", "good");
+      this.dialog.show("Item", [
+        "You found a BACKUP CELL!",
+        `Use it from the BAG (TAB) to buy +${CELL_BONUS} seconds on the purge clock.`,
+      ]);
+    }
+  }
+
+  _useSafe() {
+    const safe = this.map.safe;
+    if (hasCollected(safe.id)) {
+      this.dialog.show(safe.title, ["The safe stands open. Empty."]);
+      return;
+    }
+    this.sfx.play("select");
+    this.game.push(new CodeLockScene({
+      sfx: this.sfx, fx: this.fx, code: safe.code, title: safe.title,
+      onResult: (opened) => {
+        if (!opened) return;
+        collect(safe.id);
+        addItem("cell");
+        this.hud.addScore(15);
+        this.toast.show("◆ SAFE CRACKED", "good");
+        this.sfx.play("item");
+        this.dialog.show(safe.title, [
+          "Inside, wrapped in a lab coat: a BACKUP CELL.",
+          `Use it from the BAG to buy +${CELL_BONUS} seconds.`,
+        ]);
+        this._echo("Nice. Someone left a note to themselves — you read it.", true);
+      },
+    }));
+  }
+
   _npcInReach(reach) {
     for (const npc of this.npcs) {
       const dx = (npc.x + npc.w / 2) - reach.x;
@@ -295,7 +365,11 @@ export class WorldScene {
       return;
     }
 
+    const pickup = this._pickupAt(reach);
+    if (pickup) { this._takePickup(pickup); return; }
+
     const interactive = this.tilemap.interactiveAtPx(reach.x, reach.y);
+    if (interactive?.tile === TILE.SAFE) { this._useSafe(); return; }
     if (interactive) {
       this.sfx.play("select");
       const key = `${interactive.row},${interactive.col}`;
@@ -316,7 +390,7 @@ export class WorldScene {
     this.tilemap.draw(renderer, cam, this._time);
     this.particles.draw(ctx, cam, "under");
 
-    const sprites = [...this.npcs, this.player, ...this.sentinels].sort((a, b) => a.y - b.y);
+    const sprites = [...this.pickups.map((p) => ({ y: p.row * TILE_SIZE, draw: (r, c) => p.draw(r, c) })), ...this.npcs, this.player, ...this.sentinels].sort((a, b) => a.y - b.y);
     for (const s of sprites) s.draw(renderer, cam);
     this.drone.draw(renderer, cam);
 
@@ -479,8 +553,7 @@ export class WorldScene {
     this._iris = {
       dir: "close", t: -0.35, // brief hold so the zap reads before the screen closes
       onDone: () => {
-        this.player.x = this.map.spawn.col * TILE_SIZE + 2;
-        this.player.y = this.map.spawn.row * TILE_SIZE + 1;
+        this.player.teleport(this.map.spawn.col, this.map.spawn.row);
         this.camera.snapTo(this.player.centerX, this.player.centerY);
         this.drone.x = this.player.centerX; this.drone.y = this.player.centerY - 20;
         this._iris = { dir: "open", t: 0 };
@@ -639,18 +712,22 @@ export class WorldScene {
     if (door) {
       // beside the door, so the bubble doesn't sit on top of the player
       target = { x: door.col * TILE_SIZE + TILE_SIZE + 26, y: door.row * TILE_SIZE + TILE_SIZE + 4 };
-      const n = parseInt(door.label.slice(1), 10);
-      verb = isSectorActive(n) ? "ENTER" : isSectorCompleted(n) ? "CLEAR" : "SEALED";
+      const n = door.stage;
+      verb = isSectorActive(n) ? (stageInfo(n)?.lift ? "RIDE" : "ENTER") : isSectorCompleted(n) ? "CLEAR" : "SEALED";
     } else {
       const npc = this._npcInReach(reach);
+      const pickup = this._pickupAt(reach);
       if (npc) {
         target = { x: npc.x + npc.w / 2, y: npc.y - 14 };
         verb = "TALK";
+      } else if (pickup) {
+        target = { x: pickup.col * TILE_SIZE + TILE_SIZE / 2, y: pickup.row * TILE_SIZE - 4 };
+        verb = "TAKE";
       } else {
         const interactive = this.tilemap.interactiveAtPx(reach.x, reach.y);
         if (interactive) {
           target = { x: interactive.col * TILE_SIZE + TILE_SIZE / 2, y: interactive.row * TILE_SIZE - 6 };
-          verb = interactive.tile === TILE.TERMINAL ? "HACK" : "READ";
+          verb = interactive.tile === TILE.TERMINAL ? "HACK" : interactive.tile === TILE.SAFE ? "OPEN" : "READ";
         }
       }
     }

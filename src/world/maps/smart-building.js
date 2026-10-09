@@ -166,6 +166,13 @@ export const smartBuildingMap = {
     3: { label: "L3", stage: 3 },
     4: { label: "LIFT", stage: 4 },
   },
+  safe: { id: "safe-lobby", col: 39, row: 27, code: "0417", title: "LOST & FOUND SAFE" },
+  pickups: [
+    { id: "log-reyes", kind: "log", col: 7, row: 6 },
+    { id: "log-intern", kind: "log", col: 2, row: 23 },
+    { id: "log-lind", kind: "log", col: 22, row: 7 },
+    { id: "cell-lobby", kind: "item", item: "cell", col: 46, row: 1 },
+  ],
   echoZones: [
     { key: "breach", c0: 37, c1: 46, r0: 0, r1: 8, text: "Careful. Live wires all over this wing." },
   ],

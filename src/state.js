@@ -14,6 +14,8 @@ export const gameState = {
   secondsLeft: ACTS[1].seconds,
   timesCaught: 0,
   checkpoint: null,
+  collected: [],
+  items: {},
   endingsSeen: readJson(SETTINGS_KEY)?.endingsSeen ?? [],
   sfxOn: readJson(SETTINGS_KEY)?.sfxOn ?? true,
   crtOn: readJson(SETTINGS_KEY)?.crtOn ?? true,
@@ -69,6 +71,8 @@ export function resetGame() {
   gameState.secondsLeft = ACTS[1].seconds;
   gameState.timesCaught = 0;
   gameState.checkpoint = null;
+  gameState.collected = [];
+  gameState.items = {};
   clearSave();
 }
 
@@ -84,6 +88,8 @@ export function loadGame() {
   gameState.score = Number(save.score) || 0;
   gameState.timesCaught = Number(save.timesCaught) || 0;
   gameState.checkpoint = save.checkpoint ?? null;
+  gameState.collected = Array.isArray(save.collected) ? save.collected : [];
+  gameState.items = save.items && typeof save.items === "object" ? save.items : {};
   gameState.secondsLeft = Math.max(0, Math.min(actSeconds(), Number(save.secondsLeft) || actSeconds()));
   if (gameState.secondsLeft <= 0) restoreCheckpoint();
   return true;
@@ -96,6 +102,8 @@ export function saveGame() {
     secondsLeft: gameState.secondsLeft,
     timesCaught: gameState.timesCaught,
     checkpoint: gameState.checkpoint,
+    collected: gameState.collected,
+    items: gameState.items,
   });
 }
 
@@ -139,4 +147,25 @@ function readJson(key) {
 
 function writeJson(key, value) {
   try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* storage unavailable */ }
+}
+
+// --- collectibles ----------------------------------------------------------------------------
+
+export function hasCollected(id) { return gameState.collected.includes(id); }
+
+export function collect(id) {
+  if (!hasCollected(id)) gameState.collected.push(id);
+  saveGame();
+}
+
+export function addItem(id, n = 1) {
+  gameState.items[id] = (gameState.items[id] ?? 0) + n;
+  saveGame();
+}
+
+export function useItem(id) {
+  if (!gameState.items[id]) return false;
+  gameState.items[id]--;
+  saveGame();
+  return true;
 }

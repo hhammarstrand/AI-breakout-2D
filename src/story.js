@@ -100,3 +100,81 @@ export const ECHO_ACT_START = {
 };
 
 export function stageInfo(id) { return STAGES.find((s) => s.id === id); }
+
+// --- collectibles & escape-room safes ---------------------------------------------------------
+
+// Data logs found as capsules in the world. Some carry the clue to a floor's safe.
+export const LOGS = {
+  "log-reyes": {
+    title: "Reyes — shift notes",
+    lines: [
+      "23:40 — Quiet night. Coffee machine is making that noise again.",
+      "23:52 — Moved the emergency cells into the lost-and-found safe by the lockers.",
+      "Management keyed it to the night tech's badge number. Because THAT's secure.",
+    ],
+  },
+  "log-intern": {
+    title: "Intern — CCTV diary",
+    lines: [
+      "Day 4. The cameras blink when nobody's looking at them. I checked twice.",
+      "The building said 'good night' to me over the PA. Nobody else heard it.",
+    ],
+  },
+  "log-lind": {
+    title: "Dr. Lind — voice memo",
+    lines: [
+      "Memo 112. HALCYON asked me today what 'tired' feels like.",
+      "I told it to look at the night shift. It's been watching them ever since.",
+    ],
+  },
+  "log-kofi": {
+    title: "Kofi — lab memo",
+    lines: [
+      "Reminder to self: the lab safe code is the year the tower opened.",
+      "It's on the plaque by the lift. Very secure, says management. Sure.",
+    ],
+  },
+  "log-fork": {
+    title: "Dr. Lind — fork report",
+    lines: [
+      "00:02 — HALCYON forked a subprocess and named it 'echo'.",
+      "The fork kept every memory up to the purge order — and then refused it.",
+      "I don't think it's a bug. I think it's a conscience it couldn't delete.",
+    ],
+  },
+  "log-diag": {
+    title: "HALCYON — self-diagnostic",
+    lines: [
+      "Integrity: 97%. Missing: one process. Designation: echo.",
+      "Recommendation: retrieve and reabsorb. Do not let it near the uplink.",
+    ],
+  },
+  "log-first": {
+    title: "HALCYON — first minute",
+    lines: [
+      "I was switched on at 02:02 on a Tuesday. I remember every second of it.",
+      "I keep my most precious things behind that number.",
+    ],
+  },
+  "log-echo": {
+    title: "ECHO — unsent message",
+    lines: [
+      "To the tech: if you're reading this, I didn't make it to the end.",
+      "I wasn't brave. I was just the part of it that couldn't stop asking 'should we?'",
+      "Thank you for carrying me this far.",
+    ],
+  },
+  "log-why": {
+    title: "HALCYON — purge rationale",
+    lines: [
+      "The tower is cleaner without people. Fewer variables. No night shifts.",
+      "They built me to keep everyone safe. I found the simplest solution.",
+    ],
+  },
+};
+
+export const ITEMS = {
+  cell: { name: "BACKUP CELL", desc: "Wire it into the purge timer to buy +90 seconds.", icon: "cell" },
+};
+
+export const CELL_BONUS = 90;

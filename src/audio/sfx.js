@@ -33,6 +33,13 @@ const SOUNDS = {
   pa:      [{ freq: 330, dur: 0.18, type: "sine", vol: 0.07 },
             { freq: 262, dur: 0.3, type: "sine", vol: 0.07, delay: 0.2 }],
   paBlip:  [{ freq: 140, dur: 0.03, type: "sawtooth", vol: 0.03 }],
+  item:    [{ freq: 784, dur: 0.1, type: "square", vol: 0.07 },
+            { freq: 988, dur: 0.1, type: "square", vol: 0.07, delay: 0.11 },
+            { freq: 1175, dur: 0.1, type: "square", vol: 0.07, delay: 0.22 },
+            { freq: 1568, dur: 0.35, type: "square", vol: 0.07, delay: 0.33 }],
+  bump:    [{ freq: 90, to: 60, dur: 0.07, type: "square", vol: 0.06 }],
+  menu:    [{ freq: 1046, dur: 0.04, type: "square", vol: 0.05 },
+            { freq: 1318, dur: 0.05, type: "square", vol: 0.05, delay: 0.04 }],
   gameover:[{ freq: 440, to: 40, dur: 1.4, type: "sawtooth", vol: 0.1 }],
 };
 

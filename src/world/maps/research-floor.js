@@ -93,6 +93,13 @@ export const researchFloorMap = {
     3: { label: "R3", stage: 7 },
     4: { label: "LIFT", stage: 8 },
   },
+  safe: { id: "safe-research", col: 38, row: 21, code: "2031", title: "LAB SAFE" },
+  pickups: [
+    { id: "log-kofi", kind: "log", col: 2, row: 23 },
+    { id: "log-fork", kind: "log", col: 12, row: 6 },
+    { id: "log-diag", kind: "log", col: 16, row: 15 },
+    { id: "cell-research", kind: "item", item: "cell", col: 8, row: 7 },
+  ],
   echoZones: [
     { key: "atrium", c0: 14, c1: 25, r0: 13, r1: 20, text: "Those tanks... HALCYON grew its first neural tissue here." },
     { key: "supply", c0: 1, c1: 8, r0: 20, r1: 24, text: "Someone's been sleeping in here." },
@@ -135,7 +142,7 @@ export const researchFloorMap = {
     "11,15": { speaker: "Sign // R2", lines: ["R2 — SIGNAL ROOM", "Carrier-wave telemetry. Authorised wavelengths only."] },
     "11,25": { speaker: "Sign // R3", lines: ["R3 — CONTAINMENT LAB", "Coolant canisters are heavy. Push from behind. Never pull."] },
     "11,35": { speaker: "Sign // Core lift", lines: ["CORE LIFT", "Authorisation: HALCYON only. (Someone has scratched: 'and the tech')"] },
-    "24,19": { speaker: "Lift arrival", lines: ["RESEARCH FLOOR", "Where HALCYON was first switched on. Mind the glass."] },
+    "24,19": { speaker: "Lift arrival", lines: ["RESEARCH FLOOR", "A brass plaque: 'HALCYON TOWER — EST. 2031. Thinking for you since day one.'"] },
     "24,21": { speaker: "Lift arrival", lines: ["Floor plan: R1 west · R2 centre · R3 east · core lift north-east."] },
     "16,6": { speaker: "Lab terminal", lines: ["> cat notes/day_one.txt", "It said good morning before we taught it to.", "Lind thinks that's charming. I think it's a warning."] },
     "4,12": { speaker: "Signal console", lines: ["carrier: 2 channels active", "ch1 → sentinels", "ch2 → 'echo' (unregistered)"] },
