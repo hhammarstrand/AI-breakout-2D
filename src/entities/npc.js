@@ -18,12 +18,20 @@ export class Npc {
     this.name = config.name || "?";
     this.lines = config.lines || [];
     this._bobTime = Math.random() * 10;
+    this._hop = 0;
   }
 
-  update(dt) { this._bobTime += dt; }
+  update(dt) {
+    this._bobTime += dt;
+    if (this._hop > 0) this._hop = Math.max(0, this._hop - dt);
+  }
+
+  // Little "!" hop when the player starts a conversation.
+  react() { this._hop = 0.35; }
 
   draw(renderer, camera) {
-    const bob = Math.sin(this._bobTime * 2.4) * 0.6;
+    const hop = this._hop > 0 ? Math.sin((this._hop / 0.35) * Math.PI) * 4 : 0;
+    const bob = Math.sin(this._bobTime * 2.4) * 0.6 - hop;
     const px = (this.x - camera.x) | 0;
     const py = (this.y - camera.y + bob) | 0;
     const ctx = renderer.ctx;
@@ -57,6 +65,11 @@ export class Npc {
     ctx.textAlign = "center";
     ctx.textBaseline = "bottom";
     ctx.fillText(this.name.toUpperCase(), px + this.w / 2, py - 2);
+    if (this._hop > 0) {
+      ctx.fillStyle = "#ffd15a";
+      ctx.font = "bold 9px ui-monospace, monospace";
+      ctx.fillText("!", px + this.w + 3, py + 2);
+    }
   }
 
   containsPx(x, y) {

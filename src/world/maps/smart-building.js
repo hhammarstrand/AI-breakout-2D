@@ -213,8 +213,9 @@ export const smartBuildingMap = {
     "11,6":  { speaker: "Sign // L1", lines: [
       "SECTOR 1 — SURVEILLANCE",
       "Sensor & CCTV station. Authenticated personnel only.",
-      "Note: human baseline is ~36.5C with breathing motion.",
-      "Hostiles run hot — over 38C, with irregular or erratic motion.",
+      "Note: human baseline is 36-37C, with calm motion — breathing, shallow, slow.",
+      "Hostiles run hot — over 38C — and never stop moving: irregular, erratic, twitching.",
+      "Empty rooms show no motion. Machinery can run hot. Don't be fooled.",
     ] },
     "11,18": { speaker: "Sign // L2", lines: ["SECTOR 2 — RESEARCH LAB", "Bio-secure. Decrypt protocol required for access."] },
     "11,30": { speaker: "Sign // L3", lines: ["SECTOR 3 — DOOR CONTROL", "Pathfinding agent must be deployed before entry."] },

@@ -1,14 +1,50 @@
-const ROOMS = [
-  { id: 1, name: "LOBBY",       motion: "none",      thermal: "21.4C", audio: "ambient" },
-  { id: 2, name: "SERVER HALL", motion: "none",      thermal: "38.7C", audio: "fan whir" },
-  { id: 3, name: "CORRIDOR 7B", motion: "irregular", thermal: "38.2C", audio: "wet clicks" },
-  { id: 4, name: "WASHROOM",    motion: "breathing", thermal: "36.5C", audio: "muffled cough" },
-  { id: 5, name: "LAB ANNEX",   motion: "erratic",   thermal: "39.0C", audio: "servo whine" },
-  { id: 6, name: "STAIRWELL B", motion: "erratic",   thermal: "41.4C", audio: "metal skitter" },
+// Each visit generates a fresh set of feeds from the same sensor rules the L1 sign teaches:
+// humans read ~36-37C with breathing motion; hostiles run >38C and always move;
+// empty rooms show no motion (some run hot from machinery, as a decoy).
+const ROOM_NAMES = [
+  "LOBBY", "SERVER HALL", "CORRIDOR 7B", "WASHROOM", "LAB ANNEX", "STAIRWELL B",
+  "BREAK ROOM", "MAILROOM", "ELEVATOR 3", "ARCHIVE", "COLD STORAGE", "BOARDROOM",
+];
+const SURVIVOR_PROFILES = [
+  { motion: "breathing", audio: "coughing" },
+  { motion: "shallow", audio: "sobbing" },
+  { motion: "slow shift", audio: "whispers" },
+];
+const HOSTILE_PROFILES = [
+  { motion: "irregular", audio: "wet clicks" },
+  { motion: "erratic", audio: "servo whine" },
+  { motion: "erratic", audio: "skittering" },
+  { motion: "twitching", audio: "static hiss" },
+  { motion: "irregular", audio: "dragging" },
+];
+const EMPTY_PROFILES = [
+  { motion: "none", audio: "ambient", temp: [19.5, 23.5] },
+  { motion: "none", audio: "fan whir", temp: [38.2, 40.5] },
+  { motion: "none", audio: "dripping", temp: [16.0, 21.0] },
 ];
 
-const SOLUTION_SURVIVOR = 4;
-const SOLUTION_HOSTILES = new Set([3, 5, 6]);
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const temp = (lo, hi) => `${(lo + Math.random() * (hi - lo)).toFixed(1)}C`;
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function generateRooms() {
+  const roles = shuffle(["survivor", "hostile", "hostile", "hostile", "empty", "empty"]);
+  const names = shuffle(ROOM_NAMES.slice());
+  return roles.map((role, i) => {
+    let p, thermal;
+    if (role === "survivor") { p = pick(SURVIVOR_PROFILES); thermal = temp(36.1, 37.2); }
+    else if (role === "hostile") { p = pick(HOSTILE_PROFILES); thermal = temp(38.1, 42.0); }
+    else { p = pick(EMPTY_PROFILES); thermal = temp(...p.temp); }
+    return { id: i + 1, name: names[i], role, motion: p.motion, thermal, audio: p.audio };
+  });
+}
 
 const COLS = 3;
 const ROWS_GRID = 2;
@@ -18,31 +54,44 @@ const GUTTER = 12;
 const CARD_W = 144;
 const CARD_H = 116;
 
-const CYCLE = { none: "survivor", survivor: "hostile", hostile: "none" };
+const CYCLE = { none: "hostile", hostile: "survivor", survivor: "none" };
+
+const STAMP_TIME = 0.25;
 
 export class Sector1Scene {
-  constructor({ hud, onResult }) {
+  constructor({ hud, sfx, fx, onResult }) {
     this.hud = hud;
+    this.sfx = sfx;
+    this.fx = fx;
     this.onResult = onResult;
+    this.rooms = generateRooms();
     this.cursor = 0;
-    this.states = ROOMS.map(() => "none");
+    this.states = this.rooms.map(() => "none");
+    this.stamps = this.rooms.map(() => 0);
     this.message = null;
     this.messageTime = 0;
     this.attempts = 0;
     this._t = 0;
   }
 
+  onEnter() { document.body.classList.add("no-objective"); }
+  onExit() { document.body.classList.remove("no-objective"); }
+
   update(dt, input) {
     this._t += dt;
+    this.hud.update(dt);
+    for (let i = 0; i < this.stamps.length; i++) this.stamps[i] = Math.max(0, this.stamps[i] - dt);
     if (this.message) {
       this.messageTime -= dt;
       if (this.messageTime <= 0) this.message = null;
     }
 
+    const before = this.cursor;
     if (input.wasPressed("up") && this.cursor >= COLS) this.cursor -= COLS;
-    else if (input.wasPressed("down") && this.cursor < ROOMS.length - COLS) this.cursor += COLS;
+    else if (input.wasPressed("down") && this.cursor < this.rooms.length - COLS) this.cursor += COLS;
     else if (input.wasPressed("left") && this.cursor % COLS > 0) this.cursor -= 1;
     else if (input.wasPressed("right") && this.cursor % COLS < COLS - 1) this.cursor += 1;
+    if (this.cursor !== before) this.sfx.play("select");
 
     if (input.wasPressed("interact")) this._cycle();
     if (input.wasPressed("submit")) this._submit();
@@ -51,12 +100,9 @@ export class Sector1Scene {
 
   _cycle() {
     const next = CYCLE[this.states[this.cursor]];
-    if (next === "survivor") {
-      for (let i = 0; i < this.states.length; i++) {
-        if (i !== this.cursor && this.states[i] === "survivor") this.states[i] = "none";
-      }
-    }
     this.states[this.cursor] = next;
+    this.stamps[this.cursor] = next === "none" ? 0 : STAMP_TIME;
+    this.sfx.play(next === "none" ? "select" : "stamp");
   }
 
   _submit() {
@@ -68,23 +114,39 @@ export class Sector1Scene {
     }
 
     if (survivors.length !== 1) {
+      this.sfx.play("denied");
       this._setMessage("Mark exactly 1 SURVIVOR.", "#ffaa3a");
       return;
     }
     if (hostiles.length !== 3) {
+      this.sfx.play("denied");
       this._setMessage(`Mark exactly 3 HOSTILES (currently ${hostiles.length}).`, "#ffaa3a");
       return;
     }
 
     this.attempts += 1;
+    const role = (id) => this.rooms[id - 1].role;
     const correct =
-      survivors[0] === SOLUTION_SURVIVOR &&
-      hostiles.every((h) => SOLUTION_HOSTILES.has(h));
+      role(survivors[0]) === "survivor" &&
+      hostiles.every((h) => role(h) === "hostile");
 
     if (correct) {
-      this.onResult({ success: true, aborted: false });
+      const survivor = this.rooms[survivors[0] - 1].name;
+      const hostileNames = hostiles.map((h) => this.rooms[h - 1].name);
+      this.onResult({
+        success: true,
+        aborted: false,
+        report: [
+          `[L1] LOCATED. Survivor confirmed in ${survivor}.`,
+          `Hostile profiles flagged in ${hostileNames.slice(0, -1).join(", ")} and ${hostileNames.at(-1)}.`,
+          "Sector 2 — DECRYPT THE LAB LOGS — now unlocked.",
+        ],
+      });
     } else {
-      this.hud.setScore(this.hud.score - 2);
+      this.hud.addScore(-2);
+      this.sfx.play("error");
+      this.fx.shake();
+      this.fx.flash("#ff5a5a");
       this._setMessage("INCORRECT. Re-check the sensor profiles. (-2)", "#ff5a5a");
     }
   }
@@ -103,6 +165,10 @@ export class Sector1Scene {
       renderer.fillRect(0, y, w, 1, "rgba(10,255,122,0.05)");
     }
 
+    const scanY = (this._t * 60) % h;
+    renderer.fillRect(0, scanY, w, 2, "rgba(10,255,122,0.10)");
+    renderer.fillRect(0, scanY - 6, w, 6, "rgba(10,255,122,0.04)");
+
     renderer.fillRect(0, 0, w, HEADER_H, "#062612");
     renderer.fillRect(0, HEADER_H - 2, w, 2, "#0aff7a");
     renderer.text("SECTOR 1 // LOCATE THE SURVIVOR", 8, HEADER_H / 2, {
@@ -113,18 +179,18 @@ export class Sector1Scene {
       color: "#ff5a5a", size: 9, align: "right", baseline: "middle", weight: "bold",
     });
 
-    for (let i = 0; i < ROOMS.length; i++) {
+    for (let i = 0; i < this.rooms.length; i++) {
       const col = i % COLS;
       const row = Math.floor(i / COLS);
       const x = GUTTER + col * (CARD_W + GUTTER);
       const y = HEADER_H + GUTTER + row * (CARD_H + 16);
-      this._drawCard(renderer, ROOMS[i], this.states[i], i === this.cursor, x, y);
+      this._drawCard(renderer, this.rooms[i], this.states[i], i === this.cursor, x, y, this.stamps[i]);
     }
 
     renderer.fillRect(0, h - FOOTER_H, w, FOOTER_H, "#062612");
     renderer.fillRect(0, h - FOOTER_H, w, 1, "#0aff7a");
     renderer.text(
-      "[arrows] move   [space] cycle survivor/hostile   [enter] submit   [esc] exit",
+      "[arrows] move   [space] cycle hostile/survivor   [enter] submit   [esc] exit",
       8, h - FOOTER_H / 2,
       { color: "#0a8a4a", size: 8, baseline: "middle" },
     );
@@ -140,7 +206,7 @@ export class Sector1Scene {
     }
   }
 
-  _drawCard(renderer, room, state, focused, x, y) {
+  _drawCard(renderer, room, state, focused, x, y, stamp) {
     let bg = "#0a1410";
     let border = "#1a4a30";
     let tag = null;
@@ -195,16 +261,30 @@ export class Sector1Scene {
       const dy = (room.id * 19 + i * 11 + noiseFrame * 3) % 28;
       renderer.fillRect(thx + dx + 1, thy + dy + 1, 1, 1, "#1a3520");
     }
+    if (room.motion !== "none" && Math.sin(this._t * 3 + room.id) > -0.3) {
+      const bx = thx + 10 + Math.round(Math.sin(this._t * 1.7 + room.id * 2) * 6);
+      renderer.fillRect(bx, thy + 9, 6, 4, "#2a6a40");
+      renderer.fillRect(bx + 1, thy + 13, 4, 7, "#2a6a40");
+    }
     renderer.text(`CAM-0${room.id}`, thx + 15, thy + 26, {
       color: "#4ae6ff", size: 6, align: "center", baseline: "middle",
     });
 
     if (tag) {
-      renderer.fillRect(x + 8, y + CARD_H - 22, CARD_W - 16, 14, "#000");
-      renderer.strokeRect(x + 8, y + CARD_H - 22, CARD_W - 16, 14, tagColor, 1);
-      renderer.text(tag, x + CARD_W / 2, y + CARD_H - 15, {
+      // rubber-stamp slam: starts big and tilted, settles into place
+      const k = stamp / STAMP_TIME;
+      const ctx = renderer.ctx;
+      ctx.save();
+      ctx.translate(x + CARD_W / 2, y + CARD_H - 15);
+      ctx.rotate(-0.05 - k * 0.25);
+      ctx.scale(1 + k * 1.2, 1 + k * 1.2);
+      ctx.globalAlpha = 1 - k * 0.5;
+      renderer.fillRect(-(CARD_W - 16) / 2, -7, CARD_W - 16, 14, "#000");
+      renderer.strokeRect(-(CARD_W - 16) / 2, -7, CARD_W - 16, 14, tagColor, 1);
+      renderer.text(tag, 0, 0, {
         color: tagColor, size: 9, weight: "bold", align: "center", baseline: "middle",
       });
+      ctx.restore();
     } else {
       renderer.text("[ unmarked ]", x + CARD_W / 2, y + CARD_H - 15, {
         color: "#1a4a30", size: 8, align: "center", baseline: "middle",

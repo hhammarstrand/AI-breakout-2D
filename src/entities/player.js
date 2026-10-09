@@ -3,6 +3,7 @@ import { TILE_SIZE } from "../world/tilemap.js";
 const SPEED = 70;
 const W = 12;
 const H = 14;
+const SLIDE_REACH = 7;
 
 export class Player {
   constructor(col, row) {
@@ -44,11 +45,29 @@ export class Player {
     const stepX = dx * SPEED * dt;
     const stepY = dy * SPEED * dt;
 
-    if (stepX !== 0 && !tilemap.rectCollides(this.x + stepX, this.y, this.w, this.h)) {
-      this.x += stepX;
+    if (stepX !== 0) {
+      if (!tilemap.rectCollides(this.x + stepX, this.y, this.w, this.h)) this.x += stepX;
+      else if (dy === 0) this._slideAround(tilemap, "y", stepX, Math.abs(stepX));
     }
-    if (stepY !== 0 && !tilemap.rectCollides(this.x, this.y + stepY, this.w, this.h)) {
-      this.y += stepY;
+    if (stepY !== 0) {
+      if (!tilemap.rectCollides(this.x, this.y + stepY, this.w, this.h)) this.y += stepY;
+      else if (dx === 0) this._slideAround(tilemap, "x", stepY, Math.abs(stepY));
+    }
+  }
+
+  // Corner assist: when bumping into a wall next to a 1-tile gap, nudge sideways
+  // toward the gap instead of requiring pixel-perfect alignment.
+  _slideAround(tilemap, axis, step, speed) {
+    for (let off = 1; off <= SLIDE_REACH; off++) {
+      for (const sign of [-1, 1]) {
+        const ox = axis === "x" ? sign * off : step;
+        const oy = axis === "y" ? sign * off : step;
+        if (!tilemap.rectCollides(this.x + ox, this.y + oy, this.w, this.h)) {
+          const nudge = sign * Math.min(speed, off);
+          if (axis === "x") this.x += nudge; else this.y += nudge;
+          return;
+        }
+      }
     }
   }
 

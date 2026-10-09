@@ -26,12 +26,17 @@ Any other static server works too (`npx serve`, `caddy file-server`, etc.).
 | Interact / cycle survivor-hostile | `Space` / `E`       |
 | Submit (inside a sector)          | `Enter`             |
 | Pause / close dialog / exit sector | `Esc`              |
+| Sound on/off                      | `M`                 |
+
+Progress (sectors, score, remaining containment time) autosaves to `localStorage`; pick
+**CONTINUE** on the title screen to resume. If the containment timer hits `00:00` the run ends.
 
 ## Sector 1 — Locate the Survivor
 
 Walk to the cyan **L1** door in the north wall and press `E`. You enter a CCTV control room
-with six feeds. Read each room's sensor data (motion, thermal, audio) and tag exactly **one**
-room as `SURVIVOR` and **three** rooms as `HOSTILE`, then `Enter` to submit. Wrong submissions
+with six feeds, randomised on every visit. Read each room's sensor data (motion, thermal, audio)
+and tag exactly **one** room as `SURVIVOR` and **three** rooms as `HOSTILE` (`Space` cycles
+hostile → survivor → unmarked), then `Enter` to submit. Wrong submissions
 cost 2 points; clearing the sector awards 25.
 
 ## Deploying to GitHub Pages
@@ -55,18 +60,19 @@ index.html              entry point
 style.css               CRT theme + layout
 src/
   main.js               bootstraps the game
-  state.js              sector progress (which sectors are completed)
+  state.js              progress, score, timer + localStorage save
+  audio/                WebAudio synth SFX (no asset files)
   engine/               loop, input, camera, canvas helpers
   world/                tilemap + map data
   entities/             player, npc
-  scenes/               title, world, pause, sector1
-  ui/                   dialog, hud
+  scenes/               title, world, pause, game over, sector1
+  ui/                   dialog + portraits, hud, toasts, screen fx
 ```
 
 ## Future iterations
 
 - Wire L2 (cipher decryption), L3 (pathfinding agent), and L4 (breach) to their own scenes.
-- LocalStorage persistence in `src/state.js`.
 - Real pixel-art sprites under `assets/`.
-- Audio + SFX toggle.
-- Lose condition when the containment timer hits 0.
+- Darkness + flashlight cone in the lobby.
+- Patrolling hostiles and a companion drone that gives hints.
+- Touch controls for mobile.
