@@ -4,7 +4,7 @@ import { Drone } from "../entities/drone.js";
 
 // Sector 3 — program ECHO. The player writes a queue of commands (moves and waits); ECHO then
 // executes it literally. Laser gates alternate every step: A gates are live on even steps,
-// B gates on odd steps. Level 2 also requires picking up the AURORA fragment chip.
+// B gates on odd steps. Level 2 also requires picking up the lift keycard.
 const LEVELS = [
   {
     name: "CALIBRATION",
@@ -29,7 +29,7 @@ const LEVELS = [
       "#G.B....#",
       "#########",
     ],
-    brief: "Grab the fragment chip (C), then reach G. Mind the gate rhythm.",
+    brief: "Grab the lift keycard (C), then reach G. Mind the gate rhythm.",
   },
 ];
 
@@ -169,12 +169,12 @@ export class Sector3Scene {
     if (t === "C" && !this.hasChip) {
       this.hasChip = true;
       this.sfx.play("toast");
-      this.message = { text: "Fragment chip acquired: AURORA", color: "#0aff7a", time: 2.5 };
+      this.message = { text: "Lift keycard acquired", color: "#0aff7a", time: 2.5 };
     }
     if (t === "G") {
       const needsChip = LEVELS[this.level].rows.some((r) => r.includes("C"));
       if (needsChip && !this.hasChip) {
-        this._fail("chip", "ECHO reached the controller without the fragment chip.");
+        this._fail("chip", "ECHO reached the controller without the keycard.");
         return;
       }
       this.mode = "done";
@@ -208,9 +208,9 @@ export class Sector3Scene {
       aborted: false,
       report: [
         "[L3] Door control is ours. ECHO walked the grid exactly as you wrote it.",
-        "It pulled the third fragment out of the controller: AURORA.",
-        "And it rerouted SENTINEL-A. The corridor is clear.",
-        "L4 is open. North-east corner. Time to end this, tech.",
+        "It rerouted SENTINEL-A, so the corridor is clear.",
+        "And it unlocked the service lift in the north-east corner. The research floor is above us.",
+        "The last fragment has to be up there. I'll stay on the radio, tech.",
       ],
     });
   }

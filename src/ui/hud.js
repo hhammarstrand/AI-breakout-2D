@@ -1,4 +1,5 @@
-import { gameState, saveGame, TOTAL_SECONDS, FRAGMENTS, collectedFragments } from "../state.js";
+import { gameState, saveGame, FRAGMENTS, collectedFragments, currentAct, actSeconds } from "../state.js";
+import { STAGES, OBJECTIVES } from "../story.js";
 
 const AUTOSAVE_INTERVAL = 5;
 const WARNINGS = [
@@ -6,13 +7,7 @@ const WARNINGS = [
   { at: 60, text: "⚠ 60 SECONDS — MOVE!", kind: "danger" },
 ];
 
-const OBJECTIVES = [
-  "L1 (north-west): find the survivor on the CCTV grid. Ask around for the sensor rules",
-  "L2: decrypt HALCYON's lab logs. Dr. Lind knows how its cipher works",
-  "L3: program ECHO to walk the door-control maze",
-  "L4 (north-east): enter the uplink code and override HALCYON",
-  "The tower is open. It's over.",
-];
+
 
 export class Hud {
   constructor(root, { toast, sfx, onToggleSfx, onTimeout }) {
@@ -33,12 +28,7 @@ export class Hud {
     this._saveTimer = 0;
     this._lastShown = "";
 
-    this.pipsEl.innerHTML = "";
-    for (let i = 0; i < gameState.totalSectors; i++) {
-      const pip = document.createElement("i");
-      pip.textContent = `L${i + 1}`;
-      this.pipsEl.appendChild(pip);
-    }
+    this._pipAct = null;
 
     this.sfxEl.addEventListener("click", () => { onToggleSfx(); this.sfxEl.blur(); });
     this.refresh();
@@ -78,6 +68,21 @@ export class Hud {
     this._render();
   }
 
+  // One pip per stage in the current act, labelled like the doors.
+  _buildPips() {
+    const act = currentAct();
+    if (act === this._pipAct) return;
+    this._pipAct = act;
+    document.getElementById("hud-act").textContent = ["", "ACT I", "ACT II", "ACT III"][act];
+    this.pipsEl.innerHTML = "";
+    for (const st of STAGES.filter((s) => s.act === act)) {
+      const pip = document.createElement("i");
+      pip.textContent = st.label;
+      pip.dataset.stage = st.id;
+      this.pipsEl.appendChild(pip);
+    }
+  }
+
   addScore(delta) {
     gameState.score += delta;
     saveGame();
@@ -104,18 +109,18 @@ export class Hud {
   _render(force = false) {
     const secs = gameState.secondsLeft;
     const key = `${Math.floor(secs)}|${gameState.completedSectors}|${gameState.sfxOn}`;
+    this._buildPips();
     if (!force && key === this._lastShown) return;
     this._lastShown = key;
 
     this.timerEl.textContent = formatTime(secs);
-    this.timerFill.style.width = `${(secs / TOTAL_SECONDS) * 100}%`;
+    this.timerFill.style.width = `${(secs / actSeconds()) * 100}%`;
     this.timerCell.classList.toggle("warn", secs <= 5 * 60 && secs > 60);
     this.timerCell.classList.toggle("danger", secs <= 60);
 
-    const pips = this.pipsEl.children;
-    for (let i = 0; i < pips.length; i++) {
-      pips[i].className = i < gameState.completedSectors ? "done"
-                        : i === gameState.completedSectors ? "active" : "";
+    for (const pip of this.pipsEl.children) {
+      const id = Number(pip.dataset.stage);
+      pip.className = id <= gameState.completedSectors ? "done" : id === gameState.completedSectors + 1 ? "active" : "";
     }
 
     if (force) this.scoreEl.textContent = formatScore(this.displayScore);

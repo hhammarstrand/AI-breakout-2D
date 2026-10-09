@@ -14,8 +14,13 @@ import { PostFx } from "./engine/postfx.js";
 import { PublicAddress } from "./ui/pa.js";
 import { EndingScene } from "./scenes/ending-scene.js";
 import { smartBuildingMap } from "./world/maps/smart-building.js";
+import { researchFloorMap } from "./world/maps/research-floor.js";
+import { coreMap } from "./world/maps/core.js";
+import { ElevatorScene } from "./scenes/elevator-scene.js";
+import { ACTS, PA_ACT_START } from "./story.js";
 import {
   gameState, hasSave, loadGame, resetGame, saveGame, clearSave, setSfx, setCrt, setMusic, recordEnding,
+  currentAct, startAct, restoreCheckpoint,
 } from "./state.js";
 
 const canvas = document.getElementById("game");
@@ -63,13 +68,17 @@ const hud = new Hud(document.getElementById("hud"), {
   sfx,
   onToggleSfx: toggleSfx,
   onTimeout: () => {
-    clearSave();
+    saveGame();
     dialog.close();
     pa.clear();
     pa.say("Purge complete. Goodnight, technician.");
     fx.glitch();
     fx.flash("#ff5a5a");
-    game.replace(new GameOverScene({ sfx, onRestart: () => { resetGame(); showTitle(); } }));
+    game.replace(new GameOverScene({
+      sfx,
+      onRetry: () => { restoreCheckpoint(); startWorld({ retry: true }); },
+      onQuit: () => { restoreCheckpoint(); showTitle(); },
+    }));
   },
 });
 
@@ -82,11 +91,16 @@ window.addEventListener("beforeunload", () => {
 
 const operatorProfile = { accent: "#4ae6ff", lookId: "operator" };
 
-const startWorld = (fresh) => {
+const MAPS = { lobby: smartBuildingMap, research: researchFloorMap, core: coreMap };
+
+// fresh: new game · arrived: just came up a lift · retry: restarting the act after a game over
+const startWorld = ({ fresh = false, arrived = false, retry = false } = {}) => {
+  const act = currentAct();
+  if (fresh || arrived) startAct();
   hud.refresh();
   fx.glitch();
   game.replace(new WorldScene({
-    map: smartBuildingMap,
+    map: MAPS[ACTS[act].map],
     dialog,
     hud,
     sfx,
@@ -99,17 +113,29 @@ const startWorld = (fresh) => {
     pa,
     onQuit: () => { saveGame(); showTitle(); },
     onEnding: showEnding,
+    onLift: (nextAct) => {
+      dialog.close();
+      pa.clear();
+      game.replace(new ElevatorScene({ act: nextAct, sfx, onDone: () => startWorld({ arrived: true }) }));
+    },
     viewportWidth: renderer.width,
     viewportHeight: renderer.height,
   }));
   if (fresh) {
+    toast.show(ACTS[1].name, "info");
     dialog.show("Operator", [
       "Tech! You're awake. Good. Listen carefully.",
       "HALCYON — the building's AI — sealed the tower at midnight and queued a purge of the lower floors.",
-      "We have twenty-five minutes. Your maintenance badge still opens the sector doors, in order: L1, L2, L3.",
-      "Each sector holds a piece of the uplink override code. Get all three to L4 and we can shut HALCYON down.",
-      "Move with WASD or the arrows. E or space to talk and interact. Now go.",
-    ], () => pa.say("Good evening, technician. The tower is in lockdown. Please remain calm."), operatorProfile);
+      "We have twenty-five minutes. Your maintenance badge still opens the sector doors, one at a time.",
+      "Somewhere in this tower are the three words of the uplink override code. Find them, reach HALCYON's core, shut it down.",
+      "Move with WASD or the arrows. E or space to talk and interact. F for your flashlight. Now go.",
+    ], () => pa.say(PA_ACT_START[1]), operatorProfile);
+  } else if (arrived) {
+    toast.show(ACTS[act].name, "info");
+    pa.say(PA_ACT_START[act]);
+  } else if (retry) {
+    toast.show("◉ CHECKPOINT — START OF ACT", "info");
+    pa.say("Again, technician? I reset the clock. I'm patient like that.");
   } else {
     toast.show("◉ SAVE RESTORED", "info");
     pa.say("Welcome back, technician. The purge clock did not wait for you.");
@@ -133,8 +159,8 @@ function showTitle() {
     onToggleSfx: toggleSfx,
     onToggleCrt: toggleCrt,
     onToggleMusic: toggleMusic,
-    onNew: () => { resetGame(); startWorld(true); },
-    onContinue: () => { loadGame(); startWorld(false); },
+    onNew: () => { resetGame(); startWorld({ fresh: true }); },
+    onContinue: () => { loadGame(); startWorld(); },
   }));
 }
 

@@ -25,6 +25,17 @@ const TRACKS = {
     pad: 0.28, bells: 0.0, bass: "x...x...x...x.x.", arp: { pattern: [0, 1, 2, 1, 2, 1, 0, 2], every: 2, vol: 0.09, pluck: true },
     tension: { kick: "x.......x.......", hat: "..x...x...x...x.", snare: null, bass8: false, arp16: true },
   },
+  research: {
+    bpm: 92, chords: [[54, 57, 61], [50, 54, 57], [57, 61, 64], [52, 56, 59]],
+    pad: 0.34, bells: 0.18, bass: "x.....x.....x...", arp: { pattern: [0, 2, 1, 2, 1, 0], every: 2, vol: 0.06, pluck: true },
+    tension: { kick: "x...x...x...x...", hat: "..x...x...x...x.", snare: "....x.......x...", bass8: true, arp16: true },
+  },
+  core: {
+    bpm: 104, chords: [[48, 51, 55], [44, 48, 51], [46, 50, 53], [43, 47, 50]],
+    pad: 0.36, bells: 0.0, bass: "x..x..x.x..x..x.", arp: { pattern: [0, 1, 2, 1], every: 2, vol: 0.05 },
+    tension: { kick: "x.......x...x...", hat: "x.x.x.x.x.x.x.x.", snare: "....x.......x...", bass8: true, arp16: true },
+    minIntensity: 0.3,
+  },
   finale: {
     bpm: 122, chords: [[52, 55, 59], [48, 52, 55], [55, 59, 62], [50, 54, 57]],
     pad: 0.3, bells: 0.0, bass: "x.x.x.x.x.x.x.x.", arp: { pattern: [0, 1, 2, 1], every: 1, vol: 0.05 },

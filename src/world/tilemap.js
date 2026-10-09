@@ -20,30 +20,57 @@ export const TILE = {
   LIGHT: 17,
   DEBRIS: 18,
   LOCKER: 19,
+  GLASS: 20,
+  TANK: 21,
+  BENCH: 22,
+  CORE: 23,
+  METAL: 24,
+  CABLE: 25,
+  VENT: 26,
+  HAZARD: 27,
 };
 
 const SOLID = new Set([
   TILE.WALL,
   TILE.DOOR_L1, TILE.DOOR_L2, TILE.DOOR_L3, TILE.DOOR_L4,
   TILE.DESK, TILE.TERMINAL, TILE.RACK, TILE.PLANT, TILE.DEBRIS, TILE.LOCKER,
+  TILE.GLASS, TILE.TANK, TILE.BENCH, TILE.CORE,
 ]);
-
-const DOOR_LABELS = {
-  [TILE.DOOR_L1]: "L1",
-  [TILE.DOOR_L2]: "L2",
-  [TILE.DOOR_L3]: "L3",
-  [TILE.DOOR_L4]: "L4",
-};
 
 const INTERACTIVE = new Set([TILE.TERMINAL, TILE.SIGN]);
 
+// Wall palettes per floor.
+export const THEMES = {
+  lobby: {
+    fill: "#1d5a3c", fillDot: "#246a48", fillLine: "#16482f",
+    top: "#2c8256", hi: "#58d68e", lip: "#1a5a3a", face: "#123f29", seam: "#0c2e1e", faceHi: "#1a5236", base: "#06170f",
+    led: "#4ae6ff",
+  },
+  research: {
+    fill: "#2a3e4c", fillDot: "#34505e", fillLine: "#22323e",
+    top: "#4e7486", hi: "#a6dcef", lip: "#3a5868", face: "#1c2a36", seam: "#121c26", faceHi: "#2a3c4a", base: "#0a1218",
+    led: "#ffd15a",
+  },
+  core: {
+    fill: "#2a1016", fillDot: "#3a161e", fillLine: "#200c10",
+    top: "#4a1a22", hi: "#ff5a6a", lip: "#34121a", face: "#1a080c", seam: "#0e0406", faceHi: "#2a0e14", base: "#060203",
+    led: "#ff2a3a",
+  },
+};
+
+const DOOR_TILES = [TILE.DOOR_L1, TILE.DOOR_L2, TILE.DOOR_L3, TILE.DOOR_L4];
+
 export class Tilemap {
-  constructor(grid) {
+  // doors: { 1: { label, stage }, ... } keyed by door slot (DOOR_L1 = slot 1)
+  constructor(grid, { doors = {}, theme = "lobby" } = {}) {
     this.rows = grid.length;
     this.cols = grid[0].length;
     this.grid = grid.map((row) => row.slice());
     this.widthPx = this.cols * TILE_SIZE;
     this.heightPx = this.rows * TILE_SIZE;
+    this.doors = doors;
+    this.theme = THEMES[theme] ?? THEMES.lobby;
+    this.themeName = theme;
   }
 
   tileAt(col, row) {
@@ -70,12 +97,15 @@ export class Tilemap {
     return false;
   }
 
+  doorSlot(tile) { return DOOR_TILES.indexOf(tile) + 1; }
+
   doorAtPx(x, y) {
     const col = Math.floor(x / TILE_SIZE);
     const row = Math.floor(y / TILE_SIZE);
     const tile = this.tileAt(col, row);
-    const label = DOOR_LABELS[tile];
-    return label ? { col, row, tile, label } : null;
+    const slot = this.doorSlot(tile);
+    const cfg = slot ? this.doors[slot] : null;
+    return cfg ? { col, row, tile, label: cfg.label, stage: cfg.stage } : null;
   }
 
   interactiveAtPx(x, y) {
@@ -98,307 +128,330 @@ export class Tilemap {
         const tile = this.grid[r][c];
         const px = (c * TILE_SIZE - camera.x) | 0;
         const py = (r * TILE_SIZE - camera.y) | 0;
-        if (tile === TILE.WALL) drawWall(ctx, px, py, c, r, !isWallLike(this.tileAt(c, r + 1)), time);
-        else drawTile(ctx, tile, px, py, c, r, time);
+        if (tile === TILE.WALL) {
+          drawWall(ctx, this.theme, px, py, c, r, !isWallLike(this.tileAt(c, r + 1)), time);
+        } else if (DOOR_TILES.includes(tile)) {
+          drawDoor(ctx, this.theme, px, py, this.doors[this.doorSlot(tile)], time);
+        } else {
+          drawTile(ctx, tile, px, py, c, r, time, this.floorAt(c, r));
+        }
       }
     }
+  }
+
+  // The floor shown under props: whichever floor kind its neighbours use.
+  floorAt(c, r) {
+    for (const [dc, dr] of [[0, 1], [-1, 0], [1, 0], [0, -1]]) {
+      const t = this.tileAt(c + dc, r + dr);
+      if (FLOORS.has(t)) return t;
+    }
+    return TILE.FLOOR;
   }
 }
 
 const T = TILE_SIZE;
+const INK = "#0a0812";
+const FLOORS = new Set([TILE.FLOOR, TILE.CARPET, TILE.GRATING, TILE.METAL, TILE.CABLE, TILE.VENT, TILE.HAZARD, TILE.SPAWN, TILE.LIGHT]);
 
-const isWallLike = (t) => t === TILE.WALL || (t >= TILE.DOOR_L1 && t <= TILE.DOOR_L4);
+const isWallLike = (t) => t === TILE.WALL || DOOR_TILES.includes(t);
+
+function rect(ctx, x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(x, y, w, h); }
+function box(ctx, x, y, w, h, fill) { rect(ctx, x, y, w, h, INK); rect(ctx, x + 1, y + 1, w - 2, h - 2, fill); }
 
 // Walls get a 3/4 look: a lit top cap, and a darker panelled front face wherever the
 // tile below is open floor, so rooms read as having height.
-function drawWall(ctx, x, y, col, row, face, time) {
+function drawWall(ctx, th, x, y, col, row, face, time) {
   if (!face) {
-    ctx.fillStyle = "#1d5a3c";
-    ctx.fillRect(x, y, T, T);
-    ctx.fillStyle = "#246a48";
-    ctx.fillRect(x + ((col * 5 + row * 3) % 12), y + ((col * 7 + row) % 12), 2, 2);
-    ctx.fillStyle = "#16482f";
-    ctx.fillRect(x, y + T - 1, T, 1);
+    rect(ctx, x, y, T, T, th.fill);
+    rect(ctx, x + ((col * 5 + row * 3) % 12), y + ((col * 7 + row) % 12), 2, 2, th.fillDot);
+    rect(ctx, x, y + T - 1, T, 1, th.fillLine);
     return;
   }
-  ctx.fillStyle = "#2c8256";
-  ctx.fillRect(x, y, T, 5);
-  ctx.fillStyle = "#58d68e";
-  ctx.fillRect(x, y, T, 1);
-  ctx.fillStyle = "#1a5a3a";
-  ctx.fillRect(x, y + 4, T, 1);
-  ctx.fillStyle = "#123f29";
-  ctx.fillRect(x, y + 5, T, T - 5);
-  ctx.fillStyle = "#0c2e1e";
-  ctx.fillRect(x + (col & 1 ? 0 : 8), y + 5, 1, T - 6);
-  ctx.fillRect(x, y + 10, T, 1);
-  ctx.fillStyle = "#1a5236";
-  ctx.fillRect(x + 1, y + 6, T - 2, 1);
-  ctx.fillStyle = "#06170f";
-  ctx.fillRect(x, y + T - 1, T, 1);
+  rect(ctx, x, y, T, 5, th.top);
+  rect(ctx, x, y, T, 1, th.hi);
+  rect(ctx, x, y + 4, T, 1, th.lip);
+  rect(ctx, x, y + 5, T, T - 5, th.face);
+  rect(ctx, x + (col & 1 ? 0 : 8), y + 5, 1, T - 6, th.seam);
+  rect(ctx, x, y + 10, T, 1, th.seam);
+  rect(ctx, x + 1, y + 6, T - 2, 1, th.faceHi);
+  rect(ctx, x, y + T - 1, T, 1, th.base);
   if ((col * 13 + row * 7) % 9 === 0) {
     const on = Math.floor(time * 1.3 + col) % 3 !== 0;
-    ctx.fillStyle = on ? "#4ae6ff" : "#0a3a4a";
-    ctx.fillRect(x + 12, y + 7, 2, 1);
+    rect(ctx, x + 12, y + 7, 2, 1, on ? th.led : th.seam);
   }
 }
 
-function drawFloor(ctx, x, y, col, row) {
-  const checker = ((col + row) & 1) === 0;
-  ctx.fillStyle = checker ? "#0a1410" : "#0e1814";
-  ctx.fillRect(x, y, T, T);
-  ctx.fillStyle = "#152018";
-  ctx.fillRect(x + 1, y + 1, 1, 1);
-  ctx.fillRect(x + T - 2, y + T - 2, 1, 1);
+function drawDoor(ctx, th, x, y, cfg, time) {
+  const stage = cfg?.stage ?? 99;
+  const done = isSectorCompleted(stage);
+  const active = isSectorActive(stage);
+  const edge = done ? "#0aff7a" : active ? "#4ae6ff" : "#ff3a3a";
+  // frame + lintel
+  rect(ctx, x, y, T, T, th.face);
+  rect(ctx, x, y, T, 3, th.top);
+  rect(ctx, x, y, T, 1, th.hi);
+  if (done) {
+    // slid open: dark interior with door edges tucked to the sides
+    rect(ctx, x + 2, y + 3, 12, 13, "#020406");
+    rect(ctx, x + 1, y + 3, 2, 13, "#3a4a54");
+    rect(ctx, x + 13, y + 3, 2, 13, "#3a4a54");
+    rect(ctx, x + 3, y + 14, 10, 2, "rgba(10,255,122,0.25)");
+  } else {
+    rect(ctx, x + 1, y + 3, 14, 13, "#2a343c");
+    rect(ctx, x + 1, y + 3, 7, 13, "#34424c");
+    rect(ctx, x + 8, y + 3, 1, 13, INK);
+    rect(ctx, x + 2, y + 4, 5, 1, "#4a5a66");
+    if (active) {
+      const pulse = 0.5 + 0.5 * Math.sin(time * 4);
+      ctx.globalAlpha = 0.4 + 0.6 * pulse;
+      rect(ctx, x + 1, y + 3, 1, 13, edge);
+      rect(ctx, x + 14, y + 3, 1, 13, edge);
+      ctx.globalAlpha = 1;
+    } else {
+      ctx.strokeStyle = "rgba(255,40,40,0.75)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x + 4, y + 7); ctx.lineTo(x + 12, y + 14);
+      ctx.moveTo(x + 12, y + 7); ctx.lineTo(x + 4, y + 14);
+      ctx.stroke();
+    }
+  }
+  // label plate
+  rect(ctx, x + 2, y + 4, 12, 6, INK);
+  ctx.fillStyle = edge;
+  ctx.font = "bold 6px ui-monospace, monospace";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(cfg?.label ?? "?", x + T / 2, y + 7.5);
+  const blink = Math.floor(time * 2) & 1;
+  rect(ctx, x + 13, y + 1, 2, 1, active && blink ? "#ff5a5a" : done ? "#0aff7a" : "#3a0808");
 }
 
-function drawTile(ctx, tile, x, y, col, row, time) {
-  switch (tile) {
-    case TILE.WALL: {
-      ctx.fillStyle = "#1a6644";
-      ctx.fillRect(x, y, T, T);
-      ctx.fillStyle = "#2faa66";
-      ctx.fillRect(x, y, T, 2);
-      ctx.fillStyle = "#093822";
-      ctx.fillRect(x, y + T - 2, T, 2);
-      ctx.fillStyle = "#0e4a2a";
-      ctx.fillRect(x, y + 7, T, 1);
-      ctx.fillStyle = "#093822";
-      ctx.fillRect(x + 8, y + 2, 1, 5);
-      ctx.fillRect(x + 4, y + 8, 1, 6);
-      ctx.fillRect(x + 12, y + 8, 1, 6);
-      ctx.fillStyle = "#062612";
-      ctx.fillRect(x, y, 1, T);
-      ctx.fillRect(x + T - 1, y, 1, T);
-      break;
-    }
-
-    case TILE.DOOR_L1:
-    case TILE.DOOR_L2:
-    case TILE.DOOR_L3:
-    case TILE.DOOR_L4: {
-      const sectorNum = tile - TILE.DOOR_L1 + 1;
-      const completed = isSectorCompleted(sectorNum);
-      const active = isSectorActive(sectorNum);
-
-      const fill = completed ? "#0a3a22" : active ? "#0a2a3a" : "#1a0a0a";
-      const border = completed ? "#0aff7a" : active ? "#4ae6ff" : "#5a1010";
-      const label = completed ? "#0aff7a" : active ? "#4ae6ff" : "#3a1010";
-
-      ctx.fillStyle = fill;
-      ctx.fillRect(x, y, T, T);
-      ctx.strokeStyle = border;
-      ctx.lineWidth = 2;
-      ctx.strokeRect(x + 1, y + 1, T - 2, T - 2);
-
-      ctx.fillStyle = "#000";
-      ctx.fillRect(x + 5, y + 4, 6, 9);
-      ctx.fillStyle = label;
-      ctx.font = "bold 8px ui-monospace, monospace";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(DOOR_LABELS[tile], x + T / 2, y + T / 2 + 1);
-
-      const blink = Math.floor(time * 2) & 1;
-      ctx.fillStyle = active && blink ? "#ff5a5a" : completed ? "#0aff7a" : "#3a0808";
-      ctx.fillRect(x + T - 4, y + 2, 2, 2);
-
-      if (!active && !completed) {
-        ctx.strokeStyle = "#7a1010";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(x + 4, y + 4); ctx.lineTo(x + T - 4, y + T - 4);
-        ctx.moveTo(x + T - 4, y + 4); ctx.lineTo(x + 4, y + T - 4);
-        ctx.stroke();
-      }
-      break;
-    }
-
+function drawFloorKind(ctx, kind, x, y, col, row) {
+  switch (kind) {
     case TILE.CARPET: {
-      ctx.fillStyle = "#3a1810";
-      ctx.fillRect(x, y, T, T);
-      ctx.fillStyle = "#5a2818";
+      rect(ctx, x, y, T, T, "#3a1810");
+      ctx.fillStyle = "#4e2216";
       for (let i = 1; i < T; i += 4) {
         ctx.fillRect(x + i, y + ((row * 3 + i) % 4), 1, 1);
         ctx.fillRect(x + ((col * 3 + i) % T), y + i, 1, 1);
       }
-      ctx.fillStyle = "#2a1008";
-      ctx.fillRect(x, y, T, 1);
-      ctx.fillRect(x, y + T - 1, T, 1);
-      break;
+      if ((col + row) % 4 === 0) rect(ctx, x + 6, y + 6, 4, 4, "#45200f");
+      rect(ctx, x, y, T, 1, "#2a1008");
+      return;
     }
-
     case TILE.GRATING: {
-      ctx.fillStyle = "#0e1820";
-      ctx.fillRect(x, y, T, T);
+      rect(ctx, x, y, T, T, "#0e1820");
       ctx.fillStyle = "#22323e";
       for (let i = 1; i < T; i += 3) ctx.fillRect(x + 1, y + i, T - 2, 1);
-      ctx.fillStyle = "#0a1218";
-      ctx.fillRect(x, y, 1, T);
-      ctx.fillRect(x + T - 1, y, 1, T);
-      break;
+      rect(ctx, x, y, 1, T, "#0a1218");
+      rect(ctx, x + T - 1, y, 1, T, "#0a1218");
+      return;
     }
+    case TILE.METAL: {
+      rect(ctx, x, y, T, T, (col + row) & 1 ? "#1c252c" : "#1f2a32");
+      rect(ctx, x, y, T, 1, "#2c3a44");
+      rect(ctx, x, y, 1, T, "#2c3a44");
+      rect(ctx, x + T - 1, y, 1, T, "#11181e");
+      rect(ctx, x + 2, y + 2, 1, 1, "#3a4a56");
+      rect(ctx, x + T - 3, y + T - 3, 1, 1, "#3a4a56");
+      return;
+    }
+    case TILE.CABLE: {
+      drawFloorKind(ctx, TILE.METAL, x, y, col, row);
+      rect(ctx, x, y + 5, T, 2, "#0a0a10");
+      rect(ctx, x, y + 6, T, 1, (col & 1) ? "#ff8a1a" : "#c86a10");
+      rect(ctx, x, y + 10, T, 2, "#0a0a10");
+      rect(ctx, x, y + 11, T, 1, "#2a6aa8");
+      return;
+    }
+    case TILE.VENT: {
+      rect(ctx, x, y, T, T, "#1a2228");
+      box(ctx, x + 1, y + 1, T - 2, T - 2, "#0c1014");
+      ctx.fillStyle = "#2a3640";
+      for (let i = 3; i < T - 2; i += 2) ctx.fillRect(x + 3, y + i, T - 6, 1);
+      return;
+    }
+    case TILE.HAZARD: {
+      drawFloorKind(ctx, TILE.METAL, x, y, col, row);
+      ctx.fillStyle = "#c8a010";
+      for (let i = -T; i < T; i += 6) {
+        ctx.beginPath();
+        ctx.moveTo(x + i, y + T); ctx.lineTo(x + i + 3, y + T); ctx.lineTo(x + i + T + 3, y); ctx.lineTo(x + i + T, y);
+        ctx.fill();
+      }
+      return;
+    }
+    default: {
+      const checker = ((col + row) & 1) === 0;
+      rect(ctx, x, y, T, T, checker ? "#0a1410" : "#0e1814");
+      rect(ctx, x + 1, y + 1, 1, 1, "#152018");
+      rect(ctx, x + T - 2, y + T - 2, 1, 1, "#152018");
+    }
+  }
+}
 
+function propShadow(ctx, x, y) { rect(ctx, x + 2, y + T - 2, T - 3, 2, "rgba(0,0,0,0.4)"); }
+
+function drawTile(ctx, tile, x, y, col, row, time, floor) {
+  if (FLOORS.has(tile) && tile !== TILE.LIGHT && tile !== TILE.SPAWN) {
+    drawFloorKind(ctx, tile, x, y, col, row);
+    return;
+  }
+  drawFloorKind(ctx, floor, x, y, col, row);
+
+  switch (tile) {
     case TILE.LIGHT: {
-      drawFloor(ctx, x, y, col, row);
       const phase = (Math.sin(time * 5 + col * 0.7 + row * 1.1) + 1) * 0.5;
-      const a = 0.20 + 0.18 * phase;
-      const grad = ctx.createRadialGradient(
-        x + T / 2, y + T / 2, 0,
-        x + T / 2, y + T / 2, T * 0.85,
-      );
-      grad.addColorStop(0, `rgba(180, 255, 220, ${a})`);
+      const grad = ctx.createRadialGradient(x + T / 2, y + T / 2, 0, x + T / 2, y + T / 2, T * 0.85);
+      grad.addColorStop(0, `rgba(180, 255, 220, ${0.2 + 0.18 * phase})`);
       grad.addColorStop(1, "rgba(180, 255, 220, 0)");
       ctx.fillStyle = grad;
       ctx.fillRect(x - 2, y - 2, T + 4, T + 4);
-      ctx.fillStyle = `rgba(220, 255, 240, ${0.5 + 0.3 * phase})`;
-      ctx.fillRect(x + T / 2 - 1, y + T / 2 - 1, 2, 2);
-      break;
+      rect(ctx, x + 5, y + 6, 6, 3, INK);
+      rect(ctx, x + 6, y + 7, 4, 1, `rgba(230, 255, 245, ${0.6 + 0.3 * phase})`);
+      return;
     }
 
-    case TILE.DESK: {
-      drawFloor(ctx, x, y, col, row);
-      ctx.fillStyle = "#5a3018";
-      ctx.fillRect(x + 1, y + 4, T - 2, 8);
-      ctx.fillStyle = "#7a4220";
-      ctx.fillRect(x + 1, y + 4, T - 2, 2);
-      ctx.fillStyle = "#3a1f0c";
-      ctx.fillRect(x + 1, y + 11, T - 2, 1);
-      ctx.fillStyle = "#2a1808";
-      ctx.fillRect(x + 2, y + 12, 2, 3);
-      ctx.fillRect(x + T - 4, y + 12, 2, 3);
-      ctx.fillStyle = "#3a1f0c";
-      ctx.fillRect(x + 4, y + 7, 4, 3);
-      break;
+    case TILE.DESK:
+    case TILE.BENCH: {
+      const lab = tile === TILE.BENCH;
+      propShadow(ctx, x, y);
+      box(ctx, x, y + 3, T, 10, lab ? "#c8d4d8" : "#7a4a24");
+      rect(ctx, x + 1, y + 4, T - 2, 1, lab ? "#f0f8fa" : "#9a6434");
+      rect(ctx, x + 1, y + 8, T - 2, 4, lab ? "#7a8a92" : "#4e2c14");
+      rect(ctx, x + 6, y + 9, 4, 1, lab ? "#c8d4d8" : "#7a4a24");
+      rect(ctx, x + 1, y + 13, 2, 2, INK);
+      rect(ctx, x + T - 3, y + 13, 2, 2, INK);
+      const v = (col * 7 + row * 3) % 4;
+      if (lab) {
+        // flask + rack of tubes
+        rect(ctx, x + 3, y + 1, 3, 5, INK);
+        rect(ctx, x + 4, y + 2, 1, 3, v & 1 ? "#4ae6ff" : "#0aff7a");
+        rect(ctx, x + 9, y + 3, 5, 2, INK);
+        rect(ctx, x + 10, y + 2, 1, 2, "#ff5aa0");
+        rect(ctx, x + 12, y + 2, 1, 2, "#ffd15a");
+      } else if (v === 0) {
+        rect(ctx, x + 3, y + 4, 4, 3, "#e8e8e0"); rect(ctx, x + 4, y + 5, 2, 1, "#9a9a90");
+      } else if (v === 1) {
+        rect(ctx, x + 10, y + 3, 3, 3, INK); rect(ctx, x + 11, y + 4, 1, 1, "#e8e0d0");
+      }
+      return;
     }
 
     case TILE.TERMINAL: {
-      drawFloor(ctx, x, y, col, row);
-      ctx.fillStyle = "#5a3018";
-      ctx.fillRect(x + 1, y + 11, T - 2, 4);
-      ctx.fillStyle = "#3a1f0c";
-      ctx.fillRect(x + 1, y + 14, T - 2, 1);
-      ctx.fillStyle = "#1a1a1a";
-      ctx.fillRect(x + 2, y + 1, T - 4, 10);
-      ctx.fillStyle = "#0a3a22";
-      ctx.fillRect(x + 3, y + 2, T - 6, 8);
+      propShadow(ctx, x, y);
+      box(ctx, x, y + 7, T, 7, "#7a4a24");
+      rect(ctx, x + 1, y + 8, T - 2, 1, "#9a6434");
+      rect(ctx, x + 1, y + 11, T - 2, 2, "#4e2c14");
+      box(ctx, x + 2, y, 12, 9, "#2a3038");
+      rect(ctx, x + 3, y + 1, 10, 6, "#062a18");
       const phase = Math.floor(time * 6 + col + row) % 4;
-      ctx.fillStyle = "#1aff7a";
-      ctx.fillRect(x + 4, y + 3, 4, 1);
-      ctx.fillRect(x + 4, y + 5, 6, 1);
-      ctx.fillRect(x + 4, y + 7, 3 + phase, 1);
-      ctx.fillStyle = "#4ae6ff";
-      ctx.fillRect(x + T - 5, y + 9, 1, 1);
-      ctx.fillStyle = "#2a2a2a";
-      ctx.fillRect(x + 6, y + 11, T - 12, 1);
-      break;
+      rect(ctx, x + 4, y + 2, 4, 1, "#1aff7a");
+      rect(ctx, x + 4, y + 4, 6, 1, "#0ac85a");
+      rect(ctx, x + 4, y + 6, 2 + phase, 1, "#1aff7a");
+      rect(ctx, x + 4, y + 8, 8, 1, "#40464e");
+      rect(ctx, x + 12, y + 7, 1, 1, "#4ae6ff");
+      return;
     }
 
     case TILE.RACK: {
-      drawFloor(ctx, x, y, col, row);
-      ctx.fillStyle = "#202428";
-      ctx.fillRect(x + 1, y, T - 2, T);
-      ctx.fillStyle = "#2a3038";
-      ctx.fillRect(x + 1, y, T - 2, 1);
-      ctx.fillStyle = "#0a0e12";
-      ctx.fillRect(x + 1, y + T - 1, T - 2, 1);
+      propShadow(ctx, x, y);
+      box(ctx, x + 1, y - 3, T - 2, T + 2, "#1e2328");
+      rect(ctx, x + 2, y - 2, T - 4, 2, "#3a424a");
       const blink = Math.floor(time * 4 + col * 1.7 + row * 0.3);
-      const ledColors = ["#0aff7a", "#4ae6ff", "#ffaa1a", "#ff5a5a"];
+      const leds = ["#0aff7a", "#4ae6ff", "#ffaa1a", "#ff5a5a"];
       for (let r = 0; r < 4; r++) {
-        const lit = (blink + r) & 1;
-        ctx.fillStyle = lit ? ledColors[r] : "#1a2228";
-        ctx.fillRect(x + 3, y + 2 + r * 3, 2, 2);
+        rect(ctx, x + 3, y + 1 + r * 3, 8, 2, "#0c1014");
+        rect(ctx, x + 4, y + 1 + r * 3, 6, 1, "#262e36");
+        rect(ctx, x + 12, y + 1 + r * 3, 1, 1, (blink + r) & 1 ? leds[r] : "#1a2228");
       }
-      ctx.fillStyle = "#0a0e12";
-      for (let r = 0; r < 4; r++) {
-        ctx.fillRect(x + 7, y + 2 + r * 3, T - 10, 2);
+      return;
+    }
+
+    case TILE.LOCKER: {
+      propShadow(ctx, x, y);
+      box(ctx, x + 1, y - 3, T - 2, T + 1, "#3a5a48");
+      rect(ctx, x + 2, y - 2, T - 4, 2, "#5a8068");
+      rect(ctx, x + 8, y, 1, T - 4, INK);
+      for (const dx of [3, 10]) {
+        rect(ctx, x + dx, y + 1, 3, 1, "#22382c");
+        rect(ctx, x + dx, y + 3, 3, 1, "#22382c");
       }
-      ctx.fillStyle = "#1a2228";
-      for (let r = 0; r < 4; r++) {
-        ctx.fillRect(x + 8, y + 2 + r * 3 + 1, T - 12, 1);
-      }
-      break;
+      rect(ctx, x + 6, y + 6, 1, 2, "#d0d8d0");
+      rect(ctx, x + 10, y + 6, 1, 2, "#d0d8d0");
+      return;
     }
 
     case TILE.PLANT: {
-      drawFloor(ctx, x, y, col, row);
-      ctx.fillStyle = "#3a1810";
-      ctx.fillRect(x + 4, y + 10, 8, 5);
-      ctx.fillStyle = "#5a2818";
-      ctx.fillRect(x + 4, y + 10, 8, 1);
-      ctx.fillStyle = "#2a1008";
-      ctx.fillRect(x + 4, y + 14, 8, 1);
-      ctx.fillStyle = "#0a4a1a";
-      ctx.fillRect(x + 5, y + 5, 6, 5);
-      ctx.fillRect(x + 3, y + 7, 2, 3);
-      ctx.fillRect(x + 11, y + 7, 2, 3);
-      ctx.fillStyle = "#1a8a3a";
-      ctx.fillRect(x + 6, y + 4, 4, 4);
-      ctx.fillRect(x + 7, y + 2, 2, 3);
-      ctx.fillStyle = "#2faa55";
-      ctx.fillRect(x + 7, y + 5, 1, 1);
-      ctx.fillRect(x + 9, y + 6, 1, 1);
-      break;
+      propShadow(ctx, x, y);
+      box(ctx, x + 4, y + 9, 8, 6, "#8a4a26");
+      rect(ctx, x + 5, y + 10, 6, 1, "#b06a3a");
+      rect(ctx, x + 2, y, 12, 10, INK);
+      rect(ctx, x + 3, y + 1, 10, 8, "#1a6a2a");
+      rect(ctx, x + 4, y + 1, 4, 3, "#2a9a3e");
+      rect(ctx, x + 8, y + 4, 4, 3, "#2a9a3e");
+      rect(ctx, x + 5, y + 2, 1, 1, "#6ad87a");
+      rect(ctx, x + 9, y + 5, 1, 1, "#6ad87a");
+      rect(ctx, x + 3, y + 7, 3, 2, "#125020");
+      return;
     }
 
     case TILE.SIGN: {
-      drawFloor(ctx, x, y, col, row);
-      ctx.fillStyle = "#3a3a3a";
-      ctx.fillRect(x + 7, y + 8, 2, 7);
-      ctx.fillStyle = "#0a2a3a";
-      ctx.fillRect(x + 2, y + 2, T - 4, 7);
-      ctx.fillStyle = "#4ae6ff";
-      ctx.fillRect(x + 2, y + 2, T - 4, 1);
-      ctx.fillRect(x + 2, y + 8, T - 4, 1);
-      ctx.fillRect(x + 2, y + 2, 1, 7);
-      ctx.fillRect(x + T - 3, y + 2, 1, 7);
+      rect(ctx, x + 7, y + 8, 2, 7, INK);
+      rect(ctx, x + 7, y + 8, 1, 7, "#5a5a64");
+      box(ctx, x + 1, y + 1, 14, 8, "#0a2a3a");
+      rect(ctx, x + 2, y + 2, 12, 1, "#4ae6ff");
       const blink = Math.floor(time * 1.5) & 1;
       ctx.fillStyle = blink ? "#cffcff" : "#4ae6ff";
       ctx.font = "bold 6px ui-monospace, monospace";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText("i", x + T / 2, y + 5.5);
-      break;
+      return;
     }
 
     case TILE.DEBRIS: {
-      drawFloor(ctx, x, y, col, row);
-      ctx.fillStyle = "#4a2818";
-      ctx.fillRect(x + 2, y + 5, 4, 3);
-      ctx.fillRect(x + 9, y + 8, 5, 3);
-      ctx.fillRect(x + 5, y + 11, 4, 2);
-      ctx.fillStyle = "#6a3818";
-      ctx.fillRect(x + 2, y + 5, 4, 1);
-      ctx.fillRect(x + 9, y + 8, 5, 1);
-      ctx.fillStyle = "#2a1008";
-      ctx.fillRect(x + 2, y + 7, 1, 1);
-      ctx.fillRect(x + 13, y + 10, 1, 1);
-      break;
+      box(ctx, x + 1, y + 6, 7, 6, "#5a3a26");
+      rect(ctx, x + 2, y + 7, 5, 1, "#7a5236");
+      box(ctx, x + 7, y + 8, 8, 6, "#4a4a52");
+      rect(ctx, x + 8, y + 9, 6, 1, "#6a6a74");
+      box(ctx, x + 4, y + 11, 5, 4, "#3a2a1e");
+      rect(ctx, x + 12, y + 4, 1, 5, "#8a8a90");
+      return;
     }
 
-    case TILE.LOCKER: {
-      drawFloor(ctx, x, y, col, row);
-      ctx.fillStyle = "#2a4030";
-      ctx.fillRect(x + 1, y, T - 2, T - 1);
-      ctx.fillStyle = "#3f5a48";
-      ctx.fillRect(x + 1, y, T - 2, 2);
-      ctx.fillStyle = "#1a2a20";
-      ctx.fillRect(x + 1, y + T - 2, T - 2, 1);
-      ctx.fillStyle = "#1a2a20";
-      ctx.fillRect(x + T / 2, y + 2, 1, T - 4);
-      ctx.fillStyle = "#cfd8d0";
-      ctx.fillRect(x + 5, y + 7, 1, 2);
-      ctx.fillRect(x + T - 6, y + 7, 1, 2);
-      ctx.fillStyle = "#4ae6ff";
-      ctx.fillRect(x + 4, y + 3, 2, 1);
-      ctx.fillRect(x + T - 6, y + 3, 2, 1);
-      break;
+    case TILE.GLASS: {
+      ctx.fillStyle = "rgba(120, 220, 255, 0.16)";
+      ctx.fillRect(x, y, T, T);
+      rect(ctx, x, y, T, 1, "#a6dcef");
+      rect(ctx, x, y + T - 1, T, 1, "#4e7486");
+      ctx.fillStyle = "rgba(255,255,255,0.35)";
+      ctx.fillRect(x + 3 + (col % 3), y + 2, 1, 6);
+      ctx.fillRect(x + 5 + (col % 3), y + 3, 1, 3);
+      return;
     }
 
-    case TILE.FLOOR:
-    case TILE.SPAWN:
-    default:
-      drawFloor(ctx, x, y, col, row);
-      break;
+    case TILE.TANK: {
+      propShadow(ctx, x, y);
+      box(ctx, x + 1, y - 4, T - 2, T + 3, "#2a3a44");
+      const g = (Math.sin(time * 2 + col) + 1) / 2;
+      rect(ctx, x + 3, y - 2, T - 6, T - 2, `rgb(${20 + 20 * g}, ${120 + 60 * g}, ${90 + 30 * g})`);
+      for (let i = 0; i < 3; i++) {
+        const by = ((time * 12 + i * 5 + col * 3) % 12);
+        rect(ctx, x + 5 + i * 2, y + 9 - by, 1, 1, "#cfffe8");
+      }
+      rect(ctx, x + 4, y - 1, 1, 10, "rgba(255,255,255,0.4)");
+      rect(ctx, x + 1, y + T - 4, T - 2, 3, "#3a4a54");
+      return;
+    }
+
+    case TILE.CORE: {
+      box(ctx, x, y - 4, T, T + 4, "#1a0a0e");
+      const p = (Math.sin(time * 3 + row) + 1) / 2;
+      for (let i = 0; i < 4; i++) rect(ctx, x + 3 + i * 3, y - 2, 1, T, `rgba(255,${40 + 40 * p},${50 + 30 * p},${0.4 + 0.5 * p})`);
+      rect(ctx, x + 1, y - 3, T - 2, 1, "#ff5a6a");
+      return;
+    }
   }
 }

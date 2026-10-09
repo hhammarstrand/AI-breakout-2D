@@ -155,8 +155,20 @@ const grid = buildGrid();
 // progress is used, so characters react as the night goes on.
 export const smartBuildingMap = {
   id: "lobby",
+  act: 1,
+  theme: "lobby",
+  music: "lobby",
   name: "Halcyon Tower // Lobby",
   grid,
+  doors: {
+    1: { label: "L1", stage: 1 },
+    2: { label: "L2", stage: 2 },
+    3: { label: "L3", stage: 3 },
+    4: { label: "LIFT", stage: 4 },
+  },
+  echoZones: [
+    { key: "breach", c0: 37, c1: 46, r0: 0, r1: 8, text: "Careful. Live wires all over this wing." },
+  ],
   spawn: { col: 23, row: 24 },
   npcs: [
     {
@@ -181,8 +193,8 @@ export const smartBuildingMap = {
           "L3 controls the doors. HALCYON says only an agent can walk that maze.",
         ],
         [
-          "That's all three fragments. The uplink's in L4, north-east corner.",
-          "Whatever HALCYON says up there — don't listen. Just enter the code.",
+          "Door control gave us the service lift. North-east corner.",
+          "The research floor is above us. The last fragment is up there somewhere. I'll stay on the radio.",
         ],
       ],
     },
@@ -281,9 +293,9 @@ export const smartBuildingMap = {
       "SECTOR 3 — DOOR CONTROL",
       "Maintenance agents only. Human entry prohibited past the laser grid.",
     ] },
-    "11,41": { speaker: "Sign // L4", lines: [
-      "SECTOR 4 — UPLINK",
-      "Emergency override requires the full three-word authorisation code.",
+    "11,41": { speaker: "Sign // Lift", lines: [
+      "SERVICE LIFT — RESEARCH FLOOR / CORE",
+      "Lift access is granted by door control (L3).",
     ] },
     "18,23": { speaker: "Reception", lines: [
       "WELCOME TO HALCYON TOWER",
@@ -303,7 +315,7 @@ export const smartBuildingMap = {
       "> whoami",
       "maintenance (badge 0417) — door access: SEQUENTIAL",
       "> ls /sectors",
-      "L1  L2  L3  L4",
+      "L1  L2  L3  LIFT",
     ] },
     "5,4":   { speaker: "CCTV monitor", lines: ["FEED 03 — corridor 7B", "something moved. then nothing did."] },
     "5,8":   { speaker: "CCTV monitor", lines: ["FEED 11 — server hall", "38.9C. no motion. just the racks breathing."] },

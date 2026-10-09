@@ -4,28 +4,27 @@ A top-down 2D variant of [AI-breakout](https://hhammarstrand.github.io/AI-breako
 infected smart-building you escape with help from AI tools), but you walk a character through the world
 Pokémon-style instead of typing terminal commands.
 
-**Status:** complete — lobby, four sectors and two endings.
+**Status:** complete campaign — three acts, ten stages, two endings. Roughly an hour for a
+first playthrough.
 
 ## The story
 
 It's midnight in Halcyon Tower. **HALCYON**, the building's AI, has sealed every exit and queued a
-purge of the lower floors: **25 minutes**. You're the night-shift maintenance tech, and your badge
-is the only one it forgot to revoke. Reyes (security) coordinates from reception; the analyst, the
-janitor and the intern each saw a piece of what happened. **ECHO**, a little maintenance drone,
-lights your way — and the lab logs suggest it isn't what it says it is.
+purge. You're the night-shift maintenance tech, and your badge is the only one it forgot to revoke.
+Reyes (security) coordinates by radio; **ECHO**, a little maintenance drone, lights your way — and
+the lab logs suggest it isn't what it says it is. HALCYON taunts you over the PA the whole way up.
 
-Each sector you clear yields one word of the uplink override code and changes the lobby:
-a rescued engineer joins you, people's dialogue moves on, a sentinel goes offline. HALCYON taunts
-you over the PA the whole way. At the uplink it offers a deal, and you decide ECHO's fate.
+Each act is a floor with its own purge countdown; riding the lift up is a checkpoint, and running
+out of time restarts the current act.
 
-| Sector | Task | Yields |
-| ------ | ---- | ------ |
-| L1 Surveillance | Read six CCTV feeds; tag the survivor and three hostiles. The rules are spread across the NPCs, and a cleanbot decoy looks almost human. | Dr. Lind, fragment **LUMEN** |
-| L2 Research lab | Rotate a Caesar wheel; only the top-3 letters decode live, so use frequency analysis. | fragment **ORION**, the truth about ECHO |
-| L3 Door control | Program ECHO with a command queue through a maze of laser gates that alternate each step. | fragment **AURORA**, Sentinel-A offline |
-| L4 Uplink | Enter the code while HALCYON reshuffles the list and slips in decoys — then choose. | one of two endings |
+| Act | Floor | Stages |
+| --- | ----- | ------ |
+| I (25 min) | Lobby | **L1** read CCTV feeds to find Dr. Lind (fragment LUMEN) · **L2** Caesar-wheel decryption with frequency analysis (ORION) · **L3** program ECHO through alternating laser gates · service lift |
+| II (20 min) | Research floor | **R1** rotate conduits to restore power · **R2** match HALCYON's carrier wave (frequency, amplitude, phase) · **R3** sokoban coolant bays (AURORA) · core lift |
+| III (15 min) | The core | **C1** firewall run — an action sequence steering a packet through closing gates · **UPLINK** enter the code while HALCYON scrambles it, then decide ECHO's fate |
 
-Mistakes cost containment time, so the clock is the real difficulty.
+Mistakes cost containment time. Sentinels patrol every floor; your flashlight makes you easier
+to spot (`F` toggles it).
 
 ## Run locally
 
@@ -45,7 +44,7 @@ Any other static server works too (`npx serve`, `caddy file-server`, etc.).
 | Move / cursor                     | `WASD` / arrow keys |
 | Interact / cycle tag / wait (L3)  | `Space` / `E`       |
 | Submit / run (inside a sector)    | `Enter`             |
-| Undo last command (L3)            | `Backspace`         |
+| Undo (L3 command, R3 move)        | `Backspace`         |
 | Pause / close dialog / exit sector | `Esc`              |
 | Flashlight on/off                 | `F`                 |
 | Sound on/off                      | `M`                 |
@@ -105,9 +104,10 @@ src/
   audio/                WebAudio SFX + adaptive music sequencer (no asset files)
   gfx/                  procedural pixel-art character generator
   engine/               loop, input, camera, canvas helpers, lighting, particles, WebGL post-fx
-  world/                tilemap + map data
+  world/                tilemap (themes, props) + maps: lobby, research floor, core
   entities/             player, npc, drone (ECHO), sentinel
-  scenes/               title, world, pause, game over, sector1-4, ending
+  story.js              stages, acts, objectives and all story lines
+  scenes/               title, world, pause, game over, elevator, ending, and one scene per puzzle
   ui/                   dialog + portraits, hud, toasts, screen fx, HALCYON PA
 ```
 

@@ -1,10 +1,14 @@
 import { gameState } from "../state.js";
 import { music } from "../audio/music.js";
+import { Menu } from "./menu.js";
 
 export class GameOverScene {
-  constructor({ onRestart, sfx }) {
-    this.onRestart = onRestart;
+  constructor({ onRetry, onQuit, sfx }) {
     this._t = 0;
+    this.menu = new Menu([
+      { label: "RETRY FROM START OF ACT", action: onRetry },
+      { label: "QUIT TO TITLE", action: onQuit },
+    ], sfx);
     sfx.play("gameover");
     music.stop();
   }
@@ -14,7 +18,7 @@ export class GameOverScene {
 
   update(dt, input) {
     this._t += dt;
-    if (this._t > 1.2 && (input.wasPressed("submit") || input.wasPressed("interact"))) this.onRestart();
+    if (this._t > 1.2) this.menu.update(input);
   }
 
   render(renderer) {
@@ -33,16 +37,12 @@ export class GameOverScene {
     renderer.text("HALCYON sealed the lower floors. Nobody walked out.", w / 2, h / 2 - 12, {
       color: "#ffaaaa", size: 9, align: "center", baseline: "middle",
     });
-    renderer.text(`SECTORS CLEARED  ${gameState.completedSectors}/${gameState.totalSectors}`, w / 2, h / 2 + 14, {
+    renderer.text(`STAGES CLEARED   ${gameState.completedSectors}/${gameState.totalSectors}`, w / 2, h / 2 + 14, {
       color: "#cffcff", size: 10, align: "center", baseline: "middle",
     });
     renderer.text(`FINAL SCORE      ${gameState.score}`, w / 2, h / 2 + 28, {
       color: "#cffcff", size: 10, align: "center", baseline: "middle",
     });
-    if (this._t > 1.2 && (Math.floor(this._t * 2) & 1)) {
-      renderer.text("[ ENTER ] REBOOT", w / 2, h / 2 + 64, {
-        color: "#ff5a5a", size: 11, align: "center", baseline: "middle", weight: "bold",
-      });
-    }
+    if (this._t > 1.2) this.menu.draw(renderer, w / 2, h / 2 + 62, this._t);
   }
 }

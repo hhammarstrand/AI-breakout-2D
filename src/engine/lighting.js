@@ -2,7 +2,7 @@ import { TILE_SIZE, TILE } from "../world/tilemap.js";
 
 // Tiles that block light (and therefore cast shadows from the flashlight).
 const OPAQUE = new Set([
-  TILE.WALL, TILE.RACK, TILE.LOCKER,
+  TILE.WALL, TILE.RACK, TILE.LOCKER, TILE.CORE,
   TILE.DOOR_L1, TILE.DOOR_L2, TILE.DOOR_L3, TILE.DOOR_L4,
 ]);
 
@@ -136,10 +136,11 @@ export function collectLights(tilemap, doorColor) {
       const x = c * TILE_SIZE + TILE_SIZE / 2;
       const y = r * TILE_SIZE + TILE_SIZE / 2;
       const seed = (c * 73 + r * 151) % 997;
-      const breach = c >= 37 && r <= 7;
+      const breach = tilemap.themeName === "lobby" && c >= 37 && r <= 7;
+      const lampColor = { research: "200,235,255", core: "255,110,120" }[tilemap.themeName] ?? "170,255,215";
       switch (tile) {
         case TILE.LIGHT:
-          lights.push({ x, y, radius: 58, base: 0.9, color: breach ? "255,90,60" : "170,255,215", seed,
+          lights.push({ x, y, radius: 58, base: 0.9, color: breach ? "255,90,60" : lampColor, seed,
                         flicker: breach ? "heavy" : seed % 7 === 0 ? "faulty" : "hum" });
           break;
         case TILE.TERMINAL:
@@ -150,6 +151,12 @@ export function collectLights(tilemap, doorColor) {
           break;
         case TILE.SIGN:
           lights.push({ x, y: y - 3, radius: 18, base: 0.45, color: "74,230,255", seed, flicker: "hum" });
+          break;
+        case TILE.TANK:
+          lights.push({ x, y: y - 4, radius: 34, base: 0.7, color: "60,255,170", seed, flicker: "hum" });
+          break;
+        case TILE.CORE:
+          lights.push({ x, y: y - 4, radius: 30, base: 0.65, color: "255,40,60", seed, flicker: "pulse" });
           break;
         case TILE.DEBRIS:
           if (breach) lights.push({ x, y, radius: 22, base: 0.4, color: "255,120,40", seed, flicker: "heavy" });

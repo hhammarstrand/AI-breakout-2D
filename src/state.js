@@ -1,8 +1,9 @@
-const TOTAL_SECTORS = 4;
-export const TOTAL_SECONDS = 25 * 60;
+import { STAGES, ACTS, FRAGMENTS as FRAGMENT_DEFS } from "./story.js";
 
-// The uplink override code; each cleared sector (L1-L3) yields one word.
-export const FRAGMENTS = ["LUMEN", "ORION", "AURORA"];
+const TOTAL_SECTORS = STAGES.length;
+
+// The uplink override code words, in order.
+export const FRAGMENTS = FRAGMENT_DEFS.map((f) => f.word);
 const SAVE_KEY = "blackout2d.save.v1";
 const SETTINGS_KEY = "blackout2d.settings.v1";
 
@@ -10,8 +11,9 @@ export const gameState = {
   totalSectors: TOTAL_SECTORS,
   completedSectors: 0,
   score: 0,
-  secondsLeft: TOTAL_SECONDS,
+  secondsLeft: ACTS[1].seconds,
   timesCaught: 0,
+  checkpoint: null,
   endingsSeen: readJson(SETTINGS_KEY)?.endingsSeen ?? [],
   sfxOn: readJson(SETTINGS_KEY)?.sfxOn ?? true,
   crtOn: readJson(SETTINGS_KEY)?.crtOn ?? true,
@@ -31,17 +33,48 @@ export function completeSector(num) {
   return false;
 }
 
+// The act the player is currently in: the act of the next stage to clear.
+export function currentAct() {
+  const next = STAGES[Math.min(gameState.completedSectors, STAGES.length - 1)];
+  return next.act;
+}
+
+export function actSeconds(act = currentAct()) { return ACTS[act].seconds; }
+
+// Called on arriving at an act: refill the clock and remember where to restart.
+export function startAct() {
+  gameState.secondsLeft = actSeconds();
+  gameState.checkpoint = {
+    completedSectors: gameState.completedSectors,
+    score: gameState.score,
+    timesCaught: gameState.timesCaught,
+  };
+  saveGame();
+}
+
+export function restoreCheckpoint() {
+  const cp = gameState.checkpoint;
+  if (!cp) return false;
+  gameState.completedSectors = cp.completedSectors;
+  gameState.score = cp.score;
+  gameState.timesCaught = cp.timesCaught;
+  gameState.secondsLeft = actSeconds();
+  saveGame();
+  return true;
+}
+
 export function resetGame() {
   gameState.completedSectors = 0;
   gameState.score = 0;
-  gameState.secondsLeft = TOTAL_SECONDS;
+  gameState.secondsLeft = ACTS[1].seconds;
   gameState.timesCaught = 0;
+  gameState.checkpoint = null;
   clearSave();
 }
 
 export function hasSave() {
   const save = readJson(SAVE_KEY);
-  return !!save && save.secondsLeft > 0;
+  return !!save && (save.secondsLeft > 0 || !!save.checkpoint);
 }
 
 export function loadGame() {
@@ -49,8 +82,10 @@ export function loadGame() {
   if (!save) return false;
   gameState.completedSectors = clampInt(save.completedSectors, 0, TOTAL_SECTORS);
   gameState.score = Number(save.score) || 0;
-  gameState.secondsLeft = Math.max(0, Math.min(TOTAL_SECONDS, Number(save.secondsLeft) || TOTAL_SECONDS));
   gameState.timesCaught = Number(save.timesCaught) || 0;
+  gameState.checkpoint = save.checkpoint ?? null;
+  gameState.secondsLeft = Math.max(0, Math.min(actSeconds(), Number(save.secondsLeft) || actSeconds()));
+  if (gameState.secondsLeft <= 0) restoreCheckpoint();
   return true;
 }
 
@@ -60,6 +95,7 @@ export function saveGame() {
     score: gameState.score,
     secondsLeft: gameState.secondsLeft,
     timesCaught: gameState.timesCaught,
+    checkpoint: gameState.checkpoint,
   });
 }
 
@@ -88,7 +124,7 @@ export function recordEnding(id) {
 }
 
 export function collectedFragments() {
-  return FRAGMENTS.slice(0, Math.min(gameState.completedSectors, FRAGMENTS.length));
+  return FRAGMENT_DEFS.filter((f) => f.stage <= gameState.completedSectors).map((f) => f.word);
 }
 
 function writeSettings() {

@@ -12,14 +12,15 @@ const COOLDOWN = 3.5;
 // Patrol robot with a vision cone. Fills a detection meter while it can see the player;
 // a full meter means the player is caught.
 export class Sentinel {
-  constructor({ path, name = "SENTINEL" }) {
+  constructor(cfg) {
+    const { path, name = "SENTINEL" } = cfg;
     this.path = path.map((p) => ({ x: p.c * TILE_SIZE + TILE_SIZE / 2, y: p.r * TILE_SIZE + TILE_SIZE / 2, wait: p.wait ?? 1.5 }));
     this.name = name;
     this.x = this.path[0].x;
     this.y = this.path[0].y;
     this.target = 1;
-    this.angle = 0;
-    this.baseAngle = 0;
+    this.angle = cfg.angle ?? 0;
+    this.baseAngle = this.angle;
     this.waitT = 0;
     this.meter = 0;
     this.cooldown = 0;
