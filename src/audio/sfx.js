@@ -104,7 +104,7 @@ export class Sfx {
       this._ambient = { master, sirenGain, nodes: [hum, hum2, lfo, siren, sirenLfo] };
     }
     const now = ctx.currentTime;
-    this._ambient.master.gain.setTargetAtTime(0.05, now, 0.5);
+    this._ambient.master.gain.setTargetAtTime(0.03, now, 0.5);
     this._ambient.sirenGain.gain.setTargetAtTime(mode === "alarm" ? 0.05 : 0, now, 0.5);
   }
 

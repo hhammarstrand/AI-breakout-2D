@@ -1,5 +1,5 @@
 // Draws the speaker's face into the dialog portrait canvas.
-const SCALE = 4;
+import { character } from "../gfx/characters.js";
 
 export function drawPortrait(canvas, profile, t = 0) {
   const ctx = canvas.getContext("2d");
@@ -18,20 +18,13 @@ export function drawPortrait(canvas, profile, t = 0) {
     ctx.textBaseline = "middle";
     ctx.fillText(profile.glyph, w / 2, h / 2 + 1);
   } else {
-    // Head-and-shoulders crop of the 12x14 world sprite, scaled up.
+    // head-and-shoulders crop of the speaker's sprite, scaled 3x
     const blink = (t % 3.2) < 0.12;
-    const px = (x, y, pw, ph, color) => {
-      ctx.fillStyle = color;
-      ctx.fillRect(x * SCALE, y * SCALE, pw * SCALE, ph * SCALE);
-    };
-    px(1, 9, 10, 4, profile.bodyDark);
-    px(1, 8, 10, 1, profile.color);
-    px(2, 2, 8, 6, "#fbd2a0");
-    px(1, 1, 10, 2, profile.accent);
-    px(1, 1, 10, 1, "#fff");
-    if (!blink) { px(4, 4, 1, 2, "#000"); px(7, 4, 1, 2, "#000"); }
-    else { px(4, 5, 1, 1, "#000"); px(7, 5, 1, 1, "#000"); }
-    px(5, 7, 2, 1, "#a0583a");
+    ctx.fillStyle = profile.accent;
+    ctx.globalAlpha = 0.14;
+    ctx.fillRect(0, 0, w, h);
+    ctx.globalAlpha = 1;
+    ctx.drawImage(character(profile.lookId).frame("down", 0, blink), 1, 0, 16, 16, 0, 2, 48, 48);
   }
 
   // scanlines

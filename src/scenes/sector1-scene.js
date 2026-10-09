@@ -1,3 +1,4 @@
+import { music } from "../audio/music.js";
 import { gameState } from "../state.js";
 
 // Each visit generates a fresh set of feeds. The rules are spread across the lobby:
@@ -85,7 +86,7 @@ export class Sector1Scene {
     this._t = 0;
   }
 
-  onEnter() { document.body.classList.add("no-objective"); }
+  onEnter() { document.body.classList.add("no-objective"); music.play("sector"); music.setIntensity(0); }
   onExit() { document.body.classList.remove("no-objective"); }
 
   update(dt, input) {

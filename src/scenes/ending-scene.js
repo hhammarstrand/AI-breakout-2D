@@ -1,4 +1,5 @@
 import { gameState } from "../state.js";
+import { music } from "../audio/music.js";
 
 const ENDINGS = {
   dawn: {
@@ -33,6 +34,8 @@ export class EndingScene {
     this.onDone = onDone;
     this._t = 0;
     sfx.setAmbient(null);
+    music.setIntensity(0);
+    music.play(ending);
     sfx.play(ending === "dawn" ? "success" : "gameover");
   }
 

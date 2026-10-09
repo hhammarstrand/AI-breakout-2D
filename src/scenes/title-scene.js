@@ -1,5 +1,6 @@
 import { gameState } from "../state.js";
 import { Menu } from "./menu.js";
+import { music } from "../audio/music.js";
 
 const GLYPHS = "01アイウエオカキクケコサシスセソ$#%&*<>/\\{}=+";
 const BOOT_LINES = [
@@ -12,7 +13,7 @@ const BOOT_LINES = [
 const COL_W = 10;
 
 export class TitleScene {
-  constructor({ hasSave, onNew, onContinue, onToggleSfx, onToggleCrt, sfx }) {
+  constructor({ hasSave, onNew, onContinue, onToggleSfx, onToggleCrt, onToggleMusic, sfx }) {
     this.sfx = sfx;
     this._t = 0;
     this._booted = false;
@@ -26,11 +27,12 @@ export class TitleScene {
     if (hasSave) items.push({ label: "CONTINUE", action: onContinue });
     items.push({ label: "NEW GAME", action: onNew });
     items.push({ label: () => `SOUND: ${gameState.sfxOn ? "ON" : "OFF"}`, action: onToggleSfx });
+    items.push({ label: () => `MUSIC: ${gameState.musicOn ? "ON" : "OFF"}`, action: onToggleMusic });
     items.push({ label: () => `CRT FX: ${gameState.crtOn ? "ON" : "OFF"}`, action: onToggleCrt });
     this.menu = new Menu(items, sfx);
   }
 
-  onEnter() { document.body.classList.add("no-objective"); }
+  onEnter() { document.body.classList.add("no-objective"); music.play("title"); }
   onExit() { document.body.classList.remove("no-objective"); }
 
   get _bootDone() { return this._t > BOOT_LINES.length * 0.35 + 0.4; }
@@ -59,8 +61,8 @@ export class TitleScene {
     if (!this._bootDone) { this._drawBoot(renderer); return; }
 
     // vignette panel behind the logo
-    renderer.fillRect(40, 66, w - 80, 204, "rgba(0, 8, 3, 0.82)");
-    renderer.strokeRect(40, 66, w - 80, 204, "#0a8a4a", 1);
+    renderer.fillRect(40, 62, w - 80, 222, "rgba(0, 8, 3, 0.82)");
+    renderer.strokeRect(40, 62, w - 80, 222, "#0a8a4a", 1);
 
     const glitch = (this._t % 3.7) < 0.12;
     const jx = glitch ? (Math.random() * 6 - 3) : 0;
@@ -82,9 +84,9 @@ export class TitleScene {
       color: "#0a8a4a", size: 8, align: "center", baseline: "middle",
     });
 
-    this.menu.draw(renderer, w / 2, 176, this._t, 15);
+    this.menu.draw(renderer, w / 2, 172, this._t, 14);
 
-    renderer.text("[↑↓] choose   [space/enter] select", w / 2, 258, {
+    renderer.text("[↑↓] choose   [space/enter] select", w / 2, 272, {
       color: "#0a8a4a", size: 8, align: "center", baseline: "middle",
     });
     const cursor = (Math.floor(this._t * 2) & 1) ? "_" : " ";

@@ -1,3 +1,4 @@
+import { music } from "../audio/music.js";
 import { gameState } from "../state.js";
 
 // Sector 2 — rotate a Caesar cipher wheel to decrypt HALCYON's logs. The live preview only reveals
@@ -58,7 +59,7 @@ export class Sector2Scene {
     this._loadLog();
   }
 
-  onEnter() { document.body.classList.add("no-objective"); }
+  onEnter() { document.body.classList.add("no-objective"); music.play("sector"); music.setIntensity(0); }
   onExit() { document.body.classList.remove("no-objective"); }
 
   _loadLog() {

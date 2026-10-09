@@ -20,11 +20,15 @@ export class Game {
   pop() {
     const scene = this.scenes.pop();
     if (scene && scene.onExit) scene.onExit();
+    if (this.top?.onResume) this.top.onResume();
     return scene;
   }
 
   replace(scene) {
-    while (this.scenes.length) this.pop();
+    while (this.scenes.length) {
+      const scene = this.scenes.pop();
+      if (scene.onExit) scene.onExit();
+    }
     this.push(scene);
   }
 

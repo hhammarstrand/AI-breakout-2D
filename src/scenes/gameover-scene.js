@@ -1,10 +1,12 @@
 import { gameState } from "../state.js";
+import { music } from "../audio/music.js";
 
 export class GameOverScene {
   constructor({ onRestart, sfx }) {
     this.onRestart = onRestart;
     this._t = 0;
     sfx.play("gameover");
+    music.stop();
   }
 
   onEnter() { document.body.classList.add("no-objective"); }

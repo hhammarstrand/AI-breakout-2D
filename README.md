@@ -55,6 +55,13 @@ Progress (sectors, score, remaining containment time) autosaves to `localStorage
 
 ## What's in the lobby
 
+- **Pixel-art cast** — every character is painted procedurally as a paper doll (skin, hair, outfit,
+  hat) with an automatic outline pass: four facings, walk cycles, blinking, NPCs that turn to watch
+  you. Walls have lit top caps and panelled front faces for a 3/4 look.
+- **Adaptive soundtrack** — a WebAudio step sequencer plays original tracks for the title, lobby,
+  puzzles, finale and both endings. A tension layer (drums, driving bass, high arps) swells when a
+  sentinel is spotting you or the purge alarm is on. Toggle **MUSIC** in the title or pause menu.
+
 - **CRT post-processing (WebGL)** — the whole frame is drawn through a shader: curved glass,
   bloom, chromatic aberration, scanlines, aperture grille, grain and glitch tears on impacts.
   Toggle **CRT FX** in the title or pause menu; without WebGL it falls back to the plain canvas.
@@ -95,7 +102,8 @@ style.css               CRT theme + layout
 src/
   main.js               bootstraps the game
   state.js              progress, score, timer + localStorage save
-  audio/                WebAudio synth SFX (no asset files)
+  audio/                WebAudio SFX + adaptive music sequencer (no asset files)
+  gfx/                  procedural pixel-art character generator
   engine/               loop, input, camera, canvas helpers, lighting, particles, WebGL post-fx
   world/                tilemap + map data
   entities/             player, npc, drone (ECHO), sentinel
@@ -105,6 +113,5 @@ src/
 
 ## Future iterations
 
-- Real pixel-art sprites under `assets/`.
 - Touch controls for mobile.
 - Difficulty settings (timer length, sentinel range).

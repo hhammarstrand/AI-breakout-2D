@@ -1,3 +1,4 @@
+import { music } from "../audio/music.js";
 import { gameState } from "../state.js";
 import { Drone } from "../entities/drone.js";
 
@@ -58,7 +59,7 @@ export class Sector3Scene {
     this._load();
   }
 
-  onEnter() { document.body.classList.add("no-objective"); }
+  onEnter() { document.body.classList.add("no-objective"); music.play("sector"); music.setIntensity(0); }
   onExit() { document.body.classList.remove("no-objective"); }
 
   _load() {

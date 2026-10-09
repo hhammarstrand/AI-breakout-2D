@@ -6,6 +6,7 @@ import { Drone } from "../entities/drone.js";
 import { Sentinel } from "../entities/sentinel.js";
 import { Lighting, collectLights } from "../engine/lighting.js";
 import { Particles } from "../engine/particles.js";
+import { music } from "../audio/music.js";
 import {
   isSectorActive,
   isSectorCompleted,
@@ -79,7 +80,8 @@ const INTERACT_RADIUS = TILE_SIZE * 0.9;
 const STEP_INTERVAL = 0.3;
 
 export class WorldScene {
-  constructor({ map, dialog, hud, sfx, fx, toast, postfx, pa, onToggleSfx, onToggleCrt, onQuit, onEnding, viewportWidth, viewportHeight }) {
+  constructor({ map, dialog, hud, sfx, fx, toast, postfx, pa, onToggleSfx, onToggleCrt, onToggleMusic, onQuit, onEnding, viewportWidth, viewportHeight }) {
+    this.onToggleMusic = onToggleMusic;
     this.pa = pa;
     this.onEnding = onEnding;
     this._paTimer = PA_IDLE_GAP[0];
@@ -129,7 +131,12 @@ export class WorldScene {
     this._alarm = false;
   }
 
-  onEnter() { this.sfx.setAmbient(this._alarm ? "alarm" : "hum"); }
+  onEnter() {
+    this.sfx.setAmbient(this._alarm ? "alarm" : "hum");
+    music.play("lobby");
+  }
+
+  onResume() { music.play("lobby"); }
   onExit() {
     this.sfx.setAmbient(null);
     if (this.postfx) this.postfx.danger = 0;
@@ -145,13 +152,13 @@ export class WorldScene {
 
   npcProfile(id) {
     const npc = this.npcs.find((n) => n.id === id);
-    return npc && { accent: npc.accent, color: npc.color, bodyDark: npc.bodyDark };
+    return npc && { accent: npc.accent, lookId: npc.id };
   }
 
   update(dt, input) {
     this._time += dt;
     this.hud.update(dt);
-    for (const npc of this.npcs) npc.update(dt);
+    for (const npc of this.npcs) npc.update(dt, this.player);
     this._updateEffects(dt);
 
     if (this._iris) {
@@ -171,7 +178,7 @@ export class WorldScene {
 
     if (input.wasPressed("pause")) {
       this.game.push(new PauseScene({
-        sfx: this.sfx, onToggleSfx: this.onToggleSfx, onToggleCrt: this.onToggleCrt, onQuit: this.onQuit,
+        sfx: this.sfx, onToggleSfx: this.onToggleSfx, onToggleCrt: this.onToggleCrt, onToggleMusic: this.onToggleMusic, onQuit: this.onQuit,
       }));
       return;
     }
@@ -277,7 +284,7 @@ export class WorldScene {
       npc.react();
       this.sfx.play("select");
       this.dialog.show(npc.name, npc.linesFor(gameState.completedSectors), null,
-        { accent: npc.accent, color: npc.color, bodyDark: npc.bodyDark });
+        { accent: npc.accent, lookId: npc.id });
       return;
     }
 
@@ -463,6 +470,7 @@ export class WorldScene {
     }
     this._danger += (danger - this._danger) * Math.min(1, dt * 8);
     if (this.postfx) this.postfx.danger = this._danger * 0.6;
+    music.setIntensity(Math.max(this._danger, this._alarm ? 0.55 : 0));
   }
 
   _caught(sentinel) {

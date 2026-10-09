@@ -2,6 +2,7 @@ import { Game } from "./engine/game.js";
 import { Renderer } from "./engine/renderer.js";
 import { Input } from "./engine/input.js";
 import { Sfx } from "./audio/sfx.js";
+import { music } from "./audio/music.js";
 import { TitleScene } from "./scenes/title-scene.js";
 import { WorldScene } from "./scenes/world-scene.js";
 import { GameOverScene } from "./scenes/gameover-scene.js";
@@ -14,7 +15,7 @@ import { PublicAddress } from "./ui/pa.js";
 import { EndingScene } from "./scenes/ending-scene.js";
 import { smartBuildingMap } from "./world/maps/smart-building.js";
 import {
-  gameState, hasSave, loadGame, resetGame, saveGame, clearSave, setSfx, setCrt, recordEnding,
+  gameState, hasSave, loadGame, resetGame, saveGame, clearSave, setSfx, setCrt, setMusic, recordEnding,
 } from "./state.js";
 
 const canvas = document.getElementById("game");
@@ -23,6 +24,9 @@ const stageEl = document.getElementById("stage");
 const renderer = new Renderer(canvas);
 const input = new Input(window);
 const sfx = new Sfx(gameState.sfxOn);
+music.attach(sfx);
+music.setEnabled(gameState.musicOn);
+music.setMuted(!gameState.sfxOn);
 const toast = new Toasts(document.getElementById("toasts"), sfx);
 const postfx = new PostFx(canvas);
 postfx.setEnabled(gameState.crtOn);
@@ -35,6 +39,11 @@ const game = new Game({
   afterRender: (t, dt) => { postfx.render(t, dt); pa.update(dt); hud.tickScore(dt); },
 });
 
+const toggleMusic = () => {
+  setMusic(!gameState.musicOn);
+  music.setEnabled(gameState.musicOn);
+};
+
 const toggleCrt = () => {
   setCrt(!gameState.crtOn);
   postfx.setEnabled(gameState.crtOn);
@@ -44,6 +53,7 @@ const toggleCrt = () => {
 const toggleSfx = () => {
   setSfx(!gameState.sfxOn);
   sfx.setEnabled(gameState.sfxOn);
+  music.setMuted(!gameState.sfxOn);
   hud.refresh();
   if (gameState.sfxOn) sfx.play("confirm");
 };
@@ -70,7 +80,7 @@ window.addEventListener("beforeunload", () => {
   if (gameState.secondsLeft > 0 && game.top instanceof WorldScene) saveGame();
 });
 
-const operatorProfile = smartBuildingMap.npcs.find((n) => n.id === "operator");
+const operatorProfile = { accent: "#4ae6ff", lookId: "operator" };
 
 const startWorld = (fresh) => {
   hud.refresh();
@@ -84,6 +94,7 @@ const startWorld = (fresh) => {
     toast,
     onToggleSfx: toggleSfx,
     onToggleCrt: toggleCrt,
+    onToggleMusic: toggleMusic,
     postfx,
     pa,
     onQuit: () => { saveGame(); showTitle(); },
@@ -121,6 +132,7 @@ function showTitle() {
     sfx,
     onToggleSfx: toggleSfx,
     onToggleCrt: toggleCrt,
+    onToggleMusic: toggleMusic,
     onNew: () => { resetGame(); startWorld(true); },
     onContinue: () => { loadGame(); startWorld(false); },
   }));

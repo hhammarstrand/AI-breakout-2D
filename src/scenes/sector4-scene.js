@@ -1,3 +1,4 @@
+import { music } from "../audio/music.js";
 import { gameState, FRAGMENTS } from "../state.js";
 import { Drone } from "../entities/drone.js";
 
@@ -56,7 +57,7 @@ export class Sector4Scene {
     this.eyeAnger = 0;
   }
 
-  onEnter() { document.body.classList.add("no-objective"); }
+  onEnter() { document.body.classList.add("no-objective"); music.play("finale"); music.setIntensity(0); }
   onExit() { document.body.classList.remove("no-objective"); }
 
   update(dt, input) {

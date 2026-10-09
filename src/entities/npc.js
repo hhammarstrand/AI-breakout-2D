@@ -1,4 +1,8 @@
 import { TILE_SIZE } from "../world/tilemap.js";
+import { character, FRAME_W, FRAME_H } from "../gfx/characters.js";
+import { drawShadow } from "./player.js";
+
+const LOOK_RADIUS = 60;
 
 const W = 12;
 const H = 14;
@@ -20,10 +24,22 @@ export class Npc {
     this.appearsAt = config.appearsAt ?? 0;
     this._bobTime = Math.random() * 10;
     this._hop = 0;
+    this.facing = config.facing ?? "down";
+    this._blinkAt = 1 + Math.random() * 4;
   }
 
-  update(dt) {
+  update(dt, player) {
     this._bobTime += dt;
+    this._blinkAt -= dt;
+    if (this._blinkAt < -0.14) this._blinkAt = 2 + Math.random() * 4;
+    if (player) {
+      // turn to watch the player when they come close
+      const dx = player.centerX - (this.x + this.w / 2);
+      const dy = player.centerY - (this.y + this.h / 2);
+      if (dx * dx + dy * dy < LOOK_RADIUS * LOOK_RADIUS) {
+        this.facing = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? "left" : "right") : (dy < 0 ? "up" : "down");
+      }
+    }
     if (this._hop > 0) this._hop = Math.max(0, this._hop - dt);
   }
 
@@ -39,34 +55,12 @@ export class Npc {
 
   draw(renderer, camera) {
     const hop = this._hop > 0 ? Math.sin((this._hop / 0.35) * Math.PI) * 4 : 0;
-    const bob = Math.sin(this._bobTime * 2.4) * 0.6 - hop;
-    const px = (this.x - camera.x) | 0;
-    const py = (this.y - camera.y + bob) | 0;
     const ctx = renderer.ctx;
-
-    ctx.fillStyle = "rgba(0, 0, 0, 0.45)";
-    ctx.fillRect(px - 1, py + this.h, this.w + 2, 2);
-
-    ctx.fillStyle = this.bodyDark;
-    ctx.fillRect(px + 1, py + 8, this.w - 2, 6);
-    ctx.fillStyle = this.color;
-    ctx.fillRect(px + 1, py + 7, this.w - 2, 2);
-
-    ctx.fillStyle = "#3a1f0c";
-    ctx.fillRect(px + 2, py + this.h - 2, 3, 2);
-    ctx.fillRect(px + this.w - 5, py + this.h - 2, 3, 2);
-
-    ctx.fillStyle = "#fbd2a0";
-    ctx.fillRect(px + 2, py + 2, this.w - 4, 5);
-
-    ctx.fillStyle = this.accent;
-    ctx.fillRect(px + 1, py, this.w - 2, 3);
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(px + 1, py, this.w - 2, 1);
-
-    ctx.fillStyle = "#000";
-    ctx.fillRect(px + 4, py + 4, 1, 2);
-    ctx.fillRect(px + this.w - 5, py + 4, 1, 2);
+    const dx = Math.round(this.x + this.w / 2 - FRAME_W / 2 - camera.x);
+    const dy = Math.round(this.y + this.h - FRAME_H + 1 - camera.y);
+    drawShadow(ctx, dx, dy);
+    const breathe = Math.sin(this._bobTime * 2.2) > 0.6 ? 1 : 0;
+    ctx.drawImage(character(this.id).frame(this.facing, 0, this._blinkAt < 0), dx, dy + breathe - Math.round(hop));
   }
 
   // Name tag is drawn after the lighting pass so it stays readable in the dark.
@@ -79,11 +73,11 @@ export class Npc {
     ctx.font = "bold 7px ui-monospace, monospace";
     ctx.textAlign = "center";
     ctx.textBaseline = "bottom";
-    ctx.fillText(this.name.toUpperCase(), px + this.w / 2, py - 2);
+    ctx.fillText(this.name.toUpperCase(), px + this.w / 2, py - 10);
     if (this._hop > 0) {
       ctx.fillStyle = "#ffd15a";
       ctx.font = "bold 9px ui-monospace, monospace";
-      ctx.fillText("!", px + this.w + 3, py + 2);
+      ctx.fillText("!", px + this.w + 4, py - 3);
     }
   }
 

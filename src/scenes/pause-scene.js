@@ -2,11 +2,12 @@ import { gameState } from "../state.js";
 import { Menu } from "./menu.js";
 
 export class PauseScene {
-  constructor({ sfx, onToggleSfx, onToggleCrt, onQuit }) {
+  constructor({ sfx, onToggleSfx, onToggleCrt, onToggleMusic, onQuit }) {
     this._t = 0;
     this.menu = new Menu([
       { label: "RESUME", action: () => this.game.pop() },
       { label: () => `SOUND: ${gameState.sfxOn ? "ON" : "OFF"}`, action: onToggleSfx },
+      { label: () => `MUSIC: ${gameState.musicOn ? "ON" : "OFF"}`, action: onToggleMusic },
       { label: () => `CRT FX: ${gameState.crtOn ? "ON" : "OFF"}`, action: onToggleCrt },
       { label: "SAVE & QUIT TO TITLE", action: onQuit },
     ], sfx);
@@ -23,7 +24,7 @@ export class PauseScene {
     const h = renderer.height;
     renderer.fillRect(0, 0, w, h, "rgba(0, 0, 0, 0.72)");
 
-    const bw = 200, bh = 112;
+    const bw = 200, bh = 126;
     const x = w / 2 - bw / 2, y = h / 2 - bh / 2;
     renderer.fillRect(x, y, bw, bh, "#031a0d");
     renderer.strokeRect(x, y, bw, bh, "#0aff7a", 1);

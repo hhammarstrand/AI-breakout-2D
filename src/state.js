@@ -15,6 +15,7 @@ export const gameState = {
   endingsSeen: readJson(SETTINGS_KEY)?.endingsSeen ?? [],
   sfxOn: readJson(SETTINGS_KEY)?.sfxOn ?? true,
   crtOn: readJson(SETTINGS_KEY)?.crtOn ?? true,
+  musicOn: readJson(SETTINGS_KEY)?.musicOn ?? true,
 };
 
 export function isSectorUnlocked(num) { return num <= gameState.completedSectors + 1; }
@@ -71,6 +72,11 @@ export function setSfx(on) {
   writeSettings();
 }
 
+export function setMusic(on) {
+  gameState.musicOn = on;
+  writeSettings();
+}
+
 export function setCrt(on) {
   gameState.crtOn = on;
   writeSettings();
@@ -86,7 +92,7 @@ export function collectedFragments() {
 }
 
 function writeSettings() {
-  writeJson(SETTINGS_KEY, { sfxOn: gameState.sfxOn, crtOn: gameState.crtOn, endingsSeen: gameState.endingsSeen });
+  writeJson(SETTINGS_KEY, { sfxOn: gameState.sfxOn, crtOn: gameState.crtOn, musicOn: gameState.musicOn, endingsSeen: gameState.endingsSeen });
 }
 
 function clampInt(v, lo, hi) { return Math.max(lo, Math.min(hi, v | 0)); }

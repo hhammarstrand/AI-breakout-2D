@@ -98,13 +98,50 @@ export class Tilemap {
         const tile = this.grid[r][c];
         const px = (c * TILE_SIZE - camera.x) | 0;
         const py = (r * TILE_SIZE - camera.y) | 0;
-        drawTile(ctx, tile, px, py, c, r, time);
+        if (tile === TILE.WALL) drawWall(ctx, px, py, c, r, !isWallLike(this.tileAt(c, r + 1)), time);
+        else drawTile(ctx, tile, px, py, c, r, time);
       }
     }
   }
 }
 
 const T = TILE_SIZE;
+
+const isWallLike = (t) => t === TILE.WALL || (t >= TILE.DOOR_L1 && t <= TILE.DOOR_L4);
+
+// Walls get a 3/4 look: a lit top cap, and a darker panelled front face wherever the
+// tile below is open floor, so rooms read as having height.
+function drawWall(ctx, x, y, col, row, face, time) {
+  if (!face) {
+    ctx.fillStyle = "#1d5a3c";
+    ctx.fillRect(x, y, T, T);
+    ctx.fillStyle = "#246a48";
+    ctx.fillRect(x + ((col * 5 + row * 3) % 12), y + ((col * 7 + row) % 12), 2, 2);
+    ctx.fillStyle = "#16482f";
+    ctx.fillRect(x, y + T - 1, T, 1);
+    return;
+  }
+  ctx.fillStyle = "#2c8256";
+  ctx.fillRect(x, y, T, 5);
+  ctx.fillStyle = "#58d68e";
+  ctx.fillRect(x, y, T, 1);
+  ctx.fillStyle = "#1a5a3a";
+  ctx.fillRect(x, y + 4, T, 1);
+  ctx.fillStyle = "#123f29";
+  ctx.fillRect(x, y + 5, T, T - 5);
+  ctx.fillStyle = "#0c2e1e";
+  ctx.fillRect(x + (col & 1 ? 0 : 8), y + 5, 1, T - 6);
+  ctx.fillRect(x, y + 10, T, 1);
+  ctx.fillStyle = "#1a5236";
+  ctx.fillRect(x + 1, y + 6, T - 2, 1);
+  ctx.fillStyle = "#06170f";
+  ctx.fillRect(x, y + T - 1, T, 1);
+  if ((col * 13 + row * 7) % 9 === 0) {
+    const on = Math.floor(time * 1.3 + col) % 3 !== 0;
+    ctx.fillStyle = on ? "#4ae6ff" : "#0a3a4a";
+    ctx.fillRect(x + 12, y + 7, 2, 1);
+  }
+}
 
 function drawFloor(ctx, x, y, col, row) {
   const checker = ((col + row) & 1) === 0;
