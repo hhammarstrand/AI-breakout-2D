@@ -36,6 +36,12 @@ const TRACKS = {
     tension: { kick: "x.......x...x...", hat: "x.x.x.x.x.x.x.x.", snare: "....x.......x...", bass8: true, arp16: true },
     minIntensity: 0.3,
   },
+  battle: {
+    bpm: 148, chords: [[52, 55, 59], [53, 57, 60], [50, 53, 57], [52, 56, 59]],
+    pad: 0.22, bells: 0.0, bass: "x.x.x.xxx.x.x.xx", arp: { pattern: [0, 1, 2, 1, 2, 1], every: 1, vol: 0.045 },
+    tension: { kick: "x...x...x...x...", hat: "..x...x...x...x.", snare: "....x.......x..x", bass8: true, arp16: false },
+    minIntensity: 0.8,
+  },
   finale: {
     bpm: 122, chords: [[52, 55, 59], [48, 52, 55], [55, 59, 62], [50, 54, 57]],
     pad: 0.3, bells: 0.0, bass: "x.x.x.x.x.x.x.x.", arp: { pattern: [0, 1, 2, 1], every: 1, vol: 0.05 },

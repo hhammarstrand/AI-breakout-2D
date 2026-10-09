@@ -61,6 +61,10 @@ Progress (sectors, score, remaining containment time) autosaves to `localStorage
 - **Data capsules** — glinting capsules hide nine data logs (three per floor) and backup cells.
 - **Escape-room safes** — every floor has a four-digit safe. The code is hidden in that floor's
   logs, signs and terminals; inside is a backup cell that buys +90 s on the purge clock.
+- **Hack battles** — when a sentinel spots you, a "!" pops over your head and a turn-based
+  battle starts. ECHO has PING, SPOOF, OVERLOAD and PATCH; the sentinel telegraphs its next move,
+  so SPOOF its PURGE BOLT and PATCH when low. Win and it crashes for 30 s; lose and you're tagged
+  (−60 s, back to the floor's start).
 - **Start menu** — BAG (use cells, see code chips), LOGS (re-read what you found), MAP (the floor
   with you, people, sentinels, capsules and the safe), OPTIONS and SAVE.
 - **Touch controls** — on phones and tablets a D-pad with A / B / START / SELECT appears.

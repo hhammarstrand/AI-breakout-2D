@@ -7,6 +7,7 @@ import { Sentinel } from "../entities/sentinel.js";
 import { Pickup } from "../entities/pickup.js";
 import { StartMenuScene } from "./start-menu-scene.js";
 import { CodeLockScene } from "./codelock-scene.js";
+import { BattleScene } from "./battle-scene.js";
 import { Lighting, collectLights } from "../engine/lighting.js";
 import { Particles } from "../engine/particles.js";
 import { music } from "../audio/music.js";
@@ -144,6 +145,16 @@ export class WorldScene {
     this.hud.update(dt);
     for (const npc of this.npcs) npc.update(dt, this.player);
     this._updateEffects(dt);
+
+    if (this._encounter) {
+      this._encounter.t -= dt;
+      if (this._encounter.t <= 0) {
+        const s = this._encounter.sentinel;
+        this._encounter = null;
+        this._startBattle(s);
+      }
+      return;
+    }
 
     if (this._iris) {
       this._iris.t += dt;
@@ -423,6 +434,12 @@ export class WorldScene {
       this.drone.drawSpeech(renderer, cam);
       this._drawInteractHint(renderer);
     }
+    if (this._encounter) {
+      const px = Math.round(this.player.centerX - cam.x), py = Math.round(this.player.y - cam.y) - 16;
+      renderer.fillRect(px - 5, py - 9, 11, 12, "#0a0812");
+      renderer.fillRect(px - 4, py - 8, 9, 10, "#ffffff");
+      renderer.text("!", px + 0.5, py - 3, { color: "#e83a3a", size: 10, align: "center", baseline: "middle", weight: "bold" });
+    }
     this._drawIris(renderer);
   }
 
@@ -522,7 +539,7 @@ export class WorldScene {
       const result = s.update(dt, this.player, this.tilemap, this.flashOn);
       if (before === 0 && s.meter > 0) this.sfx.play("detect");
       danger = Math.max(danger, s.meter);
-      if (result === "caught") { this._caught(s); break; }
+      if (result === "caught") { this._spotted(s); break; }
       const dx = s.x - this.player.centerX, dy = s.y - this.player.centerY;
       if (dx * dx + dy * dy < (TILE_SIZE * 8) ** 2) {
         this._echoOnce("sentinel", "Sentinel bot! Kill the light with F and sneak past.");
@@ -531,6 +548,32 @@ export class WorldScene {
     this._danger += (danger - this._danger) * Math.min(1, dt * 8);
     if (this.postfx) this.postfx.danger = this._danger * 0.6;
     music.setIntensity(Math.max(this._danger, this._alarm ? 0.55 : 0));
+  }
+
+  // Pokémon-style encounter: freeze, "!" over your head, then a hack battle.
+  _spotted(sentinel) {
+    this.sfx.play("detect");
+    this.sfx.play("alarm");
+    this._encounter = { t: 0.7, sentinel };
+  }
+
+  _startBattle(sentinel) {
+    this.game.push(new BattleScene({
+      sentinel, sfx: this.sfx, fx: this.fx,
+      onResult: (won) => {
+        if (won) {
+          sentinel.cooldown = 30;
+          sentinel.meter = 0;
+          this.hud.addScore(10);
+          this.toast.show(`⚡ ${sentinel.name} CRASHED — 30s`, "good");
+          this.pa.say("You broke one of my sentinels. It will remember you when it reboots.");
+          this._echoCooldown = 0;
+          this._echo("Got it! Move before it reboots.", true);
+        } else {
+          this._caught(sentinel);
+        }
+      },
+    }));
   }
 
   _caught(sentinel) {
