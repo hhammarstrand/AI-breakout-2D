@@ -15,6 +15,8 @@ export class Player {
     this.animTime = 0;
     this.idleTime = 0;
     this.moving = false;
+    this.dirX = 0;
+    this.dirY = 1;
   }
 
   get centerX() { return this.x + this.w / 2; }
@@ -34,6 +36,8 @@ export class Player {
 
     this.moving = dx !== 0 || dy !== 0;
     if (this.moving) {
+      this.dirX = dx;
+      this.dirY = dy;
       this.animTime += dt;
       this.idleTime = 0;
     } else {

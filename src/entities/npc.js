@@ -59,7 +59,14 @@ export class Npc {
     ctx.fillStyle = "#000";
     ctx.fillRect(px + 4, py + 4, 1, 2);
     ctx.fillRect(px + this.w - 5, py + 4, 1, 2);
+  }
 
+  // Name tag is drawn after the lighting pass so it stays readable in the dark.
+  drawLabel(renderer, camera) {
+    const hop = this._hop > 0 ? Math.sin((this._hop / 0.35) * Math.PI) * 4 : 0;
+    const px = (this.x - camera.x) | 0;
+    const py = (this.y - camera.y + Math.sin(this._bobTime * 2.4) * 0.6 - hop) | 0;
+    const ctx = renderer.ctx;
     ctx.fillStyle = "#cffcff";
     ctx.font = "bold 7px ui-monospace, monospace";
     ctx.textAlign = "center";

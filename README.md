@@ -31,6 +31,18 @@ Any other static server works too (`npx serve`, `caddy file-server`, etc.).
 Progress (sectors, score, remaining containment time) autosaves to `localStorage`; pick
 **CONTINUE** on the title screen to resume. If the containment timer hits `00:00` the run ends.
 
+## What's in the lobby
+
+- **Dynamic lighting** — the building is dark. Your flashlight is ray-cast against the walls and
+  casts real shadows; lamps, terminals, server racks and doors glow in their own colours, some
+  lights are faulty and the breached east wing flickers red.
+- **ECHO** — an AI companion drone follows you on a spring, lights your way and comments on what
+  it sees (doors, the breach, idle hints, the countdown).
+- **Particles** — spark showers from live wires, dust under your feet, a data burst when a sector
+  clears.
+- **Alarm mode** — under 5 minutes of containment the lights turn red, a beacon sweeps the room
+  and a siren joins the ambient hum.
+
 ## Sector 1 — Locate the Survivor
 
 Walk to the cyan **L1** door in the north wall and press `E`. You enter a CCTV control room
@@ -62,9 +74,9 @@ src/
   main.js               bootstraps the game
   state.js              progress, score, timer + localStorage save
   audio/                WebAudio synth SFX (no asset files)
-  engine/               loop, input, camera, canvas helpers
+  engine/               loop, input, camera, canvas helpers, lighting, particles
   world/                tilemap + map data
-  entities/             player, npc
+  entities/             player, npc, drone (ECHO)
   scenes/               title, world, pause, game over, sector1
   ui/                   dialog + portraits, hud, toasts, screen fx
 ```
@@ -73,6 +85,5 @@ src/
 
 - Wire L2 (cipher decryption), L3 (pathfinding agent), and L4 (breach) to their own scenes.
 - Real pixel-art sprites under `assets/`.
-- Darkness + flashlight cone in the lobby.
-- Patrolling hostiles and a companion drone that gives hints.
+- Patrolling hostiles that react to the flashlight.
 - Touch controls for mobile.

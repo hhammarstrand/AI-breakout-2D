@@ -20,6 +20,11 @@ const SOUNDS = {
   toast:   [{ freq: 1200, dur: 0.04, type: "sine", vol: 0.06 },
             { freq: 1600, dur: 0.06, type: "sine", vol: 0.06, delay: 0.05 }],
   boot:    [{ freq: 60, to: 600, dur: 0.6, type: "triangle", vol: 0.06 }],
+  spark:   [{ freq: 2400, to: 900, dur: 0.05, type: "square", vol: 0.025 },
+            { freq: 3100, to: 1200, dur: 0.04, type: "square", vol: 0.02, delay: 0.05 }],
+  drone:   [{ freq: 1400, to: 1900, dur: 0.05, type: "sine", vol: 0.04 },
+            { freq: 1900, to: 1500, dur: 0.06, type: "sine", vol: 0.04, delay: 0.06 }],
+  iris:    [{ freq: 400, to: 80, dur: 0.4, type: "triangle", vol: 0.07 }],
   gameover:[{ freq: 440, to: 40, dur: 1.4, type: "sawtooth", vol: 0.1 }],
 };
 
@@ -43,7 +48,66 @@ export class Sfx {
     return this.ctx;
   }
 
-  setEnabled(on) { this.enabled = on; }
+  setEnabled(on) {
+    this.enabled = on;
+    if (!on) this._stopAmbient();
+    else if (this._ambientMode) this.setAmbient(this._ambientMode);
+  }
+
+  // Background building hum; "alarm" adds a slow siren on top.
+  setAmbient(mode) {
+    this._ambientMode = mode;
+    if (!this.enabled || !mode) { this._stopAmbient(); return; }
+    const ctx = this._ensure();
+    if (!ctx) return;
+    if (!this._ambient) {
+      const master = ctx.createGain();
+      master.gain.value = 0;
+      master.connect(ctx.destination);
+      const filter = ctx.createBiquadFilter();
+      filter.type = "lowpass";
+      filter.frequency.value = 180;
+      filter.connect(master);
+      const hum = ctx.createOscillator();
+      hum.type = "sawtooth";
+      hum.frequency.value = 50;
+      hum.connect(filter);
+      const hum2 = ctx.createOscillator();
+      hum2.type = "sine";
+      hum2.frequency.value = 100.6;
+      hum2.connect(filter);
+      const lfo = ctx.createOscillator();
+      const lfoGain = ctx.createGain();
+      lfo.frequency.value = 0.15;
+      lfoGain.gain.value = 60;
+      lfo.connect(lfoGain).connect(filter.frequency);
+      const siren = ctx.createOscillator();
+      const sirenGain = ctx.createGain();
+      const sirenLfo = ctx.createOscillator();
+      const sirenDepth = ctx.createGain();
+      siren.type = "triangle";
+      siren.frequency.value = 620;
+      sirenLfo.frequency.value = 0.5;
+      sirenDepth.gain.value = 180;
+      sirenLfo.connect(sirenDepth).connect(siren.frequency);
+      sirenGain.gain.value = 0;
+      siren.connect(sirenGain).connect(master);
+      for (const o of [hum, hum2, lfo, siren, sirenLfo]) o.start();
+      this._ambient = { master, sirenGain, nodes: [hum, hum2, lfo, siren, sirenLfo] };
+    }
+    const now = ctx.currentTime;
+    this._ambient.master.gain.setTargetAtTime(0.05, now, 0.5);
+    this._ambient.sirenGain.gain.setTargetAtTime(mode === "alarm" ? 0.05 : 0, now, 0.5);
+  }
+
+  _stopAmbient() {
+    if (!this._ambient) return;
+    const amb = this._ambient;
+    this._ambient = null;
+    const now = this.ctx.currentTime;
+    amb.master.gain.setTargetAtTime(0, now, 0.15);
+    for (const o of amb.nodes) o.stop(now + 0.6);
+  }
 
   play(name) {
     if (!this.enabled) return;
