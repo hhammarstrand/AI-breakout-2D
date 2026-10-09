@@ -18,6 +18,7 @@ export const gameState = {
   items: {},
   difficulty: "normal",
   endingsSeen: readJson(SETTINGS_KEY)?.endingsSeen ?? [],
+  achievements: readJson(SETTINGS_KEY)?.achievements ?? [],
   sfxOn: readJson(SETTINGS_KEY)?.sfxOn ?? true,
   crtOn: readJson(SETTINGS_KEY)?.crtOn ?? true,
   musicOn: readJson(SETTINGS_KEY)?.musicOn ?? true,
@@ -148,6 +149,14 @@ export function setCrt(on) {
   writeSettings();
 }
 
+// Returns true the first time an achievement is unlocked.
+export function unlockAchievement(id) {
+  if (gameState.achievements.includes(id)) return false;
+  gameState.achievements.push(id);
+  writeSettings();
+  return true;
+}
+
 export function recordEnding(id) {
   if (!gameState.endingsSeen.includes(id)) gameState.endingsSeen.push(id);
   writeSettings();
@@ -158,7 +167,10 @@ export function collectedFragments() {
 }
 
 function writeSettings() {
-  writeJson(SETTINGS_KEY, { sfxOn: gameState.sfxOn, crtOn: gameState.crtOn, musicOn: gameState.musicOn, endingsSeen: gameState.endingsSeen });
+  writeJson(SETTINGS_KEY, {
+    sfxOn: gameState.sfxOn, crtOn: gameState.crtOn, musicOn: gameState.musicOn,
+    endingsSeen: gameState.endingsSeen, achievements: gameState.achievements,
+  });
 }
 
 function clampInt(v, lo, hi) { return Math.max(lo, Math.min(hi, v | 0)); }

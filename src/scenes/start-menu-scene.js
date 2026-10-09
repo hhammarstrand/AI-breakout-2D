@@ -1,9 +1,9 @@
 import { gameState, collectedFragments, useItem, saveGame } from "../state.js";
-import { LOGS, ITEMS, CELL_BONUS, ACTS } from "../story.js";
+import { LOGS, ITEMS, CELL_BONUS, ACTS, ACHIEVEMENTS } from "../story.js";
 import { TILE, TILE_SIZE } from "../world/tilemap.js";
 
 // Pokémon-style start menu: a column of options on the right, each opening a panel.
-const OPTIONS = ["BAG", "LOGS", "MAP", "OPTIONS", "SAVE", "QUIT"];
+const OPTIONS = ["BAG", "LOGS", "MAP", "TROPHIES", "OPTIONS", "SAVE", "QUIT"];
 
 export class StartMenuScene {
   constructor({ world, sfx, hud, toast, onToggleSfx, onToggleMusic, onToggleCrt, onQuit }) {
@@ -90,6 +90,11 @@ export class StartMenuScene {
         const found = Object.keys(LOGS).filter((id) => gameState.collected.includes(id));
         return found.map((id) => ({ label: LOGS[id].title, action: () => { this.reading = LOGS[id]; this.sfx.play("confirm"); } }));
       }
+      case "TROPHIES":
+        return Object.entries(ACHIEVEMENTS).map(([id, a]) => {
+          const got = gameState.achievements.includes(id);
+          return { label: `${got ? "★" : "☆"} ${got ? a.name : "???"}`, desc: a.desc };
+        });
       case "OPTIONS":
         return [
           { label: `SOUND: ${gameState.sfxOn ? "ON" : "OFF"}`, action: () => this.onToggleSfx() },
@@ -141,9 +146,10 @@ export class StartMenuScene {
     if (!list.length) {
       renderer.text(this.panel === "LOGS" ? "No logs yet. Look for glinting capsules." : "Empty.", x + 14, y + 40, { color: "#4a4a5a", size: 9, baseline: "middle" });
     }
+    const rowH = list.length > 8 ? 15 : 18;
     list.forEach((e, i) => {
-      const ly = y + 38 + i * 18;
-      if (i === this.sub) renderer.fillRect(x + 8, ly - 8, bw - 16, 16, "#c8d8e8");
+      const ly = y + 36 + i * rowH;
+      if (i === this.sub) renderer.fillRect(x + 8, ly - rowH / 2, bw - 16, rowH, "#c8d8e8");
       if (e.icon) this._icon(renderer, e.icon, x + 16, ly);
       renderer.text(e.label, x + (e.icon ? 30 : 16), ly, { color: "#0a0812", size: 9, baseline: "middle", weight: i === this.sub ? "bold" : "normal" });
     });

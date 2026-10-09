@@ -19,6 +19,7 @@ import { coreMap } from "./world/maps/core.js";
 import { ElevatorScene } from "./scenes/elevator-scene.js";
 import { IntroScene } from "./scenes/intro-scene.js";
 import { HintScene } from "./scenes/hint-scene.js";
+import { initTrophies, award } from "./ui/trophies.js";
 import { ACTS, PA_ACT_START } from "./story.js";
 import {
   gameState, hasSave, loadGame, resetGame, saveGame, clearSave, setSfx, setCrt, setMusic, recordEnding,
@@ -66,6 +67,8 @@ const toggleSfx = () => {
   hud.refresh();
   if (gameState.sfxOn) sfx.play("confirm");
 };
+
+initTrophies({ toast, sfx });
 
 const hud = new Hud(document.getElementById("hud"), {
   toast,
@@ -158,6 +161,11 @@ const startWorld = ({ fresh = false, arrived = false, retry = false } = {}) => {
 };
 
 function showEnding(ending) {
+  award(ending);
+  if (gameState.checkpoint && gameState.timesCaught === gameState.checkpoint.timesCaught) award("ghost");
+  if (gameState.timesCaught === 0) award("untouchable");
+  if (gameState.secondsLeft >= 600) award("speedrun");
+  if (gameState.difficulty === "hard") award("veteran");
   recordEnding(ending);
   clearSave();
   dialog.close();

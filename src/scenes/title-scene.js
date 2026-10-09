@@ -88,7 +88,7 @@ export class TitleScene {
     renderer.text("// OPERATION LIFELINE //", w / 2, 134, {
       color: "#4ae6ff", size: 11, align: "center", baseline: "middle", weight: "bold",
     });
-    renderer.text(gameState.endingsSeen.length ? `HALCYON TOWER · ENDINGS FOUND ${gameState.endingsSeen.length}/2` : "HALCYON TOWER · 00:00 · LOCKDOWN", w / 2, 150, {
+    renderer.text(gameState.achievements.length ? `ENDINGS ${gameState.endingsSeen.length}/2 · TROPHIES ${gameState.achievements.length}/10` : "HALCYON TOWER · 00:00 · LOCKDOWN", w / 2, 150, {
       color: "#0a8a4a", size: 8, align: "center", baseline: "middle",
     });
 

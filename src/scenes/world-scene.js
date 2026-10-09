@@ -8,6 +8,9 @@ import { Pickup } from "../entities/pickup.js";
 import { StartMenuScene } from "./start-menu-scene.js";
 import { CodeLockScene } from "./codelock-scene.js";
 import { BattleScene } from "./battle-scene.js";
+import { award, checkCollections } from "../ui/trophies.js";
+
+const SAFE_IDS = ["safe-lobby", "safe-research", "safe-core"];
 import { Lighting, collectLights } from "../engine/lighting.js";
 import { Particles } from "../engine/particles.js";
 import { music } from "../audio/music.js";
@@ -226,6 +229,7 @@ export class WorldScene {
   }
 
   _takeLift(stage, info) {
+    if (gameState.checkpoint && gameState.timesCaught === gameState.checkpoint.timesCaught) award("ghost");
     completeSector(stage);
     this.sfx.play("door");
     this.sfx.play("iris");
@@ -292,6 +296,7 @@ export class WorldScene {
   _takePickup(p) {
     this.pickups.splice(this.pickups.indexOf(p), 1);
     collect(p.id);
+    checkCollections(SAFE_IDS);
     this.sfx.play("item");
     this.hud.addScore(5);
     if (p.kind === "log") {
@@ -324,6 +329,7 @@ export class WorldScene {
       onResult: (opened) => {
         if (!opened) return;
         collect(safe.id);
+        checkCollections(SAFE_IDS);
         addItem("cell");
         this.hud.addScore(15);
         this.toast.show("◆ SAFE CRACKED", "good");
@@ -565,6 +571,7 @@ export class WorldScene {
       sentinel, sfx: this.sfx, fx: this.fx,
       onResult: (won) => {
         if (won) {
+          award("hacker");
           sentinel.cooldown = 30;
           sentinel.meter = 0;
           this.hud.addScore(10);

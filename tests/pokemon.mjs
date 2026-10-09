@@ -1,0 +1,61 @@
+import { createRequire } from "module";
+import fs from "fs";
+const require = createRequire(import.meta.url);
+const BASE = process.env.BASE ?? "http://localhost:8123/";
+const SHOTS = process.env.SHOTS ?? "shots";
+fs.mkdirSync(SHOTS, { recursive: true });
+const { chromium } = require(process.env.PW ?? "playwright");
+const browser = await chromium.launch();
+const page = await browser.newPage({ viewport: { width: 1100, height: 760 } });
+await page.addInitScript(() => localStorage.setItem("blackout2d.settings.v1", JSON.stringify({ sfxOn: true, crtOn: false, musicOn: true })));
+const errors = []; page.on("pageerror", (e) => errors.push(String(e)));
+await page.goto(`${BASE}?debug`);
+const wait = (ms) => page.waitForTimeout(ms);
+const press = async (k, n = 1) => { for (let i = 0; i < n; i++) { await page.keyboard.press(k); await wait(60); } };
+const hold = async (k, ms) => { await page.keyboard.down(k); await wait(ms); await page.keyboard.up(k); };
+const ev = (fn, a) => page.evaluate(fn, a);
+const pos = () => ev(() => { const p = window.__blackout.game.scenes[0].player; return `${p.col},${p.row},${p.facing},x=${p.x.toFixed(1)}`; });
+await wait(2700); await press("Enter"); await wait(200); await press("Enter"); await wait(300); await press("Escape"); await wait(400); await wait(400); await press("Escape"); await wait(300);
+await ev(() => { window.__blackout.game.scenes[0].sentinels.length = 0; });
+console.log("spawn", await pos());
+await press("ArrowLeft"); await wait(300);
+console.log("tap left (turn only)", await pos());
+await hold("ArrowLeft", 700); await wait(400);
+console.log("hold left 0.7s", await pos());
+await hold("Shift", 0); await page.keyboard.down("Shift"); await hold("ArrowUp", 700); await page.keyboard.up("Shift"); await wait(400);
+console.log("run up 0.7s", await pos());
+// walk into a desk to test blocking: desk at row 17 col 18..22; go to (20,18) facing up
+await ev(() => { const w = window.__blackout.game.scenes[0]; w.player.teleport(20, 19); });
+await hold("ArrowUp", 600); await wait(300);
+console.log("blocked by desk/sign", await pos());
+// pickup: log-intern at (2,23) -> stand at (3,23) facing left
+await ev(() => { const w = window.__blackout.game.scenes[0]; w.player.teleport(3, 23); w.player.facing = "left"; });
+await wait(200); await page.screenshot({ path: `${SHOTS}/p-1-capsule.png` });
+await press("e"); await wait(700); await page.screenshot({ path: `${SHOTS}/p-2-logfound.png` });
+await press("Escape"); await wait(300);
+console.log("collected", await ev(() => JSON.stringify(window.__blackout.gameState.collected)));
+// safe at (39,27): stand at (40,27) facing left
+await ev(() => { const w = window.__blackout.game.scenes[0]; w.player.teleport(40, 27); w.player.facing = "left"; });
+await wait(200); await press("e"); await wait(400);
+console.log("safe scene", await ev(() => window.__blackout.game.top.constructor.name));
+await press("Enter"); await wait(200); await page.screenshot({ path: `${SHOTS}/p-3-safe-wrong.png` });
+// 0417
+await press("ArrowRight"); await press("ArrowUp", 4); await press("ArrowRight"); await press("ArrowUp", 1); await press("ArrowRight"); await press("ArrowDown", 3);
+await press("Enter"); await wait(1500);
+console.log("after safe", await ev(() => JSON.stringify({ items: window.__blackout.gameState.items, top: window.__blackout.game.top.constructor.name })));
+await press("Escape"); await wait(300);
+// menu
+await press("Tab"); await wait(300); await page.screenshot({ path: `${SHOTS}/p-4-menu.png` });
+await press("Space"); await wait(200); await page.screenshot({ path: `${SHOTS}/p-5-bag.png` });
+const before = await ev(() => window.__blackout.gameState.secondsLeft);
+await press("Space"); await wait(200);
+const after = await ev(() => window.__blackout.gameState.secondsLeft);
+console.log("cell used, +", Math.round(after - before), "s");
+await press("Escape"); await press("ArrowDown"); await press("Space"); await wait(200);
+await press("Space"); await wait(200); await page.screenshot({ path: `${SHOTS}/p-6-log.png` });
+await press("Escape"); await press("Escape"); await press("ArrowDown"); await press("Space"); await wait(300);
+await page.screenshot({ path: `${SHOTS}/p-7-map.png` });
+await press("Escape"); await press("Escape"); await wait(200);
+console.log("top", await ev(() => window.__blackout.game.top.constructor.name));
+console.log("errors", JSON.stringify(errors));
+await browser.close();

@@ -109,10 +109,10 @@ export class EndingScene {
 
     if (this._finished) {
       ctx.fillStyle = "rgba(0,0,0,0.7)";
-      ctx.fillRect(w - 220, h - 108, 204, 92);
+      ctx.fillRect(w - 220, h - 122, 204, 106);
       ctx.strokeStyle = this.ending.color;
-      ctx.strokeRect(w - 219.5, h - 107.5, 203, 91);
-      renderer.text(this.ending.title, w - 118, h - 94, { color: this.ending.color, size: 10, align: "center", baseline: "middle", weight: "bold" });
+      ctx.strokeRect(w - 219.5, h - 121.5, 203, 105);
+      renderer.text(this.ending.title, w - 118, h - 108, { color: this.ending.color, size: 10, align: "center", baseline: "middle", weight: "bold" });
       const mm = String(Math.floor(gameState.secondsLeft / 60)).padStart(2, "0");
       const ss = String(Math.floor(gameState.secondsLeft % 60)).padStart(2, "0");
       const stats = [
@@ -120,8 +120,9 @@ export class EndingScene {
         `SCORE           ${gameState.score}`,
         `TIMES SPOTTED   ${gameState.timesCaught}`,
         `ENDINGS FOUND   ${gameState.endingsSeen.length}/2`,
+        `TROPHIES        ${gameState.achievements.length}/10`,
       ];
-      stats.forEach((s, i) => renderer.text(s, w - 206, h - 78 + i * 12, { color: "#cfcfcf", size: 8 }));
+      stats.forEach((s, i) => renderer.text(s, w - 206, h - 92 + i * 12, { color: "#cfcfcf", size: 8 }));
       if (Math.floor(this._t * 2) & 1) {
         renderer.text("[enter] return to title", w - 118, h - 24, { color: this.ending.color, size: 8, align: "center", baseline: "middle" });
       }

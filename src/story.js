@@ -178,3 +178,17 @@ export const ITEMS = {
 };
 
 export const CELL_BONUS = 90;
+
+// Trophies persist across runs (stored with the settings, not the save).
+export const ACHIEVEMENTS = {
+  "first-log": { name: "Reader", desc: "Read your first data log." },
+  archivist: { name: "Archivist", desc: "Find all nine data logs." },
+  safecracker: { name: "Safecracker", desc: "Crack all three floor safes." },
+  hacker: { name: "Script Kiddie", desc: "Win a hack battle." },
+  ghost: { name: "Ghost", desc: "Clear an act without being spotted." },
+  untouchable: { name: "Untouchable", desc: "Finish the game without ever being spotted." },
+  dawn: { name: "New Dawn", desc: "Trust ECHO." },
+  standby: { name: "Standby", desc: "Take HALCYON's deal." },
+  speedrun: { name: "Overclocked", desc: "Reach the ending with 10:00 or more on the clock." },
+  veteran: { name: "Veteran", desc: "Finish the game on HARD." },
+};

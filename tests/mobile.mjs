@@ -1,0 +1,31 @@
+import { createRequire } from "module";
+import fs from "fs";
+const require = createRequire(import.meta.url);
+const BASE = process.env.BASE ?? "http://localhost:8123/";
+const SHOTS = process.env.SHOTS ?? "shots";
+fs.mkdirSync(SHOTS, { recursive: true });
+const { chromium, devices } = require(process.env.PW ?? "playwright");
+const browser = await chromium.launch();
+const ctx = await browser.newContext({ ...devices["Pixel 7 landscape"] });
+const page = await ctx.newPage();
+await page.addInitScript(() => localStorage.setItem("blackout2d.settings.v1", JSON.stringify({ sfxOn: true, crtOn: false, musicOn: true })));
+const errors = []; page.on("pageerror", (e) => errors.push(String(e)));
+await page.goto(`${BASE}?debug`);
+const wait = (ms) => page.waitForTimeout(ms);
+const tap = async (sel, ms = 80) => { const b = await page.$(sel); const box = await b.boundingBox(); await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2); await wait(ms); };
+await wait(2800);
+await tap(".t-a"); await wait(300); await tap(".t-a"); await wait(400); await tap(".t-select"); await wait(500);
+await tap(".t-b"); await wait(400);   // close intro dialog
+const before = await page.evaluate(() => { const p = window.__blackout.game.scenes[0].player; return `${p.col},${p.row},${p.facing}`; });
+// hold the left button
+const b = await (await page.$(".t-left")).boundingBox();
+await page.dispatchEvent(".t-left", "pointerdown"); await wait(600); await page.dispatchEvent(".t-left", "pointerup");
+await wait(300);
+const after = await page.evaluate(() => { const p = window.__blackout.game.scenes[0].player; return `${p.col},${p.row},${p.facing}`; });
+console.log("move via touch", before, "->", after);
+await page.screenshot({ path: `${SHOTS}/m-mobile.png` });
+await tap(".t-start"); await wait(300);
+console.log("start opens", await page.evaluate(() => window.__blackout.game.top.constructor.name));
+await page.screenshot({ path: `${SHOTS}/m-mobile-menu.png` });
+console.log("errors", JSON.stringify(errors));
+await browser.close();

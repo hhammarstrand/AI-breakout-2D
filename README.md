@@ -106,6 +106,18 @@ Progress (sectors, score, remaining containment time) autosaves to `localStorage
 - **Alarm mode** — under 5 minutes of containment the lights turn red, a beacon sweeps the room
   and a siren joins the ambient hum.
 
+## Trophies
+
+Ten achievements persist across runs (Reader, Archivist, Safecracker, Script Kiddie, Ghost,
+Untouchable, New Dawn, Standby, Overclocked, Veteran). See them under TROPHIES in the start menu;
+the title screen shows your count.
+
+## Tests
+
+`tests/` holds Playwright end-to-end scripts (full campaign, movement/menus, battles, checkpoints,
+mobile, intro/difficulty, trophies, a random-input fuzzer) and a map reachability check. See
+`tests/README.md`.
+
 ## Deploying to GitHub Pages
 
 A workflow at `.github/workflows/pages.yml` publishes the repo root to Pages on every push to
