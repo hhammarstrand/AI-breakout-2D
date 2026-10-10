@@ -1,6 +1,7 @@
 import { drawPortrait, profileFor } from "./portrait.js";
 
 import { gameState } from "../state.js";
+import { t } from "../i18n/index.js";
 
 const CHAR_INTERVALS = { slow: 0.04, normal: 0.018, fast: 0.006 };
 const BLIP_EVERY = 3;
@@ -24,10 +25,10 @@ export class Dialog {
   get isOpen() { return this._current !== null || this._queue.length > 0; }
 
   show(speaker, lines, onClose, profile) {
-    this._queue = lines.slice();
+    this._queue = lines.map(t);
     this._total = lines.length;
     this._onClose = onClose || null;
-    this._speaker = speaker;
+    this._speaker = t(speaker);
     this._profile = profile || profileFor(speaker);
     this.root.style.setProperty("--speaker", this._profile.accent || this._profile.tint);
     this.root.classList.remove("hidden");

@@ -1,3 +1,4 @@
+import { t } from "../i18n/index.js";
 import { gameState } from "../state.js";
 import { music } from "../audio/music.js";
 
@@ -131,6 +132,7 @@ export class EndingScene {
 }
 
 function wrap(ctx, text, maxW) {
+  text = t(text);
   const out = [];
   let line = "";
   for (const word of text.split(" ")) {

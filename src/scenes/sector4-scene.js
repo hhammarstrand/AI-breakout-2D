@@ -2,6 +2,7 @@ import { penalize, scaledPenalty } from "../state.js";
 import { music } from "../audio/music.js";
 import { gameState, FRAGMENTS } from "../state.js";
 import { Drone } from "../entities/drone.js";
+import { t } from "../i18n/index.js";
 
 // Sector 4 — the uplink. Enter the three collected fragments in order while HALCYON reshuffles the
 // word list and slips in decoys, then decide ECHO's fate. The choice picks the ending.
@@ -94,7 +95,7 @@ export class Sector4Scene {
   }
 
   _updateScript(dt, input) {
-    const text = this.script[this.line][1];
+    const text = t(this.script[this.line][1]);
     if (this.typed < text.length) {
       const before = Math.floor(this.typed);
       this.typed = Math.min(text.length, this.typed + dt * CPS);
@@ -261,7 +262,8 @@ export class Sector4Scene {
   }
 
   _drawScript(renderer) {
-    const [who, text] = this.script[this.line];
+    const who = this.script[this.line][0];
+    const text = t(this.script[this.line][1]);
     const w = renderer.width;
     const echo = who === "ECHO";
     const bx = 20, by = 222, bw = w - 40, bh = 70;

@@ -20,10 +20,11 @@ import { ElevatorScene } from "./scenes/elevator-scene.js";
 import { IntroScene } from "./scenes/intro-scene.js";
 import { HintScene } from "./scenes/hint-scene.js";
 import { initTrophies, award } from "./ui/trophies.js";
+import { setLang, applyDom } from "./i18n/index.js";
 import { ACTS, PA_ACT_START } from "./story.js";
 import {
   gameState, hasSave, loadGame, resetGame, saveGame, clearSave, setSfx, setCrt, setMusic, recordEnding,
-  currentAct, startAct, restoreCheckpoint, actSeconds,
+  currentAct, startAct, restoreCheckpoint, actSeconds, setLanguage,
 } from "./state.js";
 
 const canvas = document.getElementById("game");
@@ -37,6 +38,8 @@ music.setEnabled(gameState.musicOn);
 music.setMuted(!gameState.sfxOn);
 const toast = new Toasts(document.getElementById("toasts"), sfx);
 document.body.classList.toggle("calm", gameState.calmFx);
+setLang(gameState.lang);
+applyDom();
 const postfx = new PostFx(canvas);
 postfx.setEnabled(gameState.crtOn);
 const fx = new Fx(stageEl, postfx);
@@ -53,6 +56,13 @@ const game = new Game({
 const toggleMusic = () => {
   setMusic(!gameState.musicOn);
   music.setEnabled(gameState.musicOn);
+};
+
+const toggleLang = () => {
+  setLanguage(gameState.lang === "sv" ? "en" : "sv");
+  setLang(gameState.lang);
+  applyDom();
+  hud.refresh();
 };
 
 const toggleCrt = () => {
@@ -128,6 +138,7 @@ const startWorld = ({ fresh = false, arrived = false, retry = false } = {}) => {
     onToggleSfx: toggleSfx,
     onToggleCrt: toggleCrt,
     onToggleMusic: toggleMusic,
+    onToggleLang: toggleLang,
     postfx,
     pa,
     onQuit: () => { saveGame(); showTitle(); },
@@ -183,6 +194,7 @@ function showTitle() {
     onToggleSfx: toggleSfx,
     onToggleCrt: toggleCrt,
     onToggleMusic: toggleMusic,
+    onToggleLang: toggleLang,
     onNew: (diff) => {
       resetGame();
       gameState.difficulty = diff;

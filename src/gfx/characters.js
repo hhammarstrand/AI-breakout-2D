@@ -293,6 +293,13 @@ export const LOOKS = {
     style: "hoodie", top: "#f0d040", topShade: "#b89a20", accent: "#f8f8f8",
     pants: "#3a4a6a", pantsShade: "#2a3450",
   },
+  kofi: {
+    ...base("brown"),
+    hair: "#1a120c", hairShade: "#0e0a06", hairStyle: "short", glasses: "#3a3a46",
+    hat: "beanie", hatColor: "#2a8a6a", hatShade: "#1a5a44",
+    style: "hoodie", top: "#3a9a7a", topShade: "#24644e", accent: "#e8e8e8",
+    pants: "#2a3040", pantsShade: "#1c2030",
+  },
   lind: {
     ...base("deep"),
     hair: "#d0d0d8", hairShade: "#9a9aa4", hairStyle: "bun", glasses: "#c8a040",

@@ -1,6 +1,7 @@
 import { TILE_SIZE } from "../world/tilemap.js";
 import { character, FRAME_W, FRAME_H } from "../gfx/characters.js";
 import { drawShadow } from "./player.js";
+import { t } from "../i18n/index.js";
 
 const LOOK_RADIUS = 60;
 
@@ -73,7 +74,7 @@ export class Npc {
     ctx.font = "bold 7px ui-monospace, monospace";
     ctx.textAlign = "center";
     ctx.textBaseline = "bottom";
-    ctx.fillText(this.name.toUpperCase(), px + this.w / 2, py - 10);
+    ctx.fillText(t(this.name).toUpperCase(), px + this.w / 2, py - 10);
     if (this._hop > 0) {
       ctx.fillStyle = "#ffd15a";
       ctx.font = "bold 9px ui-monospace, monospace";

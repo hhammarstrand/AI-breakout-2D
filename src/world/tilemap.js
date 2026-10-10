@@ -1,4 +1,5 @@
 import { isSectorActive, isSectorCompleted, hasCollected } from "../state.js";
+import { t } from "../i18n/index.js";
 
 export const TILE_SIZE = 16;
 
@@ -228,7 +229,7 @@ function drawDoor(ctx, th, x, y, cfg, time) {
   ctx.font = "bold 6px ui-monospace, monospace";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(cfg?.label ?? "?", x + T / 2, y + 7.5);
+  ctx.fillText(t(cfg?.label ?? "?"), x + T / 2, y + 7.5);
   const blink = Math.floor(time * 2) & 1;
   rect(ctx, x + 13, y + 1, 2, 1, active && blink ? "#ff5a5a" : done ? "#0aff7a" : "#3a0808");
 }

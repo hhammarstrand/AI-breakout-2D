@@ -2,6 +2,7 @@ import { music } from "../audio/music.js";
 import { character } from "../gfx/characters.js";
 import { Drone } from "../entities/drone.js";
 import { ACTS, ECHO_ACT_START } from "../story.js";
+import { t } from "../i18n/index.js";
 
 // Between acts: a short ride in the lift with the act title card. Any key skips after a moment.
 const DURATION = 7;
@@ -74,7 +75,7 @@ export class ElevatorScene {
     renderer.text(ACTS[this.act].name, w / 2, 39, { color: "#e8f4ff", size: 16, align: "center", baseline: "middle", weight: "bold" });
     ctx.globalAlpha = 1;
     if (this._t > 2.2) {
-      const line = ECHO_ACT_START[this.act] ?? "";
+      const line = t(ECHO_ACT_START[this.act] ?? "");
       const shown = line.slice(0, Math.floor((this._t - 2.2) * 34));
       renderer.fillRect(40, 274, w - 80, 22, "rgba(0,12,18,0.9)");
       renderer.strokeRect(40, 274, w - 80, 22, "#4ae6ff", 1);

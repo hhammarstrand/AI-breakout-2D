@@ -1,5 +1,6 @@
 import { music } from "../audio/music.js";
 import { Drone } from "../entities/drone.js";
+import { t } from "../i18n/index.js";
 
 // Pokémon-style hack battle, triggered when a sentinel spots you. ECHO fights with four moves;
 // the sentinel telegraphs its next move, so reading the intent is the whole strategy:
@@ -61,7 +62,7 @@ export class BattleScene {
     this.intent = r < 0.3 ? ENEMY_MOVES.lockon : r < 0.7 ? ENEMY_MOVES.trace : ENEMY_MOVES.scan;
   }
 
-  _say(...lines) { this.queue.push(...lines); if (!this.text) this._next(); }
+  _say(...lines) { this.queue.push(...lines.map(t)); if (!this.text) this._next(); }
 
   _next() {
     this.text = this.queue.shift() ?? null;
@@ -293,6 +294,7 @@ export class BattleScene {
 }
 
 function wrapText(ctx, text, maxW) {
+  text = t(text);
   const out = [];
   let line = "";
   for (const word of text.split(" ")) {

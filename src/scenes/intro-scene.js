@@ -1,6 +1,7 @@
 import { music } from "../audio/music.js";
 import { character } from "../gfx/characters.js";
 import { Drone } from "../entities/drone.js";
+import { t } from "../i18n/index.js";
 
 // Opening cinematic: the tower at night, the lockdown, waking up, ECHO's first words.
 // Five shots on a timeline; any key skips to the next shot, holding through skips it all.
@@ -61,7 +62,7 @@ export class IntroScene {
     // letterbox bars + caption
     renderer.fillRect(0, 0, w, 28, "#000");
     renderer.fillRect(0, h - 28, w, 28, "#000");
-    const cap = SHOTS[shot].caption;
+    const cap = t(SHOTS[shot].caption);
     if (cap) {
       ctx.globalAlpha = fadeIn;
       renderer.text(cap.slice(0, Math.floor(this.t * 30)), 16, h - 14, { color: shot === 1 ? "#ff5a5a" : "#cfe8f4", size: 10, baseline: "middle", weight: "bold" });
@@ -156,7 +157,7 @@ export class IntroScene {
         this.echo.draw(renderer, { x: 0, y: 0 });
         ctx.restore();
       }
-      const line = this.t < 2.6 ? "...Hello? Can you hear me?" : "Good. We don't have much time, tech.";
+      const line = t(this.t < 2.6 ? "...Hello? Can you hear me?" : "Good. We don't have much time, tech.");
       const shown = line.slice(0, Math.floor(((this.t < 2.6 ? this.t : this.t - 2.6) - 0.6) * 30));
       if (shown.length > 0) {
         renderer.fillRect(40, 236, w - 80, 24, "rgba(0,12,18,0.92)");

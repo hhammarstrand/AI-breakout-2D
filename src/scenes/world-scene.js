@@ -65,7 +65,8 @@ const INTERACT_RADIUS = TILE_SIZE * 0.9;
 const STEP_INTERVAL = 0.3;
 
 export class WorldScene {
-  constructor({ map, dialog, hud, sfx, fx, toast, postfx, pa, onToggleSfx, onToggleCrt, onToggleMusic, onQuit, onEnding, onLift, viewportWidth, viewportHeight }) {
+  constructor({ map, dialog, hud, sfx, fx, toast, postfx, pa, onToggleSfx, onToggleCrt, onToggleMusic, onToggleLang, onQuit, onEnding, onLift, viewportWidth, viewportHeight }) {
+    this.onToggleLang = onToggleLang;
     this.onLift = onLift;
     this.onToggleMusic = onToggleMusic;
     this.pa = pa;
@@ -180,7 +181,7 @@ export class WorldScene {
     if (input.wasPressed("pause") || input.wasPressed("menu") || input.wasPressed("submit")) {
       this.game.push(new StartMenuScene({
         world: this, sfx: this.sfx, hud: this.hud, toast: this.toast,
-        onToggleSfx: this.onToggleSfx, onToggleCrt: this.onToggleCrt, onToggleMusic: this.onToggleMusic, onQuit: this.onQuit,
+        onToggleSfx: this.onToggleSfx, onToggleCrt: this.onToggleCrt, onToggleMusic: this.onToggleMusic, onToggleLang: this.onToggleLang, onQuit: this.onQuit,
       }));
       return;
     }

@@ -1,3 +1,5 @@
+import { t } from "../i18n/index.js";
+
 const LIFETIME_MS = 3200;
 
 export class Toasts {
@@ -9,7 +11,7 @@ export class Toasts {
   show(text, kind = "info") {
     const el = document.createElement("div");
     el.className = `toast toast-${kind}`;
-    el.textContent = text;
+    el.textContent = t(text);
     this.root.appendChild(el);
     if (kind === "info" || kind === "good") this.sfx?.play("toast");
     setTimeout(() => {

@@ -1,5 +1,6 @@
 import { gameState, saveGame, FRAGMENTS, collectedFragments, currentAct, actSeconds } from "../state.js";
 import { STAGES, OBJECTIVES } from "../story.js";
+import { t } from "../i18n/index.js";
 
 const AUTOSAVE_INTERVAL = 5;
 const WARNINGS = [
@@ -71,13 +72,14 @@ export class Hud {
   // One pip per stage in the current act, labelled like the doors.
   _buildPips() {
     const act = currentAct();
-    if (act === this._pipAct) return;
+    if (act === this._pipAct && this._pipLang === document.documentElement.lang) return;
+    this._pipLang = document.documentElement.lang;
     this._pipAct = act;
-    document.getElementById("hud-act").textContent = ["", "ACT I", "ACT II", "ACT III"][act];
+    document.getElementById("hud-act").textContent = t(["", "ACT I", "ACT II", "ACT III"][act]);
     this.pipsEl.innerHTML = "";
     for (const st of STAGES.filter((s) => s.act === act)) {
       const pip = document.createElement("i");
-      pip.textContent = st.label;
+      pip.textContent = t(st.label);
       pip.dataset.stage = st.id;
       this.pipsEl.appendChild(pip);
     }
@@ -124,9 +126,9 @@ export class Hud {
     }
 
     if (force) this.scoreEl.textContent = formatScore(this.displayScore);
-    this.sfxEl.textContent = gameState.sfxOn ? "♪ SFX ON" : "♪ SFX OFF";
+    this.sfxEl.textContent = t(gameState.sfxOn ? "♪ SFX ON" : "♪ SFX OFF");
     this.sfxEl.classList.toggle("off", !gameState.sfxOn);
-    this.objectiveEl.textContent = OBJECTIVES[gameState.completedSectors] ?? "";
+    this.objectiveEl.textContent = t(OBJECTIVES[gameState.completedSectors] ?? "");
     const got = collectedFragments();
     this.codeEl.textContent = FRAGMENTS.map((f, i) => got[i] ?? "·".repeat(f.length)).join(" ");
   }

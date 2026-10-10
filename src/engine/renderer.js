@@ -1,3 +1,5 @@
+import { t } from "../i18n/index.js";
+
 export class Renderer {
   constructor(canvas) {
     this.canvas = canvas;
@@ -35,7 +37,7 @@ export class Renderer {
     this.ctx.textAlign = align;
     this.ctx.textBaseline = baseline;
     this.ctx.font = `${weight} ${size}px ui-monospace, "SF Mono", Menlo, Consolas, monospace`;
-    this.ctx.fillText(message, x | 0, y | 0);
+    this.ctx.fillText(t(message), x | 0, y | 0);
   }
 
   withTranslate(dx, dy, fn) {

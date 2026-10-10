@@ -24,6 +24,7 @@ export const gameState = {
   musicOn: readJson(SETTINGS_KEY)?.musicOn ?? true,
   calmFx: readJson(SETTINGS_KEY)?.calmFx ?? false,
   textSpeed: readJson(SETTINGS_KEY)?.textSpeed ?? "normal",
+  lang: readJson(SETTINGS_KEY)?.lang ?? (navigator.language?.toLowerCase().startsWith("sv") ? "sv" : "en"),
 };
 
 export function isSectorUnlocked(num) { return num <= gameState.completedSectors + 1; }
@@ -146,6 +147,11 @@ export function setMusic(on) {
   writeSettings();
 }
 
+export function setLanguage(l) {
+  gameState.lang = l;
+  writeSettings();
+}
+
 export function setCalmFx(on) {
   gameState.calmFx = on;
   document.body.classList.toggle("calm", on);
@@ -183,7 +189,7 @@ export function collectedFragments() {
 function writeSettings() {
   writeJson(SETTINGS_KEY, {
     sfxOn: gameState.sfxOn, crtOn: gameState.crtOn, musicOn: gameState.musicOn,
-    calmFx: gameState.calmFx, textSpeed: gameState.textSpeed,
+    calmFx: gameState.calmFx, textSpeed: gameState.textSpeed, lang: gameState.lang,
     endingsSeen: gameState.endingsSeen, achievements: gameState.achievements,
   });
 }

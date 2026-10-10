@@ -1,3 +1,4 @@
+import { t } from "../i18n/index.js";
 import { drawPortrait } from "../ui/portrait.js";
 
 // ECHO's hints: each press of H reveals the next, from a nudge to nearly the answer.
@@ -48,6 +49,7 @@ export class HintScene {
 }
 
 function wrap(ctx, text, maxW) {
+  text = t(text);
   const out = [];
   let line = "";
   for (const word of text.split(" ")) {

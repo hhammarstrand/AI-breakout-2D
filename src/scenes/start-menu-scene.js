@@ -1,3 +1,4 @@
+import { t } from "../i18n/index.js";
 import { gameState, collectedFragments, useItem, saveGame, setCalmFx, cycleTextSpeed } from "../state.js";
 import { LOGS, ITEMS, CELL_BONUS, ACTS, ACHIEVEMENTS } from "../story.js";
 import { TILE, TILE_SIZE } from "../world/tilemap.js";
@@ -6,7 +7,8 @@ import { TILE, TILE_SIZE } from "../world/tilemap.js";
 const OPTIONS = ["BAG", "LOGS", "MAP", "TROPHIES", "OPTIONS", "SAVE", "QUIT"];
 
 export class StartMenuScene {
-  constructor({ world, sfx, hud, toast, onToggleSfx, onToggleMusic, onToggleCrt, onQuit }) {
+  constructor({ world, sfx, hud, toast, onToggleSfx, onToggleMusic, onToggleCrt, onToggleLang, onQuit }) {
+    this.onToggleLang = onToggleLang;
     this.world = world;
     this.sfx = sfx;
     this.hud = hud;
@@ -97,6 +99,7 @@ export class StartMenuScene {
         });
       case "OPTIONS":
         return [
+          { label: `LANGUAGE: ${gameState.lang === "sv" ? "SVENSKA" : "ENGLISH"}`, action: () => this.onToggleLang() },
           { label: `SOUND: ${gameState.sfxOn ? "ON" : "OFF"}`, action: () => this.onToggleSfx() },
           { label: `MUSIC: ${gameState.musicOn ? "ON" : "OFF"}`, action: () => this.onToggleMusic() },
           { label: `CRT FX: ${gameState.crtOn ? "ON" : "OFF"}`, action: () => this.onToggleCrt() },
@@ -217,6 +220,7 @@ export class StartMenuScene {
 }
 
 function wrap(ctx, text, maxW) {
+  text = t(text);
   const out = [];
   let line = "";
   for (const word of text.split(" ")) {

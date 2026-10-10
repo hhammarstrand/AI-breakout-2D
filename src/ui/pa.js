@@ -1,3 +1,5 @@
+import { t } from "../i18n/index.js";
+
 // HALCYON's public-address voice: a non-blocking subtitle bar that types itself out.
 const CHAR_INTERVAL = 0.03;
 const HOLD = 3.2;
@@ -12,7 +14,7 @@ export class PublicAddress {
   }
 
   say(text) {
-    this.queue.push(text);
+    this.queue.push(t(text));
     if (!this.current) this._next();
   }
 

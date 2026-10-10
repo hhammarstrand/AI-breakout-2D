@@ -7,7 +7,17 @@ fs.mkdirSync(SHOTS, { recursive: true });
 const { chromium } = require(process.env.PW ?? "playwright");
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1100, height: 760 } });
-await page.addInitScript(() => localStorage.setItem("blackout2d.settings.v1", JSON.stringify({ sfxOn: true, crtOn: false, musicOn: true })));
+const LANG = process.env.LANG_UNDER_TEST ?? "en";
+await page.addInitScript((lang) => {
+  localStorage.setItem("blackout2d.settings.v1", JSON.stringify({ sfxOn: true, crtOn: false, musicOn: true, lang }));
+  // record every string drawn or shown so a run can report untranslated text
+  window.__seen = new Set();
+  const fill = CanvasRenderingContext2D.prototype.fillText;
+  CanvasRenderingContext2D.prototype.fillText = function (s, ...a) { if (typeof s === "string" && s.length > 3) window.__seen.add(s); return fill.call(this, s, ...a); };
+  new MutationObserver(() => {
+    for (const sel of [".dialog-text", ".pa-text", ".toast", "#objective", ".dialog-speaker"]) document.querySelectorAll(sel).forEach((el) => el.textContent && window.__seen.add(el.textContent));
+  }).observe(document, { subtree: true, childList: true, characterData: true });
+}, LANG);
 const errors = [];
 page.on("pageerror", (e) => errors.push(String(e)));
 page.on("console", (m) => { if (m.type() === "error" && !m.text().includes("swiftshader")) errors.push(m.text()); });
@@ -95,5 +105,6 @@ await press("Enter"); await wait(3000);
 console.log("final", await stack(), await state());
 // game over + retry path
 await ev(() => { localStorage.clear(); });
+if (process.env.SEEN_OUT) fs.writeFileSync(process.env.SEEN_OUT, JSON.stringify(await ev(() => [...window.__seen]), null, 1));
 console.log("errors", JSON.stringify(errors));
 await browser.close();

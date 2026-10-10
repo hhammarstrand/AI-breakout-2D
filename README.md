@@ -55,6 +55,14 @@ Any other static server works too (`npx serve`, `caddy file-server`, etc.).
 Progress (sectors, score, remaining containment time) autosaves to `localStorage`; pick
 **CONTINUE** on the title screen to resume. If the containment timer hits `00:00` the run ends.
 
+## Languages
+
+English and **Swedish (svenska)**. The game picks Swedish automatically when the browser is set to
+Swedish; switch any time under LANGUAGE on the title screen or in OPTIONS. All dialogue, logs,
+menus, puzzles and HALCYON's lines are translated (`src/i18n/`); the L2 cipher logs stay English on
+purpose, since that puzzle is built on English letter frequency. `LANG_UNDER_TEST=sv` runs the
+campaign test in Swedish.
+
 ## Difficulty, hints and the opening
 
 - **Gamepads** — any standard controller: D-pad/stick move, A interact, B back, X flashlight,

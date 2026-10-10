@@ -1,3 +1,5 @@
+import { t } from "../i18n/index.js";
+
 // ECHO — the AI companion drone. Follows the player on a spring, carries a light and talks.
 const STIFFNESS = 38;
 const DAMPING = 7;
@@ -34,6 +36,7 @@ export class Drone {
   get lightY() { return this.y + this.bob; }
 
   say(text, dur = 3.2) {
+    text = t(text);
     this.speech = { text, t: 0, dur: Math.max(dur, text.length / CHARS_PER_SEC + 1.6) };
     return true;
   }

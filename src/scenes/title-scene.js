@@ -13,7 +13,7 @@ const BOOT_LINES = [
 const COL_W = 10;
 
 export class TitleScene {
-  constructor({ hasSave, onNew, onContinue, onToggleSfx, onToggleCrt, onToggleMusic, sfx }) {
+  constructor({ hasSave, onNew, onContinue, onToggleSfx, onToggleCrt, onToggleMusic, onToggleLang, sfx }) {
     this.sfx = sfx;
     this._t = 0;
     this._booted = false;
@@ -26,6 +26,7 @@ export class TitleScene {
     const items = [];
     if (hasSave) items.push({ label: "CONTINUE", action: onContinue });
     items.push({ label: "NEW GAME", action: () => { this.menu = this.diffMenu; } });
+    items.push({ label: () => `LANGUAGE: ${gameState.lang === "sv" ? "SVENSKA" : "ENGLISH"}`, action: onToggleLang });
     items.push({ label: () => `SOUND: ${gameState.sfxOn ? "ON" : "OFF"}`, action: onToggleSfx });
     items.push({ label: () => `MUSIC: ${gameState.musicOn ? "ON" : "OFF"}`, action: onToggleMusic });
     items.push({ label: () => `CRT FX: ${gameState.crtOn ? "ON" : "OFF"}`, action: onToggleCrt });
@@ -93,7 +94,7 @@ export class TitleScene {
       color: "#0a8a4a", size: 8, align: "center", baseline: "middle",
     });
 
-    this.menu.draw(renderer, w / 2, 172, this._t, 14);
+    this.menu.draw(renderer, w / 2, 168, this._t, 13);
 
     renderer.text("[↑↓] choose   [space/enter] select", w / 2, 272, {
       color: "#0a8a4a", size: 8, align: "center", baseline: "middle",
