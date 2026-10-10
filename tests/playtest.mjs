@@ -17,6 +17,7 @@ const press = async (k, n = 1) => { for (let i = 0; i < n; i++) { await page.key
 const ev = (fn, a) => page.evaluate(fn, a);
 await wait(2700); await press("Enter"); await wait(200); await press("ArrowDown"); await press("Enter"); await wait(300); await press("Escape"); await wait(500); await press("Escape"); await wait(300);
 await wait(1500); // some play time in L1
+await press("h"); await wait(300); await press("Space"); await wait(300); // ECHO world hint
 await ev(() => { const gs = window.__blackout.gameState; gs.completedSectors = 9; gs.checkpoint = { completedSectors: 8, score: 0, timesCaught: 0 }; gs.secondsLeft = 700;
   window.__blackout.game.scenes[0]._launchSector(10, "UP"); });
 await wait(1100);
@@ -36,7 +37,7 @@ await file.saveAs(path);
 await page.screenshot({ path: `${SHOTS}/p-ending.png` });
 const r = JSON.parse(fs.readFileSync(path, "utf8"));
 const l1 = r.stages.find((s) => s.stage === "L1");
-const ok = r.report === "playtest" && r.rating === 4 && r.ending && r.stages.length === 10 && l1.minutes > 0 && r.playSeconds > 1 && file.suggestedFilename().startsWith("blackout-playtest-");
+const ok = r.report === "playtest" && r.rating === 4 && r.ending && r.stages.length === 10 && l1.hints === 1 && r.playSeconds > 1 && file.suggestedFilename().startsWith("blackout-playtest-");
 console.log("report", file.suggestedFilename(), "rating", r.rating, "ending", r.ending, "minutes", r.totalMinutes, "L1", JSON.stringify(l1), "hardest", r.hardestStage);
 await press("ArrowDown"); await press("Enter"); await wait(2500);
 const backAtTitle = await ev(() => window.__blackout.game.top.constructor.name);

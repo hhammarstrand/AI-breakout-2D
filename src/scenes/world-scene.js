@@ -676,6 +676,13 @@ export class WorldScene {
     }
   }
 
+  // H in the world: ECHO's tips for the current stage, revealed one at a time like puzzle hints.
+  get hints() {
+    const stage = gameState.completedSectors;
+    if (this._hintStage !== stage) { this._hintStage = stage; this._hintsShown = 0; }
+    return ECHO_TIPS[stage] ?? [];
+  }
+
   // World changes after a sector is cleared: new people, fewer sentinels, a fragment.
   _applyProgress(sectorNum) {
     this._spawnNpcs();
