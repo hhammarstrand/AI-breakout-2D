@@ -52,7 +52,6 @@ const game = new Game({
   // H in any scene that defines `hints` opens ECHO's hint overlay
   onHint: (scene) => {
     if (!scene.hints?.length) return;
-    track.hint();
     game.push(new HintScene({ hints: scene.hints, owner: scene, sfx, hud }));
   },
   afterRender: (t, dt) => {

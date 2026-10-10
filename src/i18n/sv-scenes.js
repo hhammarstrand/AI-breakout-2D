@@ -265,6 +265,7 @@ export const SV_SCENE_PATTERNS = [
   [new RegExp(`^ENDINGS ${n}/2 · TROPHIES ${n}/10$`), (m) => `SLUT ${m[1]}/2 · TROFÉER ${m[2]}/10`],
   [new RegExp(`^ECHO — HINT ${n}/${n}$`), (m) => `ECHO — LEDTRÅD ${m[1]}/${m[2]}`],
   [/^We have (\d+) minutes\. Your maintenance badge still opens the sector doors, one at a time\.$/, (m) => `Vi har ${m[1]} minuter. Ditt underhållskort öppnar fortfarande sektordörrarna, en i taget.`],
+  [/^stronger hint in (\d+)s$/, (m) => `starkare ledtråd om ${m[1]} s`],
   [/^\[space\] back · (.+)$/, (m, tr) => `[mellanslag] tillbaka · ${tr(m[1])}`],
   [/^ECHO: (.*)$/, (m, tr) => `ECHO: ${tr(m[1])}`],
   [/^TIME TO SPARE( +)(.+)$/, (m) => `TID KVAR${m[1]}${m[2]}`],

@@ -61,8 +61,11 @@ const quiet = (p) => p.ev(() => { const w = window.__blackout.game.scenes[0]; w.
   await p.title(); await quiet(p);
   await p.press("h"); await p.wait(300);
   await p.press("h"); await p.wait(300);
-  check(await p.stack() === "WorldScene>HintScene", "second H advances instead of stacking", await p.stack());
-  check(await p.ev(() => window.__blackout.game.top.count) === 2, "second hint is showing");
+  check(await p.stack() === "WorldScene>HintScene", "a second H never stacks another overlay", await p.stack());
+  check(await p.ev(() => window.__blackout.game.top.count) === 1, "the stronger hint waits for its cooldown");
+  await p.ev(() => { window.__blackout.game.top.owner._hintAt -= 31000; });
+  await p.press("h"); await p.wait(300);
+  check(await p.ev(() => window.__blackout.game.top.count) === 2, "after the cooldown H shows the second hint in place");
   const t0 = (await p.state()).secondsLeft; await p.wait(1500);
   check(t0 - (await p.state()).secondsLeft > 1, "the clock keeps running under the hint overlay");
   await p.press("Escape"); await p.wait(300);

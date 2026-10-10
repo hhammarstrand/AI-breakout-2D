@@ -2,6 +2,10 @@ import { t } from "../i18n/index.js";
 import { drawPortrait } from "../ui/portrait.js";
 import { track } from "../telemetry.js";
 
+// Seconds before ECHO will give a stronger hint for the same puzzle, so the answer can't be
+// pulled out with three quick presses.
+const HINT_GAP = 30;
+
 // ECHO's hints: each press of H reveals the next, from a nudge to nearly the answer. The purge
 // clock keeps running while the overlay is open: hints are help, not a pause button.
 export class HintScene {
@@ -10,7 +14,10 @@ export class HintScene {
     this.owner = owner;
     this.sfx = sfx;
     this.hud = hud;
-    owner._hintsShown = Math.min(hints.length, (owner._hintsShown ?? 0) + 1);
+    if (!owner._hintsShown || (this._ready() && owner._hintsShown < hints.length)) {
+      this._reveal(owner._hintsShown + 1 || 1);
+      track.hint();
+    }
     this.count = owner._hintsShown;
     this._t = 0;
     this.portrait = document.createElement("canvas");
@@ -24,7 +31,9 @@ export class HintScene {
     this.hud?.update(dt);
     if (this._t <= 0.2) return;
     if (input.wasPressed("hint") && this.count < this.list.length) {
-      this.count = this.owner._hintsShown = this.count + 1;
+      if (!this._ready()) { this.sfx.play("denied"); return; } // the footer shows the countdown
+      this._reveal(this.count + 1);
+      this.count = this.owner._hintsShown;
       track.hint();
       this.sfx.play("drone");
       return;
@@ -33,6 +42,9 @@ export class HintScene {
       this.game.pop();
     }
   }
+
+  _ready() { return (performance.now() - (this.owner._hintAt ?? -Infinity)) / 1000 >= HINT_GAP; }
+  _reveal(n) { this.owner._hintsShown = n; this.owner._hintAt = performance.now(); }
 
   render(renderer) {
     const w = renderer.width;
@@ -55,7 +67,8 @@ export class HintScene {
       }));
       y += block.length * 12 + 8;
     });
-    const more = this.count < this.list.length ? "H: stronger hint" : "that's everything I've got";
+    const wait = Math.ceil(HINT_GAP - (performance.now() - this.owner._hintAt) / 1000);
+    const more = this.count >= this.list.length ? "that's everything I've got" : wait > 0 ? `stronger hint in ${wait}s` : "H: stronger hint";
     renderer.text(`[space] back · ${more}`, bx + bw - 10, by + bh - 10, { color: "#2a7a8a", size: 7, align: "right", baseline: "middle" });
   }
 }
