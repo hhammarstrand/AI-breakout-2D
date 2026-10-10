@@ -34,11 +34,12 @@ const LEVELS = [
 ];
 const CELL = 26;
 const DONE_TIME = 1.6;
+const RESTART_HOLD = 0.8;
 const MOVES = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
 
 export class CoolantScene {
   constructor({ hud, sfx, fx, onResult }) {
-    this.hints = ["Never push a canister into a corner that isn't a vent — it's stuck there for good.", "Backspace undoes a move; space restarts the bay.", "Decide which canister goes to which vent before you start pushing."];
+    this.hints = ["Never push a canister into a corner that isn't a vent — it's stuck there for good.", "Backspace undoes a move; hold space to restart the bay.", "Decide which canister goes to which vent before you start pushing."];
     this.hud = hud;
     this.sfx = sfx;
     this.fx = fx;
@@ -48,8 +49,8 @@ export class CoolantScene {
     this._load();
   }
 
-  onEnter() { document.body.classList.add("no-objective"); music.play("sector"); music.setIntensity(0); }
-  onExit() { document.body.classList.remove("no-objective"); }
+  onEnter() { document.body.classList.add("no-objective", "in-puzzle"); music.play("sector"); music.setIntensity(0); }
+  onExit() { document.body.classList.remove("no-objective", "in-puzzle"); }
 
   _load() {
     const rows = LEVELS[this.level];
@@ -82,7 +83,9 @@ export class CoolantScene {
     }
     if (input.wasPressed("pause")) { this.onResult({ success: false, aborted: true }); return; }
     if (input.wasPressed("back")) this._undo();
-    if (input.wasPressed("interact")) this._restart();
+    // restart needs a deliberate hold of space, and can itself be undone
+    this.restartHold = input.isDown("interact") ? (this.restartHold ?? 0) + dt : 0;
+    if (this.restartHold >= RESTART_HOLD) { this.restartHold = -Infinity; this._restart(); }
     for (const [dir, [dx, dy]] of Object.entries(MOVES)) {
       if (input.wasPressed(dir)) { this._move(dir, dx, dy); break; }
     }
@@ -121,14 +124,15 @@ export class CoolantScene {
     if (!prev) return;
     this.player = prev.player;
     this.boxes = prev.boxes;
-    this.moves = Math.max(0, this.moves - 1);
+    this.moves = prev.moves ?? Math.max(0, this.moves - 1);
     this.sfx.play("select");
   }
 
   _restart() {
+    if (!this.moves) return;
+    this.history.push({ player: { ...this.player }, boxes: new Set(this.boxes), moves: this.moves });
     this.player = { ...this.start.player };
     this.boxes = new Set(this.start.boxes);
-    this.history = [];
     this.moves = 0;
     this.sfx.play("door");
   }
@@ -204,6 +208,9 @@ export class CoolantScene {
     if (this.done > 0) renderer.text(this.level === LEVELS.length - 1 ? "AURORA CHIP RECOVERED" : "BAY SEALED", w / 2, gy + this.h * CELL + 12, { color: "#0aff7a", size: 11, align: "center", baseline: "middle", weight: "bold" });
     renderer.fillRect(0, h - 22, w, 22, "#0a1a24");
     renderer.fillRect(0, h - 22, w, 1, "#7ad8ff");
-    renderer.text("[arrows] move/push   [backspace] undo   [space] restart bay   [esc] exit", 8, h - 11, { color: "#5a8aa8", size: 8, baseline: "middle" });
+    if (this.restartHold > 0 && this.moves) {
+      renderer.fillRect(8, h - 24, (w - 16) * Math.min(1, this.restartHold / RESTART_HOLD), 3, "#ffaa3a");
+    }
+    renderer.text("[arrows] move/push   [backspace] undo   [hold space] restart bay   [esc] exit", 8, h - 11, { color: "#5a8aa8", size: 8, baseline: "middle" });
   }
 }

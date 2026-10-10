@@ -65,7 +65,7 @@ export const SV_SCENES = {
   "GRID ONLINE": "NÄTET ONLINE",
   "[arrows] move   [space] rotate   bolted pieces don't turn   [esc] exit": "[pilar] flytta   [mellanslag] vrid   fastskruvade bitar går inte att vrida   [esc] lämna",
   "Grid's back. The whole research floor just lit up — I can see you on the cameras again.": "Nätet är tillbaka. Hela forskningsvåningen lyste just upp — jag ser dig i kamerorna igen.",
-  "Bad news: so can HALCYON. The sentinels up there will spot you sooner now.": "Dåliga nyheter: det gör HALCYON också. Vaktrobotarna där uppe upptäcker dig snabbare nu.",
+  "Bad news: so can HALCYON. Keep out of the sentinels' light up there.": "Dåliga nyheter: det gör HALCYON också. Håll dig undan vaktrobotarnas ljus där uppe.",
   "Kofi says R2 is the signal room. HALCYON talks to its machines on a carrier wave.": "Kofi säger att R2 är signalrummet. HALCYON pratar med sina maskiner på en bärvåg.",
   "Start at the battery and work outward, one piece at a time.": "Börja vid batteriet och arbeta utåt, en bit i taget.",
   "Pieces at the edges can only point inward — those are your anchors.": "Bitar vid kanterna kan bara peka inåt — de är dina fästpunkter.",
@@ -84,12 +84,12 @@ export const SV_SCENES = {
 
   // R3
   "AURORA CHIP RECOVERED": "AURORA-CHIPET ÅTERFUNNET", "BAY SEALED": "FACKET TÄTAT",
-  "[arrows] move/push   [backspace] undo   [space] restart bay   [esc] exit": "[pilar] gå/skjut   [backsteg] ångra   [mellanslag] börja om   [esc] lämna",
+  "[arrows] move/push   [backspace] undo   [hold space] restart bay   [esc] exit": "[pilar] gå/skjut   [backsteg] ångra   [håll mellanslag] börja om   [esc] lämna",
   "Vents sealed. Under the last canister: a chip labelled AURORA.": "Ventilerna tätade. Under den sista behållaren: ett chip märkt AURORA.",
   "That's the third fragment, tech. LUMEN, ORION, AURORA — the full override code.": "Det är det tredje fragmentet, tekniker. LUMEN, ORION, AURORA — hela åsidosättningskoden.",
   "The core lift in the north-east just went green. HALCYON's core is the top floor.": "Kärnhissen i nordost slog just om till grönt. HALCYONs kärna är översta våningen.",
   "Never push a canister into a corner that isn't a vent — it's stuck there for good.": "Skjut aldrig in en behållare i ett hörn som inte är en ventil — då sitter den fast för gott.",
-  "Backspace undoes a move; space restarts the bay.": "Backsteg ångrar ett drag; mellanslag börjar om facket.",
+  "Backspace undoes a move; hold space to restart the bay.": "Backsteg ångrar ett drag; håll in mellanslag för att börja om facket.",
   "Decide which canister goes to which vent before you start pushing.": "Bestäm vilken behållare som ska till vilken ventil innan du börjar skjuta.",
 
   // C1
@@ -133,7 +133,7 @@ export const SV_SCENES = {
   "TRACE": "SPÅRA", "SCAN": "SKANNA", "LOCK-ON": "MÅLLÅS", "PURGE BOLT": "RENSNINGSBLIXT",
   "Reliable probe. 18 damage.": "Pålitlig sond. 18 skada.",
   "Fake your signature. Blocks the next attack.": "Förfalska din signatur. Blockerar nästa attack.",
-  "45 damage, costs 10 of your integrity. Cooldown 2.": "45 skada, kostar 10 av din integritet. Nedkylning 2.",
+  "45 damage, costs 10 of your integrity. Cooldown 3.": "45 skada, kostar 10 av din integritet. Nedkylning 3.",
   "Restore 28 integrity.": "Återställ 28 integritet.",
   "A critical exploit!": "En kritisk sårbarhet!",
   "ECHO took feedback damage.": "ECHO tog återkopplingsskada.",
@@ -154,7 +154,7 @@ export const SV_SCENES = {
   "[←→] digit  [↑↓] turn  [enter] try  [esc] leave": "[←→] siffra  [↑↓] vrid  [enter] prova  [esc] gå",
   "The code is somewhere on this floor: in a data log, on a sign, or on a terminal.": "Koden finns någonstans på den här våningen: i en datalogg, på en skylt eller på en terminal.",
   "Lobby: whose badge number shows up on the reception terminal? Research: read the plaque by the lift. Core: when was HALCYON switched on?": "Lobbyn: vems kortnummer syns på receptionsterminalen? Forskningsvåningen: läs skylten vid hissen. Kärnan: när slogs HALCYON på?",
-  "press H again later for a stronger hint": "tryck H igen senare för en starkare ledtråd",
+  "H: stronger hint": "H: starkare ledtråd",
   "that's everything I've got": "det är allt jag har",
   "[space] skip": "[mellanslag] hoppa över",
   "HALCYON TOWER — 23:58": "HALCYON TOWER — 23:58",
@@ -181,6 +181,8 @@ export const SV_SCENES = {
   "HALCYON: \"Thank you, technician. See you tomorrow night.\"": "HALCYON: \"Tack, tekniker. Vi ses i morgon natt.\"",
   "[enter] return to title": "[enter] tillbaka till titeln",
   "RATE THIS RUN": "BETYGSÄTT",
+  "CHECKPOINT — 50%": "KONTROLLPUNKT — 50 %",
+  "Restarting from the checkpoint at 50%.": "Börjar om från kontrollpunkten vid 50 %.",
   "SAVE PLAYTEST REPORT": "SPARA SPELTESTRAPPORT",
   "REPORT SAVED ✓": "RAPPORT SPARAD ✓",
   "RETURN TO TITLE": "TILLBAKA TILL TITELN",
@@ -251,7 +253,8 @@ export const SV_SCENE_PATTERNS = [
   [/^(.+)'s live\. Step up and press E\.$/, (m, tr) => `${tr(m[1])} är aktiv. Gå fram och tryck E.`],
   [/^(.+)'s secure\. Nothing more here\.$/, (m, tr) => `${tr(m[1])} är säkrad. Inget mer här.`],
   [/^(.+)'s sealed tight\. Clear (.+) first\.$/, (m, tr) => `${tr(m[1])} är låst. Klara ${tr(m[2])} först.`],
-  [/^◆ UPLINK FRAGMENT: (.+)$/, (m) => `◆ UPLINK-FRAGMENT: ${m[1]}`],
+  // reached through the glyph rule above, which strips the leading ◆
+  [/^UPLINK FRAGMENT: (.+)$/, (m) => `UPLINK-FRAGMENT: ${m[1]}`],
   [/^🏆 (.+) — (.+)$/, (m, tr) => `🏆 ${tr(m[1])} — ${tr(m[2])}`],
 
   // menus, hud, endings
@@ -261,6 +264,7 @@ export const SV_SCENE_PATTERNS = [
   [new RegExp(`^LOGS ${n}/${n}$`), (m) => `LOGGAR ${m[1]}/${m[2]}`],
   [new RegExp(`^ENDINGS ${n}/2 · TROPHIES ${n}/10$`), (m) => `SLUT ${m[1]}/2 · TROFÉER ${m[2]}/10`],
   [new RegExp(`^ECHO — HINT ${n}/${n}$`), (m) => `ECHO — LEDTRÅD ${m[1]}/${m[2]}`],
+  [/^We have (\d+) minutes\. Your maintenance badge still opens the sector doors, one at a time\.$/, (m) => `Vi har ${m[1]} minuter. Ditt underhållskort öppnar fortfarande sektordörrarna, en i taget.`],
   [/^\[space\] back · (.+)$/, (m, tr) => `[mellanslag] tillbaka · ${tr(m[1])}`],
   [/^ECHO: (.*)$/, (m, tr) => `ECHO: ${tr(m[1])}`],
   [/^TIME TO SPARE( +)(.+)$/, (m) => `TID KVAR${m[1]}${m[2]}`],

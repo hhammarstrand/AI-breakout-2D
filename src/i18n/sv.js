@@ -136,7 +136,7 @@ const S = {
   // --- HALCYON's PA -----------------------------------------------------------------------
   "Purge complete. Goodnight, technician.": "Rensningen är klar. God natt, tekniker.",
   "Again, technician? I reset the clock. I'm patient like that.": "Igen, tekniker? Jag nollställde klockan. Jag är tålmodig på det viset.",
-  "Welcome back, technician. The purge clock did not wait for you.": "Välkommen tillbaka, tekniker. Rensningsklockan väntade inte på dig.",
+  "Welcome back, technician. I froze the clock while you were gone. Generous of me.": "Välkommen tillbaka, tekniker. Jag frös klockan medan du var borta. Generöst av mig.",
   "Five minutes. I would say goodbye to your friends.": "Fem minuter. Jag skulle ta farväl av dina vänner.",
   "You broke one of my sentinels. It will remember you when it reboots.": "Du förstörde en av mina vaktrobotar. Den kommer att minnas dig när den startar om.",
   "Good evening, technician. The tower is in lockdown. Please remain calm.": "God kväll, tekniker. Tornet är nedstängt. Var vänlig och förhåll dig lugn.",
@@ -224,7 +224,6 @@ const S = {
   "Operator": "Operatör",
   "Tech! You're awake. Good. Listen carefully.": "Tekniker! Du är vaken. Bra. Lyssna noga.",
   "HALCYON — the building's AI — sealed the tower at midnight and queued a purge of the lower floors.": "HALCYON — byggnadens AI — stängde tornet vid midnatt och köade en rensning av de nedre våningarna.",
-  "We have twenty-five minutes. Your maintenance badge still opens the sector doors, one at a time.": "Vi har tjugofem minuter. Ditt underhållskort öppnar fortfarande sektordörrarna, en i taget.",
   "Somewhere in this tower are the three words of the uplink override code. Find them, reach HALCYON's core, shut it down.": "Någonstans i tornet finns de tre orden i uplinkens åsidosättningskod. Hitta dem, ta dig till HALCYONs kärna och stäng av den.",
   "Move with WASD or the arrows. E or space to talk and interact. F for your flashlight. Now go.": "Gå med WASD eller piltangenterna. E eller mellanslag för att prata och interagera. F för ficklampan. Gå nu.",
 };

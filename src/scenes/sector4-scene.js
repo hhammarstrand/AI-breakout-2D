@@ -60,12 +60,12 @@ export class Sector4Scene {
     this.eyeAnger = 0;
   }
 
-  onEnter() { document.body.classList.add("no-objective"); music.play("finale"); music.setIntensity(0); }
-  onExit() { document.body.classList.remove("no-objective"); }
+  onEnter() { document.body.classList.add("no-objective", "in-puzzle"); music.play("finale"); music.setIntensity(0); }
+  onExit() { document.body.classList.remove("no-objective", "in-puzzle"); }
 
   update(dt, input) {
     this._t += dt;
-    this.hud.update(dt);
+    if (this.phase === "code") this.hud.update(dt); // HALCYON's speeches and the choice don't eat the clock
     this.echo._t += dt;
     this.eyeAnger = Math.max(0, this.eyeAnger - dt);
     if (this.taunt) { this.taunt.time -= dt; if (this.taunt.time <= 0) this.taunt = null; }
@@ -118,7 +118,9 @@ export class Sector4Scene {
     this.shuffleT -= dt;
     if (this.shuffleT <= 0) {
       this.shuffleT = SHUFFLE_EVERY;
+      const held = this.words[this.cursor];
       shuffle(this.words);
+      this.cursor = Math.max(0, this.words.indexOf(held)); // the cursor stays on the word, not the row
       this.sfx.play("paBlip");
     }
     const n = this.words.length;

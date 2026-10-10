@@ -27,7 +27,7 @@ await wait(2500); for (let i = 0; i < 12; i++) { await press("Space"); await wai
 await press("Enter"); await wait(3000);
 await ev(() => { window.__blackout.game.top._t = 99; });
 await wait(200);
-await press("ArrowUp", 2); await press("ArrowRight", 5); await press("ArrowLeft"); // cursor on rating: clamps at 5, back to 4
+await press("ArrowRight", 5); await press("ArrowLeft"); // cursor starts on the rating: clamps at 5, back to 4
 await press("ArrowDown");
 const dl = page.waitForEvent("download");
 await press("Enter");
@@ -43,5 +43,7 @@ await press("ArrowDown"); await press("Enter"); await wait(2500);
 const backAtTitle = await ev(() => window.__blackout.game.top.constructor.name);
 console.log("after return:", backAtTitle);
 console.log("errors", errors.length ? errors : "none");
-console.log(ok && backAtTitle === "TitleScene" && !errors.length ? "PLAYTEST OK" : "PLAYTEST FAIL");
+const pass = ok && backAtTitle === "TitleScene" && !errors.length;
+console.log(pass ? "PLAYTEST OK" : "PLAYTEST FAIL");
+if (!pass) process.exitCode = 1;
 await browser.close();

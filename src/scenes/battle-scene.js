@@ -8,7 +8,7 @@ import { t } from "../i18n/index.js";
 const MOVES = [
   { id: "ping", name: "PING", desc: "Reliable probe. 18 damage.", dmg: 18 },
   { id: "spoof", name: "SPOOF", desc: "Fake your signature. Blocks the next attack.", cooldown: 2 },
-  { id: "overload", name: "OVERLOAD", desc: "45 damage, costs 10 of your integrity. Cooldown 2.", dmg: 45, self: 10, cooldown: 3 },
+  { id: "overload", name: "OVERLOAD", desc: "45 damage, costs 10 of your integrity. Cooldown 3.", dmg: 45, self: 10, cooldown: 3 },
   { id: "patch", name: "PATCH", desc: "Restore 28 integrity.", heal: 28, cooldown: 2 },
 ];
 const ENEMY_MOVES = {

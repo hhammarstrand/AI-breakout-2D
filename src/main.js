@@ -53,7 +53,7 @@ const game = new Game({
   onHint: (scene) => {
     if (!scene.hints?.length) return;
     track.hint();
-    game.push(new HintScene({ hints: scene.hints, owner: scene, sfx }));
+    game.push(new HintScene({ hints: scene.hints, owner: scene, sfx, hud }));
   },
   afterRender: (t, dt) => {
     postfx.render(t, dt);
@@ -91,15 +91,20 @@ const toggleSfx = () => {
 };
 
 initTrophies({ toast, sfx });
-setPenaltyListener(() => track.fail());
+setPenaltyListener((kind) => (kind === "caught" ? track.caught() : track.fail()));
 
 const hud = new Hud(document.getElementById("hud"), {
   toast,
   sfx,
   onToggleSfx: toggleSfx,
-  onTimeout: () => {
+  // The clock hit zero inside some scene's update. Settle it after that update finishes, so the
+  // scene can't push a puzzle or ride a lift on top of the game-over screen.
+  onTimeout: () => game.defer(() => {
+    if (gameState.secondsLeft > 0) { hud.refresh(); return; } // a lift refilled the clock this frame
     track.gameOver();
-    saveGame();
+    const stats = { cleared: gameState.completedSectors, score: gameState.score };
+    // the save on disk already holds the retry state, so a reload can't dodge the checkpoint
+    restoreCheckpoint();
     dialog.close();
     pa.clear();
     pa.say("Purge complete. Goodnight, technician.");
@@ -107,10 +112,11 @@ const hud = new Hud(document.getElementById("hud"), {
     fx.flash("#ff5a5a");
     game.replace(new GameOverScene({
       sfx,
+      stats,
       onRetry: () => { restoreCheckpoint(); startWorld({ retry: true }); },
       onQuit: () => { restoreCheckpoint(); showTitle(); },
     }));
-  },
+  }),
 });
 
 // on-screen buttons feed the same input actions as the keyboard
@@ -128,7 +134,8 @@ window.addEventListener("keydown", (e) => {
   if (e.key === "m" || e.key === "M") toggleSfx();
 });
 window.addEventListener("beforeunload", () => {
-  if (gameState.secondsLeft > 0 && game.top instanceof WorldScene) saveGame();
+  // any scene on top of the world (puzzle, menu, battle, hint) still belongs to a live run
+  if (gameState.secondsLeft > 0 && game.scenes[0] instanceof WorldScene) saveGame();
 });
 
 const operatorProfile = { accent: "#4ae6ff", lookId: "operator" };
@@ -138,11 +145,14 @@ const MAPS = { lobby: smartBuildingMap, research: researchFloorMap, core: coreMa
 // fresh: new game · arrived: just came up a lift · retry: restarting the act after a game over
 const startWorld = ({ fresh = false, arrived = false, retry = false } = {}) => {
   const act = currentAct();
-  if (fresh || arrived) startAct();
+  if (fresh) startAct(); // later acts start the moment the player steps into the lift
   hud.refresh();
   fx.glitch();
+  const mapId = ACTS[act].map;
   game.replace(new WorldScene({
-    map: MAPS[ACTS[act].map],
+    map: MAPS[mapId],
+    mapId,
+    resumeAt: !fresh && !arrived && !retry && gameState.pos?.map === mapId ? gameState.pos : null,
     dialog,
     hud,
     sfx,
@@ -169,7 +179,7 @@ const startWorld = ({ fresh = false, arrived = false, retry = false } = {}) => {
     dialog.show("Operator", [
       "Tech! You're awake. Good. Listen carefully.",
       "HALCYON — the building's AI — sealed the tower at midnight and queued a purge of the lower floors.",
-      "We have twenty-five minutes. Your maintenance badge still opens the sector doors, one at a time.",
+      `We have ${Math.round(actSeconds() / 60)} minutes. Your maintenance badge still opens the sector doors, one at a time.`,
       "Somewhere in this tower are the three words of the uplink override code. Find them, reach HALCYON's core, shut it down.",
       "Move with WASD or the arrows. E or space to talk and interact. F for your flashlight. Now go.",
     ], () => pa.say(PA_ACT_START[1]), operatorProfile);
@@ -181,7 +191,7 @@ const startWorld = ({ fresh = false, arrived = false, retry = false } = {}) => {
     pa.say("Again, technician? I reset the clock. I'm patient like that.");
   } else {
     toast.show("◉ SAVE RESTORED", "info");
-    pa.say("Welcome back, technician. The purge clock did not wait for you.");
+    pa.say("Welcome back, technician. I froze the clock while you were gone. Generous of me.");
   }
 };
 

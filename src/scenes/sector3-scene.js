@@ -60,8 +60,8 @@ export class Sector3Scene {
     this._load();
   }
 
-  onEnter() { document.body.classList.add("no-objective"); music.play("sector"); music.setIntensity(0); }
-  onExit() { document.body.classList.remove("no-objective"); }
+  onEnter() { document.body.classList.add("no-objective", "in-puzzle"); music.play("sector"); music.setIntensity(0); }
+  onExit() { document.body.classList.remove("no-objective", "in-puzzle"); }
 
   _load() {
     const lv = LEVELS[this.level];
@@ -305,11 +305,21 @@ export class Sector3Scene {
     const ctx = renderer.ctx;
     // last step number that lands on each cell (revisits overwrite earlier ones)
     const latest = new Map();
+    const bumps = []; // the real run fails on a wall, so the preview must say so
     this.queue.forEach((cmd, i) => {
       const [dx, dy] = DIRS[cmd];
-      if (this.tile(x + dx, y + dy) !== "#") { x += dx; y += dy; }
+      if (this.tile(x + dx, y + dy) !== "#") { x += dx; y += dy; } else if (dx || dy) bumps.push({ x: x + dx, y: y + dy, n: i + 1 });
       latest.set(`${x},${y}`, { x, y, n: i + 1 });
     });
+    for (const b of bumps) {
+      const px = GRID_X + b.x * CELL, py = GRID_Y + b.y * CELL;
+      ctx.strokeStyle = "#ff3a5a";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(px + 4, py + 4); ctx.lineTo(px + CELL - 4, py + CELL - 4);
+      ctx.moveTo(px + CELL - 4, py + 4); ctx.lineTo(px + 4, py + CELL - 4);
+      ctx.stroke();
+    }
     ctx.font = "bold 7px ui-monospace, monospace";
     ctx.textAlign = "right";
     ctx.textBaseline = "bottom";

@@ -1,4 +1,4 @@
-import { STAGES, ACTS, FRAGMENTS as FRAGMENT_DEFS } from "./story.js";
+import { STAGES, ACTS, FRAGMENTS as FRAGMENT_DEFS, CELL_BONUS } from "./story.js";
 
 const TOTAL_SECTORS = STAGES.length;
 
@@ -17,6 +17,7 @@ export const gameState = {
   collected: [],
   items: {},
   telemetry: null,
+  pos: null,
   difficulty: "normal",
   endingsSeen: readJson(SETTINGS_KEY)?.endingsSeen ?? [],
   achievements: readJson(SETTINGS_KEY)?.achievements ?? [],
@@ -64,21 +65,27 @@ export function scaledPenalty(seconds) { return Math.round(seconds * difficulty(
 let onPenalty = null;
 export function setPenaltyListener(fn) { onPenalty = fn; }
 
-// Mistakes cost time, scaled by difficulty; never ends the game by itself.
-export function penalize(seconds) {
+// Mistakes cost time, scaled by difficulty; never ends the game by itself. Saved at once so a
+// reload can't undo it. kind: "puzzle" for a wrong answer, "caught" for a lost sentinel battle.
+export function penalize(seconds, kind = "puzzle") {
   const cost = Math.round(seconds * difficulty().penalty);
-  onPenalty?.();
+  onPenalty?.(kind);
   gameState.secondsLeft = Math.max(1, gameState.secondsLeft - cost);
+  saveGame();
   return cost;
 }
 
-// Called on arriving at an act: refill the clock and remember where to restart.
+// Called as soon as an act begins (new game, or stepping into the lift): refill the clock and
+// remember where to restart. Runs before the lift ride so a reload mid-ride lands in the new act.
 export function startAct() {
   gameState.secondsLeft = actSeconds();
+  gameState.pos = null;
   gameState.checkpoint = {
     completedSectors: gameState.completedSectors,
     score: gameState.score,
     timesCaught: gameState.timesCaught,
+    collected: [...gameState.collected],
+    items: { ...gameState.items },
   };
   saveGame();
 }
@@ -89,10 +96,15 @@ export function restoreCheckpoint() {
   gameState.completedSectors = cp.completedSectors;
   gameState.score = cp.score;
   gameState.timesCaught = cp.timesCaught;
+  if (Array.isArray(cp.collected)) gameState.collected = [...cp.collected];
+  if (cp.items && typeof cp.items === "object") gameState.items = { ...cp.items };
   gameState.secondsLeft = actSeconds();
+  gameState.pos = null;
   saveGame();
   return true;
 }
+
+function actOf(completed) { return STAGES[Math.min(completed, STAGES.length - 1)].act; }
 
 export function resetGame() {
   gameState.completedSectors = 0;
@@ -103,6 +115,7 @@ export function resetGame() {
   gameState.collected = [];
   gameState.items = {};
   gameState.telemetry = null;
+  gameState.pos = null;
   clearSave();
 }
 
@@ -122,8 +135,13 @@ export function loadGame() {
   gameState.collected = Array.isArray(save.collected) ? save.collected : [];
   gameState.items = save.items && typeof save.items === "object" ? save.items : {};
   gameState.telemetry = save.telemetry && typeof save.telemetry === "object" ? save.telemetry : null;
-  gameState.secondsLeft = Math.max(0, Math.min(actSeconds(), Number(save.secondsLeft) || actSeconds()));
-  if (gameState.secondsLeft <= 0) restoreCheckpoint();
+  gameState.pos = save.pos && typeof save.pos === "object" ? save.pos : null;
+  // backup cells can push the clock past the act's full time, never past all three of them
+  const secs = Number(save.secondsLeft);
+  gameState.secondsLeft = Number.isFinite(secs) ? Math.max(0, Math.min(actSeconds() + 3 * CELL_BONUS, secs)) : actSeconds();
+  // an older save taken mid-lift still holds the previous act's clock and checkpoint
+  if (gameState.checkpoint && actOf(gameState.checkpoint.completedSectors) !== currentAct()) startAct();
+  else if (gameState.secondsLeft <= 0) restoreCheckpoint();
   return true;
 }
 
@@ -138,6 +156,7 @@ export function saveGame() {
     collected: gameState.collected,
     items: gameState.items,
     telemetry: gameState.telemetry,
+    pos: gameState.pos,
   });
 }
 

@@ -33,10 +33,14 @@ await wait(2500); for (let i = 0; i < 12; i++) { await press("Space"); await wai
 await press("Enter"); await wait(3000);
 console.log("trophies", await ev(() => JSON.stringify(window.__blackout.gameState.achievements)));
 await wait(16000); await page.screenshot({ path: `${SHOTS}/t-ending.png` });
-await press("Enter"); await wait(2500);
+const got = await ev(() => window.__blackout.gameState.achievements);
+if (!["dawn", "ghost", "speedrun", "veteran"].every((id) => got.includes(id))) { console.log("FAIL ending trophies", got); process.exitCode = 1; }
+await press("ArrowUp"); await press("Enter"); await wait(2500); // RETURN TO TITLE
+if (await ev(() => window.__blackout.game.top.constructor.name) !== "TitleScene") { console.log("FAIL not back at title"); process.exitCode = 1; }
 await page.screenshot({ path: `${SHOTS}/t-title.png` });
 await press("Enter"); await wait(200); await press("Enter"); await wait(300); await press("Escape"); await wait(500); await press("Escape"); await wait(300);
 await press("Tab"); await wait(200); await press("ArrowDown", 3); await press("Space"); await wait(300);
 await page.screenshot({ path: `${SHOTS}/t-menu.png` });
 console.log("errors", JSON.stringify(errors));
+if (errors.length) process.exitCode = 1;
 await browser.close();

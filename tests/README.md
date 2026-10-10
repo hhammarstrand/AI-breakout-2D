@@ -12,6 +12,7 @@ node tests/mobile.mjs          # emulated phone: D-pad, A/B/START
 node tests/intro.mjs           # difficulty menu, opening cinematic, hints, scaled penalties
 node tests/trophy.mjs          # achievement unlocks, ending stats, trophy menu
 node tests/playtest.mjs        # rate the run and download the playtest report JSON
+node tests/regress.mjs         # save/checkpoint, timer, hint and scene-stack regressions (exits 1 on failure)
 node tests/gamepad.mjs         # fake standard gamepad drives menus and movement; calm FX
 node tests/fuzz.mjs            # random input mashed into every scene type, reports page errors
 ```

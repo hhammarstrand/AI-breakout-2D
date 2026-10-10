@@ -7,6 +7,7 @@ export class Game {
     this.afterRender = afterRender;
     this.input = input;
     this.scenes = [];
+    this._deferred = [];
     this._lastTime = 0;
     this._accumulator = 0;
     this._running = false;
@@ -35,6 +36,10 @@ export class Game {
 
   get top() { return this.scenes[this.scenes.length - 1]; }
 
+  // Runs fn after the current update step, once no scene code is still executing; used for
+  // stack-wide changes (game over) that must not race the scene that triggered them.
+  defer(fn) { this._deferred.push(fn); }
+
   start() {
     if (this._running) return;
     this._running = true;
@@ -62,8 +67,9 @@ export class Game {
 
   _update(dt) {
     const top = this.top;
-    if (top?.hints && this.onHint && this.input.wasPressed("hint")) { this.onHint(top); return; }
-    if (top && top.update) top.update(dt, this.input);
+    if (top?.hints?.length && this.onHint && this.input.wasPressed("hint")) this.onHint(top);
+    else if (top && top.update) top.update(dt, this.input);
+    while (this._deferred.length) this._deferred.shift()();
   }
 
   _render() {

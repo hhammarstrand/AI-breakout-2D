@@ -72,7 +72,7 @@ campaign test in Swedish.
 
 - **Opening cinematic** — the tower at night, the lockdown, waking up at your desk, ECHO's first
   words. Skippable.
-- **Difficulty** — STORY (×1.6 time, half-speed sentinels, half penalties), NORMAL, HARD
+- **Difficulty** — STORY (×1.6 time, sentinels slower to spot you, half penalties), NORMAL, HARD
   (×0.75 time, sharper sentinels, ×1.5 penalties), chosen at NEW GAME.
 - **Hints** — press `H` (or `?` on touch) in any puzzle, battle or safe for ECHO's hints, from a
   nudge to nearly the answer.

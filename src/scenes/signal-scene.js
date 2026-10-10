@@ -27,8 +27,8 @@ export class SignalScene {
     this._load();
   }
 
-  onEnter() { document.body.classList.add("no-objective"); music.play("sector"); music.setIntensity(0); }
-  onExit() { document.body.classList.remove("no-objective"); }
+  onEnter() { document.body.classList.add("no-objective", "in-puzzle"); music.play("sector"); music.setIntensity(0); }
+  onExit() { document.body.classList.remove("no-objective", "in-puzzle"); }
 
   _load() {
     const r = ROUNDS[this.round];
@@ -68,7 +68,7 @@ export class SignalScene {
       }
       this.sfx.play("blip");
     }
-    if (input.wasPressed("submit") || input.wasPressed("interact")) this._transmit();
+    if (input.wasPressed("submit")) this._transmit(); // only Enter commits: Space must never cost time
   }
 
   _transmit() {

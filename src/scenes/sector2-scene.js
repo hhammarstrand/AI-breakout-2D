@@ -60,8 +60,8 @@ export class Sector2Scene {
     this._loadLog();
   }
 
-  onEnter() { document.body.classList.add("no-objective"); music.play("sector"); music.setIntensity(0); }
-  onExit() { document.body.classList.remove("no-objective"); }
+  onEnter() { document.body.classList.add("no-objective", "in-puzzle"); music.play("sector"); music.setIntensity(0); }
+  onExit() { document.body.classList.remove("no-objective", "in-puzzle"); }
 
   _loadLog() {
     const log = LOGS[this.index];
@@ -101,7 +101,7 @@ export class Sector2Scene {
     if (input.wasPressed("pause")) { this.onResult({ success: false, aborted: true }); return; }
     if (input.wasPressed("left") || input.wasPressed("up")) this._rotate(-1);
     if (input.wasPressed("right") || input.wasPressed("down")) this._rotate(1);
-    if (input.wasPressed("submit") || input.wasPressed("interact")) this._submit();
+    if (input.wasPressed("submit")) this._submit(); // only Enter commits: Space must never cost time
   }
 
   _rotate(step) {

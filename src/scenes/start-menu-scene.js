@@ -77,9 +77,10 @@ export class StartMenuScene {
           out.push({
             label: `${ITEMS.cell.name}  x${cells}`, desc: ITEMS.cell.desc, icon: "cell",
             action: () => {
-              if (!useItem("cell")) return;
+              if (!gameState.items.cell) return;
+              gameState.secondsLeft += CELL_BONUS; // before useItem, which saves both at once
+              useItem("cell");
               track.cellUsed();
-              gameState.secondsLeft += CELL_BONUS;
               this.hud.refresh();
               this.sfx.play("item");
               this.note = { text: `Cell wired in. Purge delayed +${CELL_BONUS}s.`, time: 2.4 };
@@ -179,7 +180,7 @@ export class StartMenuScene {
     const w = renderer.width;
     const x = 20, y = 40, bw = w - 40, bh = 170;
     this._box(renderer, x, y, bw, bh);
-    renderer.text(this.reading.title.toUpperCase(), x + 14, y + 18, { color: "#2a5a8a", size: 10, baseline: "middle", weight: "bold" });
+    renderer.text(t(this.reading.title).toUpperCase(), x + 14, y + 18, { color: "#2a5a8a", size: 10, baseline: "middle", weight: "bold" });
     const ctx = renderer.ctx;
     ctx.font = "normal 9px ui-monospace, monospace";
     let ly = y + 40;

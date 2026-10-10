@@ -12,6 +12,7 @@ export function newRun() {
     stages: {},
     battles: { won: 0, lost: 0 },
     deaths: 0,
+    caught: 0,
     cellsUsed: 0,
     playSeconds: 0,
   };
@@ -31,6 +32,7 @@ export const track = {
   tick(dt) { tel().playSeconds += dt; stage().seconds += dt; },
   enterStage() { stage().attempts++; },
   fail() { stage().fails++; },
+  caught() { tel().caught = (tel().caught ?? 0) + 1; },
   hint() { stage().hints++; },
   cleared(id) { stage(id).cleared = true; saveGame(); },
   battle(won) { tel().battles[won ? "won" : "lost"]++; },

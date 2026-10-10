@@ -87,8 +87,8 @@ export class Sector1Scene {
     this._t = 0;
   }
 
-  onEnter() { document.body.classList.add("no-objective"); music.play("sector"); music.setIntensity(0); }
-  onExit() { document.body.classList.remove("no-objective"); }
+  onEnter() { document.body.classList.add("no-objective", "in-puzzle"); music.play("sector"); music.setIntensity(0); }
+  onExit() { document.body.classList.remove("no-objective", "in-puzzle"); }
 
   update(dt, input) {
     this._t += dt;
@@ -106,9 +106,9 @@ export class Sector1Scene {
     else if (input.wasPressed("right") && this.cursor % COLS < COLS - 1) this.cursor += 1;
     if (this.cursor !== before) this.sfx.play("select");
 
+    if (input.wasPressed("pause")) { this.onResult({ success: false, aborted: true }); return; }
     if (input.wasPressed("interact")) this._cycle();
     if (input.wasPressed("submit")) this._submit();
-    if (input.wasPressed("pause")) this.onResult({ success: false, aborted: true });
   }
 
   _cycle() {

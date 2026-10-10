@@ -26,6 +26,7 @@ import {
   penalize,
   scaledPenalty,
   difficulty,
+  startAct,
 } from "../state.js";
 import { Sector1Scene } from "./sector1-scene.js";
 import { Sector2Scene } from "./sector2-scene.js";
@@ -66,7 +67,8 @@ const INTERACT_RADIUS = TILE_SIZE * 0.9;
 const STEP_INTERVAL = 0.3;
 
 export class WorldScene {
-  constructor({ map, dialog, hud, sfx, fx, toast, postfx, pa, onToggleSfx, onToggleCrt, onToggleMusic, onToggleLang, onQuit, onEnding, onLift, viewportWidth, viewportHeight }) {
+  constructor({ map, mapId, resumeAt, dialog, hud, sfx, fx, toast, postfx, pa, onToggleSfx, onToggleCrt, onToggleMusic, onToggleLang, onQuit, onEnding, onLift, viewportWidth, viewportHeight }) {
+    this.mapId = mapId;
     this.onToggleLang = onToggleLang;
     this.onLift = onLift;
     this.onToggleMusic = onToggleMusic;
@@ -94,6 +96,11 @@ export class WorldScene {
     this.player = new Player(map.spawn.col, map.spawn.row);
     this.npcs = [];
     this._spawnNpcs();
+    // CONTINUE puts the player back where they saved, unless someone is standing there now
+    if (resumeAt && !this._blocked(resumeAt.col, resumeAt.row)) {
+      this.player.teleport(resumeAt.col, resumeAt.row);
+      if (resumeAt.facing) this.player.facing = resumeAt.facing;
+    }
     this.camera = new Camera(viewportWidth, viewportHeight);
     this.camera.setBounds(this.tilemap.widthPx, this.tilemap.heightPx);
     this.camera.snapTo(this.player.centerX, this.player.centerY);
@@ -150,7 +157,8 @@ export class WorldScene {
 
   update(dt, input) {
     this._time += dt;
-    this.hud.update(dt);
+    // reading a conversation doesn't cost time; everything else in the world does
+    if (!this.dialog.isOpen) this.hud.update(dt);
     for (const npc of this.npcs) npc.update(dt, this.player);
     this._updateEffects(dt);
 
@@ -209,6 +217,10 @@ export class WorldScene {
     } else {
       this._stepTimer = 0;
       this._idle += dt;
+      const p = this.player;
+      if (this.mapId && (gameState.pos?.col !== p.col || gameState.pos?.row !== p.row || gameState.pos?.facing !== p.facing)) {
+        gameState.pos = { map: this.mapId, col: p.col, row: p.row, facing: p.facing };
+      }
     }
     this._echoThink(dt);
     this._paThink(dt);
@@ -234,6 +246,7 @@ export class WorldScene {
     track.cleared(stage);
     if (gameState.checkpoint && gameState.timesCaught === gameState.checkpoint.timesCaught) award("ghost");
     completeSector(stage);
+    startAct(); // the next act's clock and checkpoint are saved before the ride even starts
     this.sfx.play("door");
     this.sfx.play("iris");
     this.toast.show(`▲ ${info.name}`, "info");
@@ -249,6 +262,7 @@ export class WorldScene {
       sfx: this.sfx,
       fx: this.fx,
       onResult: ({ success, aborted, report, ending }) => {
+        if (this.game.top !== scene) return; // already handled (e.g. submit and abort in one frame)
         this.game.pop();
         this.fx.glitch();
         this._iris = { dir: "open", t: 0 };
@@ -330,7 +344,7 @@ export class WorldScene {
     }
     this.sfx.play("select");
     this.game.push(new CodeLockScene({
-      sfx: this.sfx, fx: this.fx, code: safe.code, title: safe.title,
+      sfx: this.sfx, fx: this.fx, hud: this.hud, code: safe.code, title: safe.title,
       onResult: (opened) => {
         if (!opened) return;
         collect(safe.id);
@@ -595,7 +609,7 @@ export class WorldScene {
   _caught(sentinel) {
     gameState.timesCaught++;
     this.pa.say(PA_CAUGHT[Math.min(gameState.timesCaught - 1, PA_CAUGHT.length - 1)]);
-    penalize(CAUGHT_TIME_PENALTY);
+    penalize(CAUGHT_TIME_PENALTY, "caught");
     this.hud.addScore(-CAUGHT_SCORE_PENALTY);
     this.sfx.play("zap");
     this.fx.shake();
@@ -678,6 +692,8 @@ export class WorldScene {
 
   // H in the world: ECHO's tips for the current stage, revealed one at a time like puzzle hints.
   get hints() {
+    // not over a conversation, an encounter or a closing iris
+    if (this.dialog.isOpen || this._encounter || this._iris?.dir === "close") return null;
     const stage = gameState.completedSectors;
     if (this._hintStage !== stage) { this._hintStage = stage; this._hintsShown = 0; }
     return ECHO_TIPS[stage] ?? [];

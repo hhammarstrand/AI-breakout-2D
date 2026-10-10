@@ -72,8 +72,8 @@ export class PowerScene {
     this._load();
   }
 
-  onEnter() { document.body.classList.add("no-objective"); music.play("sector"); music.setIntensity(0); }
-  onExit() { document.body.classList.remove("no-objective"); }
+  onEnter() { document.body.classList.add("no-objective", "in-puzzle"); music.play("sector"); music.setIntensity(0); }
+  onExit() { document.body.classList.remove("no-objective", "in-puzzle"); }
 
   _load() {
     do { this.board = generate(BOARDS[this.index]); } while (this._flood().allLit);
@@ -146,7 +146,7 @@ export class PowerScene {
       aborted: false,
       report: [
         "[R1] Grid's back. The whole research floor just lit up — I can see you on the cameras again.",
-        "Bad news: so can HALCYON. The sentinels up there will spot you sooner now.",
+        "Bad news: so can HALCYON. Keep out of the sentinels' light up there.",
         "Kofi says R2 is the signal room. HALCYON talks to its machines on a carrier wave.",
       ],
     });

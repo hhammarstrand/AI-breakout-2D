@@ -14,6 +14,9 @@ const SPACING_END = 105;
 const MAX_HP = 3;
 const TIME_PENALTY = 30;
 const TOP = 34;
+const CHECKPOINT = 0.5; // dying past the halfway mark restarts from there
+// wider gaps and slower scrolling on Story, a little meaner on Hard
+const TUNING = { story: { gap: 1.35, speed: 0.85 }, normal: { gap: 1, speed: 1 }, hard: { gap: 0.9, speed: 1.1 } };
 const BOTTOM = 290;
 
 export class FirewallScene {
@@ -28,8 +31,8 @@ export class FirewallScene {
     this._reset();
   }
 
-  onEnter() { document.body.classList.add("no-objective"); music.play("finale"); music.setIntensity(0.6); }
-  onExit() { document.body.classList.remove("no-objective"); }
+  onEnter() { document.body.classList.add("no-objective", "in-puzzle"); music.play("finale"); music.setIntensity(0.6); }
+  onExit() { document.body.classList.remove("no-objective", "in-puzzle"); }
 
   _reset() {
     this.mode = "ready";
@@ -45,7 +48,13 @@ export class FirewallScene {
     this.trail = [];
     this.particles = [];
     this.attempt++;
+    if (this.reachedCheckpoint) {
+      this.elapsed = RUN_TIME * CHECKPOINT;
+      this.nextGate = 160;
+    }
   }
+
+  get tuning() { return TUNING[gameState.difficulty] ?? TUNING.normal; }
 
   get progress() { return Math.min(1, this.elapsed / RUN_TIME); }
 
@@ -80,8 +89,14 @@ export class FirewallScene {
     }
 
     const p = this.progress;
-    const speed = SPEED_START + (SPEED_END - SPEED_START) * p;
+    const speed = (SPEED_START + (SPEED_END - SPEED_START) * p) * this.tuning.speed;
     this.elapsed += dt;
+    if (!this.reachedCheckpoint && this.progress >= CHECKPOINT) {
+      this.reachedCheckpoint = true;
+      this.sfx.play("confirm");
+      this.checkpointFlash = 1.5;
+    }
+    this.checkpointFlash = Math.max(0, (this.checkpointFlash ?? 0) - dt);
     // steering with a little inertia
     const dir = (input.isDown("down") ? 1 : 0) - (input.isDown("up") ? 1 : 0);
     this.vy += dir * 900 * dt;
@@ -93,7 +108,7 @@ export class FirewallScene {
     this.gates = this.gates.filter((g) => g.x > -20);
     this.nextGate -= speed * dt;
     if (this.nextGate <= 0 && this.elapsed < RUN_TIME - 1.5) {
-      const gap = GAP_START + (GAP_END - GAP_START) * p;
+      const gap = (GAP_START + (GAP_END - GAP_START) * p) * this.tuning.gap;
       // keep consecutive gaps reachable
       const reach = 70 + 60 * (1 - p);
       const gy = Math.max(TOP + gap / 2 + 4, Math.min(BOTTOM - gap / 2 - 4, this.lastGapY + (Math.random() * 2 - 1) * reach));
@@ -208,6 +223,7 @@ export class FirewallScene {
     for (let i = 0; i < MAX_HP; i++) renderer.fillRect(170 + i * 14, 8, 10, 10, i < this.hp ? "#4ae6ff" : "#2a0a14");
     renderer.fillRect(230, 10, 200, 6, "#2a0a14");
     renderer.fillRect(230, 10, 200 * this.progress, 6, "#0aff7a");
+    renderer.fillRect(230 + 200 * CHECKPOINT - 1, 7, 2, 12, this.reachedCheckpoint ? "#0aff7a" : "#ffaa3a");
     renderer.text(`${Math.floor(this.progress * 100)}%`, w - 8, 13, { color: "#0aff7a", size: 9, align: "right", baseline: "middle", weight: "bold" });
 
     renderer.fillRect(0, h - 26, w, 26, "#1a0610");
@@ -217,9 +233,10 @@ export class FirewallScene {
       renderer.fillRect(w / 2 - 130, 120, 260, 70, "rgba(0,0,0,0.85)");
       renderer.strokeRect(w / 2 - 130, 120, 260, 70, "#ff3a5a", 1);
       renderer.text(this.attempt > 1 ? "PACKET DELETED — TRY AGAIN" : "HALCYON FIREWALL", w / 2, 138, { color: "#ff5a6a", size: 11, align: "center", baseline: "middle", weight: "bold" });
-      renderer.text(`Survive ${RUN_TIME}s. Three hits and you're deleted.`, w / 2, 156, { color: "#ffc0c8", size: 8, align: "center", baseline: "middle" });
+      renderer.text(this.reachedCheckpoint ? "Restarting from the checkpoint at 50%." : `Survive ${RUN_TIME}s. Three hits and you're deleted.`, w / 2, 156, { color: "#ffc0c8", size: 8, align: "center", baseline: "middle" });
       if (Math.floor(this._t * 2) & 1) renderer.text("[space] start run", w / 2, 174, { color: "#4ae6ff", size: 9, align: "center", baseline: "middle" });
     }
+    if (this.checkpointFlash > 0 && this.mode === "run") renderer.text("CHECKPOINT — 50%", w / 2, 50, { color: "#0aff7a", size: 10, align: "center", baseline: "middle", weight: "bold" });
     if (this.mode === "dead") renderer.text(`DELETED (-${scaledPenalty(TIME_PENALTY)}s)`, w / 2, 160, { color: "#ff3a5a", size: 16, align: "center", baseline: "middle", weight: "bold" });
     if (this.mode === "won") renderer.text("FIREWALL BREACHED", w / 2, 160, { color: "#0aff7a", size: 16, align: "center", baseline: "middle", weight: "bold" });
   }

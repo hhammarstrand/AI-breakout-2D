@@ -29,6 +29,7 @@ for (let lv = 0; lv < 3; lv++) {
   await wait(1900);
 }
 await press("Escape"); await wait(500);
+await ev(() => window.__blackout.game.scenes[0].dialog.close()); // the clock is paused while a report is open
 console.log("after R3", await ev(() => window.__blackout.gameState.completedSectors));
 // force a game over and retry
 await ev(() => { window.__blackout.gameState.secondsLeft = 0.2; }); await wait(1800);
@@ -36,5 +37,8 @@ console.log("gameover", await ev(() => window.__blackout.game.top.constructor.na
 await page.screenshot({ path: `${SHOTS}/c-13-gameover.png` });
 await press("Enter"); await wait(1200);
 console.log("retry", await ev(() => JSON.stringify({ map: window.__blackout.game.scenes[0].map.id, c: window.__blackout.gameState.completedSectors, t: Math.round(window.__blackout.gameState.secondsLeft) })));
+const r = await ev(() => ({ c: window.__blackout.gameState.completedSectors, t: window.__blackout.gameState.secondsLeft }));
+if (r.c !== 4 || r.t < 1100) { console.log("FAIL retry did not restore the act II checkpoint", r); process.exitCode = 1; }
 console.log("errors", JSON.stringify(errors));
+if (errors.length) process.exitCode = 1;
 await browser.close();

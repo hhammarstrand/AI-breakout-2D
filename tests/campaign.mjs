@@ -102,9 +102,12 @@ await launch(10); await press("Space", 4); await wait(200);
 for (const w of ["LUMEN", "ORION", "AURORA"]) { await ev((w) => { const s = window.__blackout.game.top; s.cursor = s.words.indexOf(w); s.shuffleT = 99; }, w); await press("Enter"); await wait(120); }
 await wait(2500); for (let i = 0; i < 12; i++) { await press("Space"); await wait(80); }
 await press("Enter"); await wait(3000);
-console.log("final", await stack(), await state());
+const finalStack = await stack(), finalCleared = await state();
+console.log("final", finalStack, finalCleared);
+if (!/EndingScene/.test(finalStack) || finalCleared !== 10) { console.log("FAIL campaign did not reach the ending"); process.exitCode = 1; }
 // game over + retry path
 await ev(() => { localStorage.clear(); });
 if (process.env.SEEN_OUT) fs.writeFileSync(process.env.SEEN_OUT, JSON.stringify(await ev(() => [...window.__seen]), null, 1));
 console.log("errors", JSON.stringify(errors));
+if (errors.length) process.exitCode = 1;
 await browser.close();

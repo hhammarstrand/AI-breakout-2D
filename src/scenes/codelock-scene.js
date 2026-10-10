@@ -1,6 +1,12 @@
-// Four-digit combination lock overlay used by the floor safes.
+import { penalize } from "../state.js";
+
+// Each wrong combination costs a little time, so the dial can't be brute-forced for free.
+const WRONG_PENALTY = 5;
+
+// Four-digit combination lock overlay used by the floor safes. The purge clock keeps running.
 export class CodeLockScene {
-  constructor({ sfx, fx, code, title, onResult }) {
+  constructor({ sfx, fx, hud, code, title, onResult }) {
+    this.hud = hud;
     this.hints = ["The code is somewhere on this floor: in a data log, on a sign, or on a terminal.", "Lobby: whose badge number shows up on the reception terminal? Research: read the plaque by the lift. Core: when was HALCYON switched on?"];
     this.sfx = sfx;
     this.fx = fx;
@@ -16,7 +22,9 @@ export class CodeLockScene {
 
   update(dt, input) {
     this._t += dt;
+    this.hud?.update(dt);
     this.shake = Math.max(0, this.shake - dt);
+    this.costT = Math.max(0, (this.costT ?? 0) - dt);
     if (this.opened > 0) {
       this.opened -= dt;
       if (this.opened <= 0) { this.game.pop(); this.onResult(true); }
@@ -35,6 +43,8 @@ export class CodeLockScene {
       } else {
         this.shake = 0.4;
         this.sfx.play("denied");
+        this.cost = penalize(WRONG_PENALTY);
+        this.costT = 1.2;
       }
     }
   }
@@ -62,8 +72,8 @@ export class CodeLockScene {
         renderer.text("▼", dx + 17, dy + 57, { color: "#ffd15a", size: 8, align: "center", baseline: "middle" });
       }
     }
-    const status = this.opened > 0 ? "CLICK. The door swings open." : this.shake > 0 ? "Wrong combination." : "Find the code somewhere on this floor.";
-    renderer.text(status, w / 2 + sx, by + 128, { color: this.opened > 0 ? "#0aff7a" : this.shake > 0 ? "#ff5a5a" : "#a8b0bc", size: 8, align: "center", baseline: "middle" });
+    const status = this.opened > 0 ? "CLICK. The door swings open." : this.costT > 0 ? `Wrong combination. (-${this.cost}s)` : "Find the code somewhere on this floor.";
+    renderer.text(status, w / 2 + sx, by + 128, { color: this.opened > 0 ? "#0aff7a" : this.costT > 0 ? "#ff5a5a" : "#a8b0bc", size: 8, align: "center", baseline: "middle" });
     renderer.text("[←→] digit  [↑↓] turn  [enter] try  [esc] leave", w / 2, by + 152, { color: "#6a707a", size: 7, align: "center", baseline: "middle" });
   }
 }

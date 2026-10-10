@@ -29,6 +29,7 @@ const ENDINGS = {
 };
 
 const LINE_TIME = 3.2;
+const MENU_GRACE = 1; // seconds of ignored input once the stats box appears
 
 export class EndingScene {
   constructor({ ending, sfx, onDone }) {
@@ -39,7 +40,7 @@ export class EndingScene {
     this._t = 0;
     // after the epilogue: rate the run (0 = unrated), save a playtest report, or leave
     this.rating = 0;
-    this.cursor = 2;
+    this.cursor = 0; // start on the rating, so mashing through the epilogue can't skip the stats
     this.saved = false;
     sfx.setAmbient(null);
     music.setIntensity(0);
@@ -60,6 +61,7 @@ export class EndingScene {
       if (pressed) this._t = Math.ceil(this._t / LINE_TIME) * LINE_TIME + 0.01; // skip ahead a line
       return;
     }
+    if (this._t < this.ending.lines.length * LINE_TIME + MENU_GRACE) return;
     if (input.wasPressed("up")) { this.cursor = (this.cursor + 2) % 3; this.sfx.play("select"); }
     if (input.wasPressed("down")) { this.cursor = (this.cursor + 1) % 3; this.sfx.play("select"); }
     const dx = (input.wasPressed("right") ? 1 : 0) - (input.wasPressed("left") ? 1 : 0);
@@ -153,7 +155,7 @@ export class EndingScene {
         const y = h - 66 + i * 14;
         const sel = i === this.cursor;
         if (sel) renderer.fillRect(w - 214, y - 6, 192, 12, "rgba(255,255,255,0.08)");
-        renderer.text(`${sel ? "▶ " : "  "}${label}`, w - 206, y, { color: sel ? this.ending.color : "#9aa4ac", size: 8, baseline: "middle", weight: sel ? "bold" : "normal" });
+        renderer.text(`${sel ? "▶ " : "  "}${t(label)}`, w - 206, y, { color: sel ? this.ending.color : "#9aa4ac", size: 8, baseline: "middle", weight: sel ? "bold" : "normal" });
       });
       if (this.cursor === 0) renderer.text("◀ ▶ rate", w - 26, h - 66, { color: "#6a7a86", size: 7, align: "right", baseline: "middle" });
     }
