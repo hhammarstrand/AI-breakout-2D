@@ -27,6 +27,7 @@ import {
   scaledPenalty,
   difficulty,
   startAct,
+  saveGame,
 } from "../state.js";
 import { Sector1Scene } from "./sector1-scene.js";
 import { Sector2Scene } from "./sector2-scene.js";
@@ -65,6 +66,7 @@ const DOOR_COLORS = { done: "10,255,122", active: "74,230,255", sealed: "255,40,
 
 const INTERACT_RADIUS = TILE_SIZE * 0.9;
 const STEP_INTERVAL = 0.3;
+const SIGHT = 6; // tiles: how close a capsule or safe must be before it shows on the MAP
 
 export class WorldScene {
   constructor({ map, mapId, resumeAt, dialog, hud, sfx, fx, toast, postfx, pa, onToggleSfx, onToggleCrt, onToggleMusic, onToggleLang, onQuit, onEnding, onLift, viewportWidth, viewportHeight }) {
@@ -129,6 +131,7 @@ export class WorldScene {
     this._idle = 0;
     this._iris = { dir: "open", t: 0 };
     this._alarm = false;
+    this.seen = new Set(); // pickups and the safe the player has come close to, for the MAP
   }
 
   onEnter() {
@@ -202,6 +205,7 @@ export class WorldScene {
     }
 
     this.player.update(dt, input, (c, r) => this._blocked(c, r));
+    this._look(this.player);
     this._bumpCooldown -= dt;
     if (this.player.bumped && this._bumpCooldown <= 0) { this.sfx.play("bump"); this._bumpCooldown = 0.25; }
     for (const p of this.pickups) p.update(dt);
@@ -292,13 +296,25 @@ export class WorldScene {
           ], () => { if (PA_CLEAR[sectorNum]) this.pa.say(PA_CLEAR[sectorNum]); },
           this.npcProfile("operator") ?? { accent: "#4ae6ff", lookId: "operator" });
         } else if (aborted) {
-          this.dialog.show("Aborted", [
-            `[${label}] Mission paused. Approach the door again to retry.`,
+          // solved parts stay solved: the next visit picks up on the same log/board/bay
+          if (scene.part) { gameState.parts[sectorNum] = scene.part; saveGame(); }
+          this.dialog.show("Stepped out", [
+            scene.part
+              ? `[${label}] You stepped out. The parts you solved stay solved — use the door to carry on.`
+              : `[${label}] You stepped out. Use the door again to have another go.`,
           ]);
         }
       },
     });
+    const part = gameState.parts?.[sectorNum];
+    if (part && scene.resume) scene.resume(part);
     this.game.push(scene);
+  }
+
+  _look(p) {
+    const near = (c, r) => Math.abs(c - p.col) <= SIGHT && Math.abs(r - p.row) <= SIGHT;
+    for (const k of this.pickups) if (near(k.col, k.row)) this.seen.add(k.id);
+    if (this.map.safe && near(this.map.safe.col, this.map.safe.row)) this.seen.add("safe");
   }
 
   _blocked(c, r) {

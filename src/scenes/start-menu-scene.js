@@ -207,20 +207,33 @@ export class StartMenuScene {
         let col = "#c8d4de";
         if (t === TILE.WALL) col = "#3a4a5a";
         else if (t >= TILE.DOOR_L1 && t <= TILE.DOOR_L4) col = "#2a8ac8";
-        else if (t === TILE.SAFE) col = "#ffaa3a";
+        else if (t === TILE.SAFE) col = this.world.seen.has("safe") ? "#ffaa3a" : "#8a9aaa";
         else if (tm.isSolidAt(c, r)) col = "#8a9aaa";
         renderer.fillRect(ox + c * s, oy + r * s, s, s, col);
       }
     }
-    for (const p of this.world.pickups) renderer.fillRect(ox + p.col * s, oy + p.row * s, s, s, p.kind === "log" ? "#2ac8e8" : "#ffaa3a");
+    // only what the player has already laid eyes on
+    for (const p of this.world.pickups) {
+      if (this.world.seen.has(p.id)) renderer.fillRect(ox + p.col * s, oy + p.row * s, s, s, p.kind === "log" ? "#2ac8e8" : "#e8d84a");
+    }
     for (const n of this.world.npcs) renderer.fillRect(ox + n.col * s, oy + n.row * s, s, s, "#3aa05a");
     for (const st of this.world.sentinels) renderer.fillRect(ox + Math.floor(st.x / TILE_SIZE) * s, oy + Math.floor(st.y / TILE_SIZE) * s, s, s, "#d02a3a");
     if (Math.floor(this._t * 3) & 1) {
       renderer.fillRect(ox + this.world.player.col * s - 1, oy + this.world.player.row * s - 1, s + 2, s + 2, "#ff2a8a");
     }
-    renderer.text("■ you  ■ people  ■ sentinels  ■ capsules  ■ safe", x + 14, y + bh - 10, { color: "#4a5a6a", size: 7, baseline: "middle" });
+    let lx = x + 14;
+    const ly = y + bh - 10;
+    renderer.ctx.font = "normal 7px ui-monospace, monospace";
+    for (const [label, color] of MAP_LEGEND) {
+      renderer.fillRect(lx, ly - 3, 6, 6, color);
+      const text = t(label);
+      renderer.text(text, lx + 9, ly, { color: "#4a5a6a", size: 7, baseline: "middle" });
+      lx += 9 + renderer.ctx.measureText(text).width + 10;
+    }
   }
 }
+
+const MAP_LEGEND = [["you", "#ff2a8a"], ["people", "#3aa05a"], ["sentinels", "#d02a3a"], ["logs", "#2ac8e8"], ["cells", "#e8d84a"], ["safe", "#ffaa3a"]];
 
 function wrap(ctx, text, maxW) {
   text = t(text);

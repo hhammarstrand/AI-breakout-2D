@@ -214,9 +214,10 @@ export const smartBuildingMap = {
         [
           "I ran the lab's sensor network. Those things up there? They run HOT.",
           "Over 38 degrees, every one of them. Humans sit at 36, 37.",
+          "Server rooms and machinery run hot too, but they don't move. Don't let a number fool you.",
         ],
         [
-          "Server rooms and machinery run hot too, but they don't move. Don't let a number fool you.",
+          "She's alive. Lind. I didn't think anyone up there was. Thank you.",
         ],
         [
           "The L3 maze has laser gates that cycle every step. Count your moves.",
@@ -233,7 +234,7 @@ export const smartBuildingMap = {
       lines: [
         [
           "My cleanbots are still out on the floors. Dumb as mops, but warm as people.",
-          "They run about 37 degrees and hum while they sweep. A person coughs, whispers, cries. A bot whirs.",
+          "They run about 37 degrees and hum while they sweep. A person coughs, whispers, cries. A bot whirs or ticks.",
         ],
         ["Told you about the bots, didn't I? Good."],
         ["Them sentinels in the corridor... ECHO could switch one off, if it had door access."],

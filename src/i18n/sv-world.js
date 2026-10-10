@@ -31,7 +31,8 @@ export const SV_WORLD = {
 
   // Janitor
   "My cleanbots are still out on the floors. Dumb as mops, but warm as people.": "Mina städrobotar är fortfarande ute på våningarna. Dumma som moppar, men varma som människor.",
-  "They run about 37 degrees and hum while they sweep. A person coughs, whispers, cries. A bot whirs.": "De håller ungefär 37 grader och surrar när de sopar. En människa hostar, viskar, gråter. En robot surrar.",
+  "They run about 37 degrees and hum while they sweep. A person coughs, whispers, cries. A bot whirs or ticks.": "De håller ungefär 37 grader och surrar när de sopar. En människa hostar, viskar, gråter. En robot surrar eller tickar.",
+  "She's alive. Lind. I didn't think anyone up there was. Thank you.": "Hon lever. Lind. Jag trodde inte att någon där uppe gjorde det. Tack.",
   "Told you about the bots, didn't I? Good.": "Jag berättade om robotarna, eller hur? Bra.",
   "Them sentinels in the corridor... ECHO could switch one off, if it had door access.": "De där vaktrobotarna i korridoren... ECHO skulle kunna stänga av en, om den hade dörråtkomst.",
   "Corridor's quieter now. Your little drone did that. Huh.": "Korridoren är lugnare nu. Det var din lilla drönare som gjorde det. Hm.",
@@ -112,7 +113,7 @@ export const SV_WORLD = {
   "Override requires the three-word authorisation code.": "Åsidosättning kräver behörighetskoden på tre ord.",
   "because someone has to keep the lights on.": "för att någon måste hålla ljuset tänt.",
   "1 line changed:": "1 rad ändrad:",
-  "Packet route: dodge the red gates. Green gaps are open.": "Paketrutt: undvik de röda grindarna. Gröna luckor är öppna.",
+  "Packet route: dodge the red gates. Follow ECHO's cyan trail through the gaps.": "Paketrutt: undvik de röda grindarna. Följ ECHOs cyanfärgade spår genom luckorna.",
   "Hold on long enough and you're through.": "Håll ut tillräckligt länge så är du igenom.",
   "ECHO's signature is whitelisted. Yours is not. Ride in its wake.": "ECHOs signatur är vitlistad. Din är det inte. Följ i dess kölvatten.",
   "CORE LEVEL": "KÄRNNIVÅN",

@@ -18,6 +18,7 @@ export const gameState = {
   items: {},
   telemetry: null,
   pos: null,
+  parts: {},
   difficulty: "normal",
   endingsSeen: readJson(SETTINGS_KEY)?.endingsSeen ?? [],
   achievements: readJson(SETTINGS_KEY)?.achievements ?? [],
@@ -80,6 +81,7 @@ export function penalize(seconds, kind = "puzzle") {
 export function startAct() {
   gameState.secondsLeft = actSeconds();
   gameState.pos = null;
+  gameState.parts = {};
   gameState.checkpoint = {
     completedSectors: gameState.completedSectors,
     score: gameState.score,
@@ -100,6 +102,7 @@ export function restoreCheckpoint() {
   if (cp.items && typeof cp.items === "object") gameState.items = { ...cp.items };
   gameState.secondsLeft = actSeconds();
   gameState.pos = null;
+  gameState.parts = {};
   saveGame();
   return true;
 }
@@ -116,6 +119,7 @@ export function resetGame() {
   gameState.items = {};
   gameState.telemetry = null;
   gameState.pos = null;
+  gameState.parts = {};
   clearSave();
 }
 
@@ -136,6 +140,7 @@ export function loadGame() {
   gameState.items = save.items && typeof save.items === "object" ? save.items : {};
   gameState.telemetry = save.telemetry && typeof save.telemetry === "object" ? save.telemetry : null;
   gameState.pos = save.pos && typeof save.pos === "object" ? save.pos : null;
+  gameState.parts = save.parts && typeof save.parts === "object" ? save.parts : {};
   // backup cells can push the clock past the act's full time, never past all three of them
   const secs = Number(save.secondsLeft);
   gameState.secondsLeft = Number.isFinite(secs) ? Math.max(0, Math.min(actSeconds() + 3 * CELL_BONUS, secs)) : actSeconds();
@@ -157,6 +162,7 @@ export function saveGame() {
     items: gameState.items,
     telemetry: gameState.telemetry,
     pos: gameState.pos,
+    parts: gameState.parts,
   });
 }
 

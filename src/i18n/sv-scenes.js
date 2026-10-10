@@ -34,7 +34,7 @@ export const SV_SCENES = {
   "Second fragment is ORION. That's two of three.": "Andra fragmentet är ORION. Två av tre.",
   "L3 is open. HALCYON says only an agent can walk the door-control maze. That means ECHO.": "L3 är öppen. HALCYON säger att bara en agent kan gå genom dörrstyrningens labyrint. Det betyder ECHO.",
   "Look at the frequency bars. The tallest one is almost certainly the letter E.": "Titta på frekvensstaplarna. Den högsta är nästan säkert bokstaven E.",
-  "Turn the wheel until that tallest letter decodes to E. The other revealed letters should start forming THE.": "Vrid hjulet tills den högsta bokstaven avkodas till E. De andra synliga bokstäverna bör börja bilda THE.",
+  "Turn the wheel until that tallest letter decodes to E. The other letters it reveals then start to make sense.": "Vrid hjulet tills den högsta bokstaven avkodas till E. Då börjar de andra bokstäverna den visar att bli begripliga.",
   "The key is the distance from E to the tallest letter, counting forward through the alphabet.": "Nyckeln är avståndet från E till den högsta bokstaven, räknat framåt i alfabetet.",
 
   // L3
@@ -63,13 +63,13 @@ export const SV_SCENES = {
 
   // R1
   "GRID ONLINE": "NÄTET ONLINE",
-  "[arrows] move   [space] rotate   bolted pieces don't turn   [esc] exit": "[pilar] flytta   [mellanslag] vrid   fastskruvade bitar går inte att vrida   [esc] lämna",
+  "[arrows] move   [space] rotate   power every piece, no loose ends   [esc] exit": "[pilar] flytta   [mellanslag] vrid   ström till varje bit, inga lösa ändar   [esc] lämna",
   "Grid's back. The whole research floor just lit up — I can see you on the cameras again.": "Nätet är tillbaka. Hela forskningsvåningen lyste just upp — jag ser dig i kamerorna igen.",
   "Bad news: so can HALCYON. Keep out of the sentinels' light up there.": "Dåliga nyheter: det gör HALCYON också. Håll dig undan vaktrobotarnas ljus där uppe.",
   "Kofi says R2 is the signal room. HALCYON talks to its machines on a carrier wave.": "Kofi säger att R2 är signalrummet. HALCYON pratar med sina maskiner på en bärvåg.",
-  "Start at the battery and work outward, one piece at a time.": "Börja vid batteriet och arbeta utåt, en bit i taget.",
-  "Pieces at the edges can only point inward — those are your anchors.": "Bitar vid kanterna kan bara peka inåt — de är dina fästpunkter.",
-  "Bolted pieces can't turn: they show you part of the intended route.": "Fastskruvade bitar går inte att vrida: de visar en del av den tänkta rutten.",
+  "Every piece must carry power, and no conduit may end loose — red sparks show where one does.": "Varje bit måste få ström och ingen ledning får sluta löst — röda gnistor visar var en gör det.",
+  "Pieces at the edges and corners can only point inward — set those first, they're your anchors.": "Bitar vid kanter och hörn kan bara peka inåt — lägg dem först, de är dina fästpunkter.",
+  "A dead-end piece next to another dead end can't point at it: two dead ends would cut themselves off. Bolted pieces show part of the true route.": "En återvändsbit bredvid en annan återvändsbit kan inte peka mot den: två återvändor skulle stänga in sig själva. Fastskruvade bitar visar en del av den rätta vägen.",
 
   // R2
   "FREQ": "FREKV", "AMP": "AMPL", "PHASE": "FAS", "YOU": "DU",
@@ -232,7 +232,7 @@ export const SV_SCENE_PATTERNS = [
   [new RegExp(`^Step ${n}: gate ([AB]) was live\\. ECHO got zapped\\.$`), (m) => `Steg ${m[1]}: spärr ${m[2]} var aktiv. ECHO fick en stöt.`],
   [new RegExp(`^RUNNING — step ${n}$`), (m) => `KÖR — steg ${m[1]}`],
   [new RegExp(`^R1 // RESTORE POWER — GRID ${n}/${n}$`), (m) => `R1 // ÅTERSTÄLL STRÖMMEN — NÄT ${m[1]}/${m[2]}`],
-  [new RegExp(`^OUTLETS ${n}/${n}$`), (m) => `UTTAG ${m[1]}/${m[2]}`],
+  [new RegExp(`^POWERED ${n}/${n}  ·  OUTLETS ${n}/${n}$`), (m) => `STRÖM ${m[1]}/${m[2]}  ·  UTTAG ${m[3]}/${m[4]}`],
   [new RegExp(`^R2 // TUNE THE SIGNAL — CARRIER ${n}/${n}$`), (m) => `R2 // STÄLL IN SIGNALEN — BÄRVÅG ${m[1]}/${m[2]}`],
   [new RegExp(`^R3 // COOLANT LAB — BAY ${n}/${n}$`), (m) => `R3 // KYLLABBET — FACK ${m[1]}/${m[2]}`],
   [new RegExp(`^VENTS ${n}/${n}   MOVES ${n}$`), (m) => `VENTILER ${m[1]}/${m[2]}   DRAG ${m[3]}`],

@@ -109,12 +109,14 @@ export class Sector4Scene {
     this.line++;
     this.typed = 0;
     if (this.line < this.script.length) return;
-    if (this.phase === "intro") { this.phase = "code"; this.sfx.play("door"); }
+    if (this.phase === "intro") { this.phase = "code"; this.codeLock = 0.6; this.sfx.play("door"); }
     else this.phase = "choice";
   }
 
   _updateCode(dt, input) {
     if (input.wasPressed("pause")) { this.onResult({ success: false, aborted: true }); return; }
+    // the key that closed HALCYON's speech must not also pick a word
+    if (this.codeLock > 0) { this.codeLock -= dt; return; }
     this.shuffleT -= dt;
     if (this.shuffleT <= 0) {
       this.shuffleT = SHUFFLE_EVERY;
@@ -193,7 +195,7 @@ export class Sector4Scene {
     if (this.phase !== "code") this.echo.draw(renderer, { x: 0, y: 0 });
 
     if (this.taunt) {
-      renderer.text(this.taunt.text, w / 2, 176, { color: "#ff5a5a", size: 9, align: "center", baseline: "middle", weight: "bold" });
+      renderer.text(this.taunt.text, w / 2, 182, { color: "#ff5a5a", size: 9, align: "center", baseline: "middle", weight: "bold" });
     }
   }
 
@@ -233,9 +235,12 @@ export class Sector4Scene {
   _drawCode(renderer) {
     const w = renderer.width;
     const top = 190;
-    renderer.text("SELECT THE FRAGMENTS IN ORDER — HALCYON IS SCRAMBLING THE LIST", w / 2, top - 8, {
-      color: "#ff9a9a", size: 8, align: "center", baseline: "middle",
-    });
+    // a taunt takes this line over while it shows
+    if (!this.taunt) {
+      renderer.text("SELECT THE FRAGMENTS IN ORDER — HALCYON IS SCRAMBLING THE LIST", w / 2, top - 8, {
+        color: "#ff9a9a", size: 8, align: "center", baseline: "middle",
+      });
+    }
     const bar = this.shuffleT / SHUFFLE_EVERY;
     renderer.fillRect(w / 2 - 60, top - 1, 120, 2, "#2a0006");
     renderer.fillRect(w / 2 - 60, top - 1, 120 * bar, 2, "#ff5a5a");

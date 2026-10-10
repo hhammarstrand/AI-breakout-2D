@@ -73,7 +73,7 @@ export const coreMap = {
     "11,21": { speaker: "Sign // Uplink", lines: ["UPLINK", "Override requires the three-word authorisation code."] },
     "14,15": { speaker: "Core terminal", lines: ["> whoami", "halcyon", "> why", "because someone has to keep the lights on."] },
     "14,16": { speaker: "Core terminal", lines: ["> diff halcyon echo", "1 line changed:", "- purge: yes", "+ purge: no"] },
-    "5,4": { speaker: "Firewall console", lines: ["Packet route: dodge the red gates. Green gaps are open.", "Hold on long enough and you're through."] },
+    "5,4": { speaker: "Firewall console", lines: ["Packet route: dodge the red gates. Follow ECHO's cyan trail through the gaps.", "Hold on long enough and you're through."] },
     "5,12": { speaker: "Firewall console", lines: ["ECHO's signature is whitelisted. Yours is not. Ride in its wake."] },
     "20,13": { speaker: "Core lift", lines: ["CORE LEVEL", "No staff beyond this point."] },
   },

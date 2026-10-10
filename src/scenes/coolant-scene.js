@@ -52,6 +52,9 @@ export class CoolantScene {
   onEnter() { document.body.classList.add("no-objective", "in-puzzle"); music.play("sector"); music.setIntensity(0); }
   onExit() { document.body.classList.remove("no-objective", "in-puzzle"); }
 
+  get part() { return this.level; }
+  resume(i) { this.level = i; this._load(); }
+
   _load() {
     const rows = LEVELS[this.level];
     this.walls = new Set();

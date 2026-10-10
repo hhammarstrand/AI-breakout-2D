@@ -63,6 +63,9 @@ export class Sector3Scene {
   onEnter() { document.body.classList.add("no-objective", "in-puzzle"); music.play("sector"); music.setIntensity(0); }
   onExit() { document.body.classList.remove("no-objective", "in-puzzle"); }
 
+  get part() { return this.level; }
+  resume(i) { this.level = i; this._load(); }
+
   _load() {
     const lv = LEVELS[this.level];
     this.grid = lv.rows.map((r) => [...r]);
@@ -252,7 +255,8 @@ export class Sector3Scene {
     ctx.globalAlpha = 1;
   }
 
-  _currentStep() { return this.mode === "edit" ? Math.floor(this._t / 0.9) % 2 : this.step; }
+  // while editing, gates show the state they'll be in when the next queued move lands (not a clock)
+  _currentStep() { return this.mode === "edit" ? this.queue.length + 1 : this.step; }
 
   _drawGrid(renderer) {
     const ctx = renderer.ctx;

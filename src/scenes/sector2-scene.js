@@ -49,7 +49,7 @@ function wrap(text, width) {
 
 export class Sector2Scene {
   constructor({ hud, sfx, fx, onResult }) {
-    this.hints = ["Look at the frequency bars. The tallest one is almost certainly the letter E.", "Turn the wheel until that tallest letter decodes to E. The other revealed letters should start forming THE.", "The key is the distance from E to the tallest letter, counting forward through the alphabet."];
+    this.hints = ["Look at the frequency bars. The tallest one is almost certainly the letter E.", "Turn the wheel until that tallest letter decodes to E. The other letters it reveals then start to make sense.", "The key is the distance from E to the tallest letter, counting forward through the alphabet."];
     this.hud = hud;
     this.sfx = sfx;
     this.fx = fx;
@@ -59,6 +59,10 @@ export class Sector2Scene {
     this.message = null;
     this._loadLog();
   }
+
+  // which log the player is on; the world restores it if they step out and come back
+  get part() { return this.index; }
+  resume(i) { this.index = i; this._loadLog(); }
 
   onEnter() { document.body.classList.add("no-objective", "in-puzzle"); music.play("sector"); music.setIntensity(0); }
   onExit() { document.body.classList.remove("no-objective", "in-puzzle"); }

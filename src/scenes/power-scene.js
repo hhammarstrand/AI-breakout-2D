@@ -1,12 +1,14 @@
 import { music } from "../audio/music.js";
 
 // R1 — restore power. A conduit grid is generated as a random spanning tree from the source,
-// then every piece is rotated at random. Rotate pieces until all outlets are powered.
+// then every piece is rotated at random. The grid is online when every piece is powered and no
+// conduit ends loose (into a wall or a piece that doesn't connect back), as in the classic "Net"
+// puzzle: lighting the outlets alone isn't enough, so edges and dead ends have to be reasoned out.
 // Board 3 has bolted pieces that can't be turned.
 const BOARDS = [
   { cols: 5, rows: 4, outlets: 2, bolts: 0 },
   { cols: 6, rows: 5, outlets: 3, bolts: 0 },
-  { cols: 7, rows: 5, outlets: 3, bolts: 5 },
+  { cols: 7, rows: 5, outlets: 3, bolts: 3 },
 ];
 const N = 1, E = 2, S = 4, Wd = 8;
 const DIRS = [[N, 0, -1, S], [E, 1, 0, Wd], [S, 0, 1, N], [Wd, -1, 0, E]];
@@ -15,7 +17,15 @@ const DONE_TIME = 1.6;
 
 const rotCW = (m) => ((m << 1) | (m >> 3)) & 15;
 
-function generate({ cols, rows, outlets, bolts }) {
+function generate(spec) {
+  // keep drawing trees until there are enough dead ends to hang every outlet on
+  for (;;) {
+    const board = tryGenerate(spec);
+    if (board.outs.length === spec.outlets) return board;
+  }
+}
+
+function tryGenerate({ cols, rows, outlets, bolts }) {
   const mask = Array.from({ length: rows }, () => Array(cols).fill(0));
   const seen = Array.from({ length: rows }, () => Array(cols).fill(false));
   const src = { x: 0, y: Math.floor(Math.random() * rows) };
@@ -62,7 +72,7 @@ function generate({ cols, rows, outlets, bolts }) {
 
 export class PowerScene {
   constructor({ hud, sfx, fx, onResult }) {
-    this.hints = ["Start at the battery and work outward, one piece at a time.", "Pieces at the edges can only point inward — those are your anchors.", "Bolted pieces can't turn: they show you part of the intended route."];
+    this.hints = ["Every piece must carry power, and no conduit may end loose — red sparks show where one does.", "Pieces at the edges and corners can only point inward — set those first, they're your anchors.", "A dead-end piece next to another dead end can't point at it: two dead ends would cut themselves off. Bolted pieces show part of the true route."];
     this.hud = hud;
     this.sfx = sfx;
     this.fx = fx;
@@ -74,6 +84,9 @@ export class PowerScene {
 
   onEnter() { document.body.classList.add("no-objective", "in-puzzle"); music.play("sector"); music.setIntensity(0); }
   onExit() { document.body.classList.remove("no-objective", "in-puzzle"); }
+
+  get part() { return this.index; }
+  resume(i) { this.index = i; this._load(); }
 
   _load() {
     do { this.board = generate(BOARDS[this.index]); } while (this._flood().allLit);
@@ -103,7 +116,20 @@ export class PowerScene {
       }
     }
     const litOuts = outs.filter((o) => powered.has(`${o.x},${o.y}`)).length;
-    return { powered, litOuts, allLit: litOuts === outs.length };
+    // loose ends on powered pieces: sparks the player can see and reason from
+    const leaks = [];
+    for (const key of powered) {
+      const [x, y] = key.split(",").map(Number);
+      const m = this.cell(x, y).mask;
+      for (const [bit, dx, dy, back] of DIRS) {
+        if (!(m & bit)) continue;
+        const nx = x + dx, ny = y + dy;
+        const ok = nx >= 0 && ny >= 0 && nx < cols && ny < rows && (this.cell(nx, ny).mask & back);
+        if (!ok) leaks.push({ x, y, dx, dy });
+      }
+    }
+    const total = cols * rows;
+    return { powered, litOuts, leaks, total, allLit: powered.size === total && leaks.length === 0 };
   }
 
   update(dt, input) {
@@ -161,7 +187,7 @@ export class PowerScene {
     renderer.fillRect(0, 0, w, 24, "#1e1806");
     renderer.fillRect(0, 22, w, 2, "#ffd15a");
     renderer.text(`R1 // RESTORE POWER — GRID ${this.index + 1}/${BOARDS.length}`, 8, 12, { color: "#ffe08a", size: 11, weight: "bold", baseline: "middle" });
-    renderer.text(`OUTLETS ${this.lit.litOuts}/${outs.length}`, w - 8, 12, {
+    renderer.text(`POWERED ${this.lit.powered.size}/${this.lit.total}  ·  OUTLETS ${this.lit.litOuts}/${outs.length}`, w - 8, 12, {
       color: this.lit.allLit ? "#0aff7a" : "#ffd15a", size: 10, weight: "bold", baseline: "middle", align: "right",
     });
 
@@ -194,8 +220,15 @@ export class PowerScene {
       }
       ctx.fillStyle = "#0a0812";
       ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = on ? "#fff2b0" : "#3a3220";
+      ctx.fillStyle = on ? "#fff2b0" : "#8a7430";
       ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill();
+      if (!on) { ctx.strokeStyle = "#ffd15a"; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, y, 7.5, 0, Math.PI * 2); ctx.stroke(); }
+    }
+    // sparks at loose conduit ends
+    for (const l of this.lit.leaks) {
+      const x = gx + l.x * CELL + CELL / 2 + l.dx * (CELL / 2 - 3), y = gy + l.y * CELL + CELL / 2 + l.dy * (CELL / 2 - 3);
+      const flick = Math.floor(this._t * 12 + l.x * 3 + l.y) & 1;
+      renderer.fillRect(x - 2, y - 2, 4, 4, flick ? "#ff5a3a" : "#ffd0a0");
     }
     // cursor
     const cx = gx + this.cursor.x * CELL, cy = gy + this.cursor.y * CELL;
@@ -206,7 +239,7 @@ export class PowerScene {
 
     renderer.fillRect(0, h - 22, w, 22, "#1e1806");
     renderer.fillRect(0, h - 22, w, 1, "#ffd15a");
-    renderer.text("[arrows] move   [space] rotate   bolted pieces don't turn   [esc] exit", 8, h - 11, { color: "#a8904a", size: 8, baseline: "middle" });
+    renderer.text("[arrows] move   [space] rotate   power every piece, no loose ends   [esc] exit", 8, h - 11, { color: "#a8904a", size: 8, baseline: "middle" });
     if (this.done > 0) {
       renderer.text("GRID ONLINE", w / 2, gy + rows * CELL + 16, { color: "#0aff7a", size: 12, align: "center", baseline: "middle", weight: "bold" });
     }

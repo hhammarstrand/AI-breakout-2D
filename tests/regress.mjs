@@ -130,4 +130,19 @@ const quiet = (p) => p.ev(() => { const w = window.__blackout.game.scenes[0]; w.
   await p.browser.close();
 }
 
+// 9. Stepping out of a puzzle keeps the parts already solved.
+{
+  const p = await open({ save: fresh({ completedSectors: 6 }) });
+  await p.title(); await quiet(p);
+  await p.ev(() => window.__blackout.game.scenes[0]._launchSector(7, "R3")); await p.wait(1200);
+  await p.ev(() => window.__blackout.game.top.resume(1));
+  await p.press("Escape"); await p.wait(700); await quiet(p);
+  await p.ev(() => window.__blackout.game.scenes[0]._launchSector(7, "R3")); await p.wait(1200);
+  check(await p.ev(() => window.__blackout.game.top.level) === 1, "R3 reopens on the bay the player reached");
+  await p.reload(); await quiet(p);
+  await p.ev(() => window.__blackout.game.scenes[0]._launchSector(7, "R3")); await p.wait(1200);
+  check(await p.ev(() => window.__blackout.game.top.level) === 1, "solved bays survive a reload");
+  await p.browser.close();
+}
+
 summary("regress");

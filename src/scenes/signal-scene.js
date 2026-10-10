@@ -30,6 +30,9 @@ export class SignalScene {
   onEnter() { document.body.classList.add("no-objective", "in-puzzle"); music.play("sector"); music.setIntensity(0); }
   onExit() { document.body.classList.remove("no-objective", "in-puzzle"); }
 
+  get part() { return this.round; }
+  resume(i) { this.round = i; this._load(); }
+
   _load() {
     const r = ROUNDS[this.round];
     this.target = { FREQ: rnd(1, 6), AMP: rnd(2, 5), PHASE: rnd(0, r.phaseSteps - 1) };

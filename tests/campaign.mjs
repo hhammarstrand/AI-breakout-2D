@@ -98,7 +98,7 @@ await ev(() => { window.__blackout.game.top.elapsed = 54.9; window.__blackout.ga
 await wait(2600); await closeDialog();
 console.log("after C1", await state());
 // uplink
-await launch(10); await press("Space", 4); await wait(200);
+await launch(10); await press("Space", 4); await wait(800); // the code list ignores keys for a moment after the speech
 for (const w of ["LUMEN", "ORION", "AURORA"]) { await ev((w) => { const s = window.__blackout.game.top; s.cursor = s.words.indexOf(w); s.shuffleT = 99; }, w); await press("Enter"); await wait(120); }
 await wait(2500); for (let i = 0; i < 12; i++) { await press("Space"); await wait(80); }
 await press("Enter"); await wait(3000);
