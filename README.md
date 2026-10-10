@@ -57,6 +57,11 @@ Progress (sectors, score, remaining containment time) autosaves to `localStorage
 
 ## Difficulty, hints and the opening
 
+- **Gamepads** — any standard controller: D-pad/stick move, A interact, B back, X flashlight,
+  Y hint, shoulders run, START menu/confirm, SELECT pause.
+- **Accessibility** — CALM FX (title or OPTIONS) removes screen shake, full-screen flashes and
+  glitch tears; TEXT SPEED slow/normal/fast.
+
 - **Opening cinematic** — the tower at night, the lockdown, waking up at your desk, ECHO's first
   words. Skippable.
 - **Difficulty** — STORY (×1.6 time, half-speed sentinels, half penalties), NORMAL, HARD

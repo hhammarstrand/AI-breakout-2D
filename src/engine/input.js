@@ -46,6 +46,32 @@ export class Input {
 
   release(action) { this._down.delete(action); }
 
+  // Standard-mapping gamepads: D-pad/left stick move, A interact, B back, X flashlight, Y hint,
+  // shoulders run, SELECT pause, START submit/menu. Polled once per animation frame.
+  pollGamepads() {
+    const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+    const want = new Set();
+    for (const pad of pads) {
+      if (!pad) continue;
+      const b = (i) => pad.buttons[i]?.pressed;
+      if (b(12) || pad.axes[1] < -0.5) want.add("up");
+      if (b(13) || pad.axes[1] > 0.5) want.add("down");
+      if (b(14) || pad.axes[0] < -0.5) want.add("left");
+      if (b(15) || pad.axes[0] > 0.5) want.add("right");
+      if (b(0)) want.add("interact");
+      if (b(1)) want.add("back");
+      if (b(2)) want.add("flashlight");
+      if (b(3)) want.add("hint");
+      if (b(4) || b(5) || b(6) || b(7)) want.add("run");
+      if (b(8)) want.add("pause");
+      if (b(9)) want.add("submit");
+    }
+    this._pad ??= new Set();
+    for (const a of want) if (!this._pad.has(a)) this.press(a);
+    for (const a of this._pad) if (!want.has(a)) this.release(a);
+    this._pad = want;
+  }
+
   isDown(action) { return this._down.has(action); }
   wasPressed(action) { return this._pressed.has(action); }
   consumeAnyPressed() { const v = this._anyPressed; this._anyPressed = false; return v; }

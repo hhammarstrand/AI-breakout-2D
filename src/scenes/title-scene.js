@@ -1,4 +1,4 @@
-import { gameState } from "../state.js";
+import { gameState, setCalmFx } from "../state.js";
 import { Menu } from "./menu.js";
 import { music } from "../audio/music.js";
 
@@ -29,6 +29,7 @@ export class TitleScene {
     items.push({ label: () => `SOUND: ${gameState.sfxOn ? "ON" : "OFF"}`, action: onToggleSfx });
     items.push({ label: () => `MUSIC: ${gameState.musicOn ? "ON" : "OFF"}`, action: onToggleMusic });
     items.push({ label: () => `CRT FX: ${gameState.crtOn ? "ON" : "OFF"}`, action: onToggleCrt });
+    items.push({ label: () => `CALM FX: ${gameState.calmFx ? "ON" : "OFF"}`, action: () => setCalmFx(!gameState.calmFx) });
     this.mainMenu = new Menu(items, sfx);
     this.menu = this.mainMenu;
     this.diffMenu = new Menu([

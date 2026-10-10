@@ -44,6 +44,7 @@ export class Game {
 
   _frame = (now) => {
     if (!this._running) return;
+    this.input.pollGamepads?.();
     const delta = Math.min(now - this._lastTime, 250);
     this._lastTime = now;
     this._accumulator += delta;

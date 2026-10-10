@@ -22,6 +22,8 @@ export const gameState = {
   sfxOn: readJson(SETTINGS_KEY)?.sfxOn ?? true,
   crtOn: readJson(SETTINGS_KEY)?.crtOn ?? true,
   musicOn: readJson(SETTINGS_KEY)?.musicOn ?? true,
+  calmFx: readJson(SETTINGS_KEY)?.calmFx ?? false,
+  textSpeed: readJson(SETTINGS_KEY)?.textSpeed ?? "normal",
 };
 
 export function isSectorUnlocked(num) { return num <= gameState.completedSectors + 1; }
@@ -144,6 +146,18 @@ export function setMusic(on) {
   writeSettings();
 }
 
+export function setCalmFx(on) {
+  gameState.calmFx = on;
+  document.body.classList.toggle("calm", on);
+  writeSettings();
+}
+
+const TEXT_SPEEDS = ["slow", "normal", "fast"];
+export function cycleTextSpeed() {
+  gameState.textSpeed = TEXT_SPEEDS[(TEXT_SPEEDS.indexOf(gameState.textSpeed) + 1) % TEXT_SPEEDS.length];
+  writeSettings();
+}
+
 export function setCrt(on) {
   gameState.crtOn = on;
   writeSettings();
@@ -169,6 +183,7 @@ export function collectedFragments() {
 function writeSettings() {
   writeJson(SETTINGS_KEY, {
     sfxOn: gameState.sfxOn, crtOn: gameState.crtOn, musicOn: gameState.musicOn,
+    calmFx: gameState.calmFx, textSpeed: gameState.textSpeed,
     endingsSeen: gameState.endingsSeen, achievements: gameState.achievements,
   });
 }

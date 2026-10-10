@@ -1,6 +1,8 @@
 import { drawPortrait, profileFor } from "./portrait.js";
 
-const CHAR_INTERVAL = 0.018;
+import { gameState } from "../state.js";
+
+const CHAR_INTERVALS = { slow: 0.04, normal: 0.018, fast: 0.006 };
 const BLIP_EVERY = 3;
 
 export class Dialog {
@@ -85,8 +87,9 @@ export class Dialog {
 
     if (!fullyTyped) {
       this._timer += dt;
-      while (this._timer >= CHAR_INTERVAL && this._typed < this._current.length) {
-        this._timer -= CHAR_INTERVAL;
+      const interval = CHAR_INTERVALS[gameState.textSpeed] ?? CHAR_INTERVALS.normal;
+      while (this._timer >= interval && this._typed < this._current.length) {
+        this._timer -= interval;
         this._typed++;
         if (this._typed % BLIP_EVERY === 0 && this._current[this._typed - 1] !== " ") this.sfx.play("blip");
       }

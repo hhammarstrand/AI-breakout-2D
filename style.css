@@ -389,6 +389,9 @@ kbd {
   background: rgba(10, 255, 122, 0.06);
 }
 
+body.calm #crt, body.calm #hud .brand::before, body.calm #hud .brand::after { animation: none; }
+body.calm #hud-timer.danger .hud-value { animation: none; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
 }

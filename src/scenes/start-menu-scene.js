@@ -1,4 +1,4 @@
-import { gameState, collectedFragments, useItem, saveGame } from "../state.js";
+import { gameState, collectedFragments, useItem, saveGame, setCalmFx, cycleTextSpeed } from "../state.js";
 import { LOGS, ITEMS, CELL_BONUS, ACTS, ACHIEVEMENTS } from "../story.js";
 import { TILE, TILE_SIZE } from "../world/tilemap.js";
 
@@ -100,6 +100,8 @@ export class StartMenuScene {
           { label: `SOUND: ${gameState.sfxOn ? "ON" : "OFF"}`, action: () => this.onToggleSfx() },
           { label: `MUSIC: ${gameState.musicOn ? "ON" : "OFF"}`, action: () => this.onToggleMusic() },
           { label: `CRT FX: ${gameState.crtOn ? "ON" : "OFF"}`, action: () => this.onToggleCrt() },
+          { label: `CALM FX: ${gameState.calmFx ? "ON" : "OFF"}`, desc: "No screen shake, flashes or glitch tears.", action: () => setCalmFx(!gameState.calmFx) },
+          { label: `TEXT SPEED: ${gameState.textSpeed.toUpperCase()}`, action: () => cycleTextSpeed() },
         ];
       default:
         return [];

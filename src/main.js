@@ -36,6 +36,7 @@ music.attach(sfx);
 music.setEnabled(gameState.musicOn);
 music.setMuted(!gameState.sfxOn);
 const toast = new Toasts(document.getElementById("toasts"), sfx);
+document.body.classList.toggle("calm", gameState.calmFx);
 const postfx = new PostFx(canvas);
 postfx.setEnabled(gameState.crtOn);
 const fx = new Fx(stageEl, postfx);
