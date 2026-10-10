@@ -9,6 +9,7 @@ import { StartMenuScene } from "./start-menu-scene.js";
 import { CodeLockScene } from "./codelock-scene.js";
 import { BattleScene } from "./battle-scene.js";
 import { award, checkCollections } from "../ui/trophies.js";
+import { track } from "../telemetry.js";
 
 const SAFE_IDS = ["safe-lobby", "safe-research", "safe-core"];
 import { Lighting, collectLights } from "../engine/lighting.js";
@@ -230,6 +231,7 @@ export class WorldScene {
   }
 
   _takeLift(stage, info) {
+    track.cleared(stage);
     if (gameState.checkpoint && gameState.timesCaught === gameState.checkpoint.timesCaught) award("ghost");
     completeSector(stage);
     this.sfx.play("door");
@@ -239,6 +241,7 @@ export class WorldScene {
   }
 
   _pushSector(sectorNum, label, launcher) {
+    track.enterStage();
     this.fx.glitch();
     this._iris = { dir: "close", t: IRIS_TIME }; // hold black until the sector is on screen
     const scene = launcher({
@@ -249,6 +252,7 @@ export class WorldScene {
         this.game.pop();
         this.fx.glitch();
         this._iris = { dir: "open", t: 0 };
+        if (success) track.cleared(sectorNum);
         if (success && ending) {
           completeSector(sectorNum);
           this.hud.addScore(SECTOR_REWARD * 2);
@@ -571,6 +575,7 @@ export class WorldScene {
     this.game.push(new BattleScene({
       sentinel, sfx: this.sfx, fx: this.fx,
       onResult: (won) => {
+        track.battle(won);
         if (won) {
           award("hacker");
           sentinel.cooldown = 30;

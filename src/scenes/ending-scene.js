@@ -1,6 +1,7 @@
 import { t } from "../i18n/index.js";
 import { gameState } from "../state.js";
 import { music } from "../audio/music.js";
+import { buildReport, downloadReport } from "../telemetry.js";
 
 const ENDINGS = {
   dawn: {
@@ -32,8 +33,14 @@ const LINE_TIME = 3.2;
 export class EndingScene {
   constructor({ ending, sfx, onDone }) {
     this.ending = ENDINGS[ending];
+    this.endingId = ending;
     this.onDone = onDone;
+    this.sfx = sfx;
     this._t = 0;
+    // after the epilogue: rate the run (0 = unrated), save a playtest report, or leave
+    this.rating = 0;
+    this.cursor = 2;
+    this.saved = false;
     sfx.setAmbient(null);
     music.setIntensity(0);
     music.play(ending);
@@ -49,9 +56,21 @@ export class EndingScene {
   update(dt, input) {
     this._t += dt;
     const pressed = input.wasPressed("interact") || input.wasPressed("submit");
+    if (!this._finished) {
+      if (pressed) this._t = Math.ceil(this._t / LINE_TIME) * LINE_TIME + 0.01; // skip ahead a line
+      return;
+    }
+    if (input.wasPressed("up")) { this.cursor = (this.cursor + 2) % 3; this.sfx.play("select"); }
+    if (input.wasPressed("down")) { this.cursor = (this.cursor + 1) % 3; this.sfx.play("select"); }
+    const dx = (input.wasPressed("right") ? 1 : 0) - (input.wasPressed("left") ? 1 : 0);
+    if (dx && this.cursor === 0) { this.rating = Math.max(1, Math.min(5, this.rating + dx)); this.sfx.play("select"); }
     if (!pressed) return;
-    if (this._finished) this.onDone();
-    else this._t = Math.ceil(this._t / LINE_TIME) * LINE_TIME + 0.01; // skip ahead a line
+    if (this.cursor === 0) { this.rating = this.rating % 5 + 1; this.sfx.play("select"); }
+    else if (this.cursor === 1) {
+      downloadReport(buildReport({ ending: this.endingId, rating: this.rating || null }));
+      this.saved = true;
+      this.sfx.play("confirm");
+    } else this.onDone();
   }
 
   render(renderer) {
@@ -110,10 +129,10 @@ export class EndingScene {
 
     if (this._finished) {
       ctx.fillStyle = "rgba(0,0,0,0.7)";
-      ctx.fillRect(w - 220, h - 122, 204, 106);
+      ctx.fillRect(w - 220, h - 166, 204, 150);
       ctx.strokeStyle = this.ending.color;
-      ctx.strokeRect(w - 219.5, h - 121.5, 203, 105);
-      renderer.text(this.ending.title, w - 118, h - 108, { color: this.ending.color, size: 10, align: "center", baseline: "middle", weight: "bold" });
+      ctx.strokeRect(w - 219.5, h - 165.5, 203, 149);
+      renderer.text(this.ending.title, w - 118, h - 152, { color: this.ending.color, size: 10, align: "center", baseline: "middle", weight: "bold" });
       const mm = String(Math.floor(gameState.secondsLeft / 60)).padStart(2, "0");
       const ss = String(Math.floor(gameState.secondsLeft % 60)).padStart(2, "0");
       const stats = [
@@ -123,10 +142,20 @@ export class EndingScene {
         `ENDINGS FOUND   ${gameState.endingsSeen.length}/2`,
         `TROPHIES        ${gameState.achievements.length}/10`,
       ];
-      stats.forEach((s, i) => renderer.text(s, w - 206, h - 92 + i * 12, { color: "#cfcfcf", size: 8 }));
-      if (Math.floor(this._t * 2) & 1) {
-        renderer.text("[enter] return to title", w - 118, h - 24, { color: this.ending.color, size: 8, align: "center", baseline: "middle" });
-      }
+      stats.forEach((s, i) => renderer.text(s, w - 206, h - 136 + i * 12, { color: "#cfcfcf", size: 8 }));
+      const stars = "★".repeat(this.rating) + "☆".repeat(5 - this.rating);
+      const items = [
+        `${t("RATE THIS RUN")}  ${stars}`,
+        this.saved ? "REPORT SAVED ✓" : "SAVE PLAYTEST REPORT",
+        "RETURN TO TITLE",
+      ];
+      items.forEach((label, i) => {
+        const y = h - 66 + i * 14;
+        const sel = i === this.cursor;
+        if (sel) renderer.fillRect(w - 214, y - 6, 192, 12, "rgba(255,255,255,0.08)");
+        renderer.text(`${sel ? "▶ " : "  "}${label}`, w - 206, y, { color: sel ? this.ending.color : "#9aa4ac", size: 8, baseline: "middle", weight: sel ? "bold" : "normal" });
+      });
+      if (this.cursor === 0) renderer.text("◀ ▶ rate", w - 26, h - 66, { color: "#6a7a86", size: 7, align: "right", baseline: "middle" });
     }
   }
 }

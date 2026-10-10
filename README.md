@@ -125,6 +125,10 @@ Ten achievements persist across runs (Reader, Archivist, Safecracker, Script Kid
 Untouchable, New Dawn, Standby, Overclocked, Veteran). See them under TROPHIES in the start menu;
 the title screen shows your count.
 
+## Playtest reports
+
+The game keeps a small local log of each run: minutes spent per stage, puzzle attempts, failures, hints taken, battles and game overs. Nothing is sent anywhere. After the epilogue the player can rate the run (1–5 stars) and pick **SAVE PLAYTEST REPORT** to download it as `blackout-playtest-<date>.json`. Collect those files from testers to see where people get stuck (`hardestStage`) and whether a full run lands near the one-hour target (`totalMinutes`).
+
 ## Tests
 
 `tests/` holds Playwright end-to-end scripts (full campaign, movement/menus, battles, checkpoints,

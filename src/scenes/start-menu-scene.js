@@ -1,6 +1,7 @@
 import { t } from "../i18n/index.js";
 import { gameState, collectedFragments, useItem, saveGame, setCalmFx, cycleTextSpeed } from "../state.js";
 import { LOGS, ITEMS, CELL_BONUS, ACTS, ACHIEVEMENTS } from "../story.js";
+import { track } from "../telemetry.js";
 import { TILE, TILE_SIZE } from "../world/tilemap.js";
 
 // Pokémon-style start menu: a column of options on the right, each opening a panel.
@@ -77,6 +78,7 @@ export class StartMenuScene {
             label: `${ITEMS.cell.name}  x${cells}`, desc: ITEMS.cell.desc, icon: "cell",
             action: () => {
               if (!useItem("cell")) return;
+              track.cellUsed();
               gameState.secondsLeft += CELL_BONUS;
               this.hud.refresh();
               this.sfx.play("item");

@@ -16,6 +16,7 @@ export const gameState = {
   checkpoint: null,
   collected: [],
   items: {},
+  telemetry: null,
   difficulty: "normal",
   endingsSeen: readJson(SETTINGS_KEY)?.endingsSeen ?? [],
   achievements: readJson(SETTINGS_KEY)?.achievements ?? [],
@@ -60,9 +61,13 @@ export function actSeconds(act = currentAct()) { return Math.round(ACTS[act].sec
 
 export function scaledPenalty(seconds) { return Math.round(seconds * difficulty().penalty); }
 
+let onPenalty = null;
+export function setPenaltyListener(fn) { onPenalty = fn; }
+
 // Mistakes cost time, scaled by difficulty; never ends the game by itself.
 export function penalize(seconds) {
   const cost = Math.round(seconds * difficulty().penalty);
+  onPenalty?.();
   gameState.secondsLeft = Math.max(1, gameState.secondsLeft - cost);
   return cost;
 }
@@ -97,6 +102,7 @@ export function resetGame() {
   gameState.difficulty = "normal";
   gameState.collected = [];
   gameState.items = {};
+  gameState.telemetry = null;
   clearSave();
 }
 
@@ -115,6 +121,7 @@ export function loadGame() {
   gameState.difficulty = DIFFICULTY[save.difficulty] ? save.difficulty : "normal";
   gameState.collected = Array.isArray(save.collected) ? save.collected : [];
   gameState.items = save.items && typeof save.items === "object" ? save.items : {};
+  gameState.telemetry = save.telemetry && typeof save.telemetry === "object" ? save.telemetry : null;
   gameState.secondsLeft = Math.max(0, Math.min(actSeconds(), Number(save.secondsLeft) || actSeconds()));
   if (gameState.secondsLeft <= 0) restoreCheckpoint();
   return true;
@@ -130,6 +137,7 @@ export function saveGame() {
     difficulty: gameState.difficulty,
     collected: gameState.collected,
     items: gameState.items,
+    telemetry: gameState.telemetry,
   });
 }
 

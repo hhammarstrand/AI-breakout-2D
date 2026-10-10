@@ -21,10 +21,11 @@ import { IntroScene } from "./scenes/intro-scene.js";
 import { HintScene } from "./scenes/hint-scene.js";
 import { initTrophies, award } from "./ui/trophies.js";
 import { setLang, applyDom } from "./i18n/index.js";
+import { newRun, track } from "./telemetry.js";
 import { ACTS, PA_ACT_START } from "./story.js";
 import {
   gameState, hasSave, loadGame, resetGame, saveGame, clearSave, setSfx, setCrt, setMusic, recordEnding,
-  currentAct, startAct, restoreCheckpoint, actSeconds, setLanguage,
+  currentAct, startAct, restoreCheckpoint, actSeconds, setLanguage, setPenaltyListener,
 } from "./state.js";
 
 const canvas = document.getElementById("game");
@@ -49,8 +50,18 @@ const game = new Game({
   renderer,
   input,
   // H in any scene that defines `hints` opens ECHO's hint overlay
-  onHint: (scene) => { if (scene.hints?.length) game.push(new HintScene({ hints: scene.hints, owner: scene, sfx })); },
-  afterRender: (t, dt) => { postfx.render(t, dt); pa.update(dt); hud.tickScore(dt); },
+  onHint: (scene) => {
+    if (!scene.hints?.length) return;
+    track.hint();
+    game.push(new HintScene({ hints: scene.hints, owner: scene, sfx }));
+  },
+  afterRender: (t, dt) => {
+    postfx.render(t, dt);
+    pa.update(dt);
+    hud.tickScore(dt);
+    // play time only counts while actually in the game, not on title/intro/ending screens
+    if (gameState.telemetry && game.scenes[0]?.constructor === WorldScene) track.tick(dt);
+  },
 });
 
 const toggleMusic = () => {
@@ -80,12 +91,14 @@ const toggleSfx = () => {
 };
 
 initTrophies({ toast, sfx });
+setPenaltyListener(() => track.fail());
 
 const hud = new Hud(document.getElementById("hud"), {
   toast,
   sfx,
   onToggleSfx: toggleSfx,
   onTimeout: () => {
+    track.gameOver();
     saveGame();
     dialog.close();
     pa.clear();
@@ -198,6 +211,7 @@ function showTitle() {
     onNew: (diff) => {
       resetGame();
       gameState.difficulty = diff;
+      newRun();
       gameState.secondsLeft = actSeconds();
       hud.refresh();
       game.replace(new IntroScene({ sfx, onDone: () => startWorld({ fresh: true }) }));
