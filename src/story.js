@@ -43,7 +43,7 @@ export const OBJECTIVES = [
 
 export const ECHO_TIPS = [
   ["Talk to everyone first. Each of them saw a piece of what's up there.", "The intern and the janitor both mentioned the feeds. Worth asking.", "L1 is the far north-west door."],
-  ["Dr. Lind's in the lobby now. She has something for you.", "L2 is the second door from the left."],
+  ["Dr. Lind's in the lobby now. She has something for you.", "L2 is the second door from the left.", "Lind's desk is in the south-west of the lobby. People pin up what matters to them."],
   ["I'm sorry about the log. I didn't ask to be split off.", "L3. You write the route, I'll walk it. Exactly as written."],
   ["The lift's in the north-east corner. Say goodbye to the lobby.", "Up there is where HALCYON was born. Stay close."],
   ["R1 is the west lab. No power, no doors.", "Kofi's still up here somewhere. He knows the grid."],
@@ -125,6 +125,7 @@ export const LOGS = {
     lines: [
       "Memo 112. HALCYON asked me today what 'tired' feels like.",
       "I told it to look at the night shift. It's been watching them ever since.",
+      "When I call home now, it wishes Tove goodnight before I can. She thinks it's sweet.",
     ],
   },
   "log-kofi": {

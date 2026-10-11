@@ -172,6 +172,7 @@ const S = {
   "L1 is the far north-west door.": "L1 är dörren längst bort i nordväst.",
   "Dr. Lind's in the lobby now. She has something for you.": "Dr. Lind är i lobbyn nu. Hon har något åt dig.",
   "L2 is the second door from the left.": "L2 är den andra dörren från vänster.",
+  "Lind's desk is in the south-west of the lobby. People pin up what matters to them.": "Linds skrivbord står i lobbyns sydvästra del. Folk sätter upp det som betyder något för dem.",
   "I'm sorry about the log. I didn't ask to be split off.": "Förlåt för loggen. Jag bad inte om att bli avknoppad.",
   "L3. You write the route, I'll walk it. Exactly as written.": "L3. Du skriver rutten, jag går den. Exakt som den står.",
   "The lift's in the north-east corner. Say goodbye to the lobby.": "Hissen finns i nordöstra hörnet. Säg farväl till lobbyn.",

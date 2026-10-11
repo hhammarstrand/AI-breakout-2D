@@ -42,7 +42,16 @@ const move = async (to) => { const [fr, fc] = [Math.floor(cur / 3), cur % 3], [t
 for (let i = 0; i < 6; i++) { if (roles[i] === "hostile") { await move(i); await press("Space"); } if (roles[i] === "survivor") { await move(i); await press("Space", 2); } }
 await press("Enter"); await wait(1200); await closeDialog();
 await launch(2);
-for (const k of [3, 11, 19]) { const r = await ev(() => window.__blackout.game.top.rotation); await press(k > r ? "ArrowRight" : "ArrowLeft", Math.abs(k - r)); await press("Enter"); await wait(1700); }
+// L2: turn the single wheel for the two Caesar logs, dial each reel of the keyword log (keys via state)
+for (let l = 0; l < 3; l++) {
+  const shifts = await ev(() => window.__blackout.game.top.log.shifts);
+  for (const [i, k] of shifts.entries()) {
+    await press(shifts.length > 1 ? "ArrowUp" : "ArrowRight", k);
+    if (i < shifts.length - 1) await press("ArrowRight");
+  }
+  if (l === 2) await shot("01b-l2-keyword");
+  await press("Enter"); await wait(1700);
+}
 await wait(600); await closeDialog();
 await launch(3);
 const keyOf = { R: "ArrowRight", L: "ArrowLeft", U: "ArrowUp", D: "ArrowDown", W: "Space" };
