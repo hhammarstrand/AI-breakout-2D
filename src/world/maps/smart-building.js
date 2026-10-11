@@ -167,7 +167,20 @@ export const smartBuildingMap = {
     3: { label: "L3", stage: 3 },
     4: { label: "LIFT", stage: 4 },
   },
-  safe: { id: "safe-lobby", col: 39, row: 27, code: "0417", title: "LOST & FOUND SAFE" },
+  // Reyes re-keyed it from the four screens HALCYON froze, in the order they died (log-reyes);
+  // the deduction is that the night crossed midnight, so 23:xx comes before 00:xx.
+  safe: {
+    id: "safe-lobby", col: 39, row: 27, code: "3814", title: "LOST & FOUND SAFE",
+    riddle: "Four clocks froze tonight. Take the last digit of each. —R",
+    memory: "mem-lobby",
+    inside: "Inside, wrapped in a lab coat: a BACKUP CELL and a memory shard.",
+    echo: "That shard has my tag on it. From before I was me.",
+    hints: [
+      "Four screens froze when HALCYON killed them: a CCTV monitor in the L1 alcove, a console in the L3 alcove, and a desk on each side of the lobby. Reyes's shift notes are in the L1 alcove too.",
+      "Take the last digit of each frozen clock, in the order the screens died. The night crossed midnight: every 23:xx came before any 00:xx.",
+      "The cleanbot dock died first (23:53) and the west desk last (00:04). Which of the other two died before midnight?",
+    ],
+  },
   pickups: [
     { id: "log-reyes", kind: "log", col: 7, row: 6 },
     { id: "log-intern", kind: "log", col: 2, row: 23 },
@@ -315,11 +328,15 @@ export const smartBuildingMap = {
     ] },
     "17,27": { speaker: "Reception terminal", lines: [
       "> whoami",
-      "maintenance (badge 0417) — door access: SEQUENTIAL",
+      "maintenance — door access: SEQUENTIAL",
       "> ls /sectors",
       "L1  L2  L3  LIFT",
     ] },
-    "5,4":   { speaker: "CCTV monitor", lines: ["FEED 03 — corridor 7B", "something moved. then nothing did."] },
+    // the four frozen clocks behind the lost & found safe
+    "5,4":   { speaker: "CCTV monitor", lines: ["FEED 03 — corridor 7B", "something moved. then nothing did.", "The feed is dead. Its clock froze at 23:58."] },
+    "4,28":  { speaker: "Door-control console", lines: ["DOOR CONTROL — handing over to L3...", "The screen died mid-sentence. Its clock froze at 00:01."] },
+    "20,7":  { speaker: "Workstation", lines: ["An email, half-written: 'Running late, back by'", "The screen died there. Its clock froze at 00:04."] },
+    "20,41": { speaker: "Cleanbot dock", lines: ["CLEANBOT DOCK — 3 of 4 units out sweeping.", "The screen is dead. Its clock froze at 23:53."] },
     "5,8":   { speaker: "CCTV monitor", lines: ["FEED 11 — server hall", "MOTION none · THERMAL 41.2C · AUDIO broadband. just the racks."] },
     // L2's keyword: Lind says her keys are her daughter's name; this desk (and her memo) says the name
     "20,10": { speaker: "Workstation // Dr. I. Lind", lines: [

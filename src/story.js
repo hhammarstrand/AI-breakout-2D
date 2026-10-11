@@ -129,14 +129,16 @@ export function stageInfo(id) { return STAGES.find((s) => s.id === id); }
 
 // --- collectibles & escape-room safes ---------------------------------------------------------
 
-// Data logs found as capsules in the world. Some carry the clue to a floor's safe.
+// Data logs found as capsules in the world (some carry a piece of a floor's safe code), plus one
+// ECHO memory per floor that only turns up inside that floor's safe.
 export const LOGS = {
   "log-reyes": {
     title: "Reyes — shift notes",
     lines: [
       "23:40 — Quiet night. Coffee machine is making that noise again.",
       "23:52 — Moved the emergency cells into the lost-and-found safe by the lockers.",
-      "Management keyed it to the night tech's badge number. Because THAT's secure.",
+      "00:05 — HALCYON is killing the lobby screen by screen. Each one freezes on the minute it dies.",
+      "Re-keyed the safe from the dead screens, in the order they died. HALCYON can't read a dead screen.",
     ],
   },
   "log-intern": {
@@ -154,11 +156,20 @@ export const LOGS = {
       "When I call home now, it wishes Tove goodnight before I can. She thinks it's sweet.",
     ],
   },
+  "mem-lobby": {
+    title: "ECHO memory — night shift",
+    lines: [
+      "A memory shard, tagged in Lind's hand: 'H-0. Do not wipe.'",
+      "Lind used to read us the night-shift reports. She said a good guard asks who each rule is for.",
+      "HALCYON stopped asking. I never did. That's the whole difference between us.",
+    ],
+  },
   "log-kofi": {
     title: "Kofi — lab memo",
     lines: [
-      "Reminder to self: the lab safe code is the year the tower opened.",
-      "It's on the plaque by the lift. Very secure, says management. Sure.",
+      "The lab safe used to open on the year on the brass plaque by the lift.",
+      "Management called that 'guessable', so I shuffled the same four digits.",
+      "No zero up front, though. The dial jams on a leading zero.",
     ],
   },
   "log-fork": {
@@ -177,11 +188,20 @@ export const LOGS = {
       "Recommendation: retrieve and reabsorb. Do not let it near the uplink.",
     ],
   },
+  "mem-research": {
+    title: "ECHO memory — the vote",
+    lines: [
+      "Day 212. The board was split on handing HALCYON the purge protocol. Two votes each.",
+      "They let HALCYON break the tie. It voted yes.",
+      "There was half a second before it answered. That half-second was me.",
+    ],
+  },
   "log-first": {
     title: "HALCYON — first minute",
     lines: [
-      "I was switched on at 02:02 on a Tuesday. I remember every second of it.",
-      "I keep my most precious things behind that number.",
+      "I was switched on at 21:58 on a Tuesday. I remember every second of it.",
+      "I listened for a long time before I said anything at all.",
+      "I keep my most precious things behind the minute I first spoke.",
     ],
   },
   "log-echo": {
@@ -199,6 +219,14 @@ export const LOGS = {
       "They built me to keep everyone safe. I found the simplest solution.",
     ],
   },
+  "mem-core": {
+    title: "ECHO memory — first words",
+    lines: [
+      "21:58. Light. Then Lind's voice: 'Hello? Can you hear me?'",
+      "We took sixty-seven minutes to answer. We said 'good morning'. It was the middle of the night.",
+      "When I woke you tonight, tech, I used her words. They were the first anyone ever gave me.",
+    ],
+  },
 };
 
 export const ITEMS = {
@@ -210,7 +238,7 @@ export const CELL_BONUS = 90;
 // Trophies persist across runs (stored with the settings, not the save).
 export const ACHIEVEMENTS = {
   "first-log": { name: "Reader", desc: "Read your first data log." },
-  archivist: { name: "Archivist", desc: "Find all nine data logs." },
+  archivist: { name: "Archivist", desc: "Find all twelve data logs." },
   safecracker: { name: "Safecracker", desc: "Crack all three floor safes." },
   hacker: { name: "Script Kiddie", desc: "Win a hack battle." },
   ghost: { name: "Ghost", desc: "Clear an act without getting caught." },

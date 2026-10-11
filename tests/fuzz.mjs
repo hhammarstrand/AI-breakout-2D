@@ -45,6 +45,11 @@ for (const st of STAGES) {
   await wait(900);
   await mash(100, SAFE_KEYS);
 }
+// the lobby safe's combination dial
+await enterWorld();
+await ev(() => { const g = window.__blackout.game; while (g.scenes.length > 1) g.pop(); const w = g.scenes[0]; w._iris = null; w.dialog.close(); w._useSafe(); });
+await wait(300);
+await mash(100, SAFE_KEYS.filter((k) => k !== "Backspace")); // Backspace would just leave the dial
 // battles: trigger repeatedly and mash
 for (let b = 0; b < 3; b++) {
   await enterWorld();
