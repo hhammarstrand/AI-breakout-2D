@@ -81,9 +81,16 @@ campaign test in Swedish.
 
 - **Grid movement** — you walk tile to tile; tap a direction to turn on the spot, hold to walk,
   `Shift` to run. People and objects block your path.
-- **Data capsules** — glinting capsules hide nine data logs (three per floor) and backup cells.
-- **Escape-room safes** — every floor has a four-digit safe. The code is hidden in that floor's
-  logs, signs and terminals; inside is a backup cell that buys +90 s on the purge clock.
+- **Data capsules** — glinting capsules hide nine data logs (three per floor) and backup cells; three
+  more logs, ECHO's memories, are locked in the safes.
+- **Escape-room safes** — every floor has a four-digit safe with a note on its dial saying what the
+  code is made of. No single clue gives it away: the pieces are spread over that floor's signs,
+  terminals and data logs and must be combined. Lobby: four screens froze when HALCYON killed them;
+  take the last digit of each clock in the order they died (mind midnight). Research floor: Kofi
+  reshuffled the old code from the plaque under three rules found in three places. Core: the minute
+  HALCYON first spoke, worked out from its boot log and a memory-log offset. Each safe holds a
+  backup cell (+90 s) and an ECHO memory, a data log found nowhere else. A wrong code costs 5 s;
+  ECHO's hints go from where to look, to how to combine, to nearly the answer.
 - **Hack battles** — when a sentinel spots you, a "!" pops over your head and a turn-based
   battle starts. ECHO has PING, SPOOF, OVERLOAD and PATCH; the sentinel telegraphs its next move,
   so SPOOF its PURGE BOLT and PATCH when low. Win and it crashes for 30 s; lose and you're tagged

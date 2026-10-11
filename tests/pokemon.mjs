@@ -39,8 +39,8 @@ await ev(() => { const w = window.__blackout.game.scenes[0]; w.player.teleport(4
 await wait(200); await press("e"); await wait(400);
 console.log("safe scene", await ev(() => window.__blackout.game.top.constructor.name));
 await press("Enter"); await wait(200); await page.screenshot({ path: `${SHOTS}/p-3-safe-wrong.png` });
-// 0417
-await press("ArrowRight"); await press("ArrowUp", 4); await press("ArrowRight"); await press("ArrowUp", 1); await press("ArrowRight"); await press("ArrowDown", 3);
+// 3814: the frozen clocks' last digits, oldest first
+await press("ArrowUp", 3); await press("ArrowRight"); await press("ArrowDown", 2); await press("ArrowRight"); await press("ArrowUp", 1); await press("ArrowRight"); await press("ArrowUp", 4);
 await press("Enter"); await wait(1500);
 console.log("after safe", await ev(() => JSON.stringify({ items: window.__blackout.gameState.items, top: window.__blackout.game.top.constructor.name })));
 await press("Escape"); await wait(300);

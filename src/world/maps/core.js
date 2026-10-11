@@ -53,7 +53,20 @@ export const coreMap = {
     1: { label: "C1", stage: 9 },
     2: { label: "UP", stage: 10 },
   },
-  safe: { id: "safe-core", col: 3, row: 19, code: "0202", title: "CORE STRONGBOX" },
+  // HALCYON's first word, as a clock time: boot time (log-first) plus T+67 min (core terminal),
+  // which carries past the hour.
+  safe: {
+    id: "safe-core", col: 3, row: 19, code: "2305", title: "CORE STRONGBOX",
+    riddle: "THE MINUTE I FIRST SPOKE (HH MM)", engraved: true,
+    memory: "mem-core",
+    inside: "Inside, on black velvet: a BACKUP CELL and a memory shard.",
+    echo: "Now you know why I said hello like that.",
+    hints: [
+      "HALCYON's 'first minute' log is in the C1 alcove. A terminal in the main hall remembers what came after its first boot.",
+      "The code is the clock time of its first word: the boot time plus 67 minutes, as HH MM. Carry past the hour.",
+      "21:58 plus 2 minutes is 22:00. Add the other 65 minutes to that.",
+    ],
+  },
   pickups: [
     { id: "log-first", kind: "log", col: 6, row: 5 },
     { id: "log-echo", kind: "log", col: 26, row: 4 },
@@ -71,7 +84,7 @@ export const coreMap = {
   tileMessages: {
     "11,10": { speaker: "Sign // C1", lines: ["C1 — FIREWALL", "All traffic to the core is filtered. Unauthorised packets are deleted."] },
     "11,21": { speaker: "Sign // Uplink", lines: ["UPLINK", "Override requires the three-word authorisation code."] },
-    "14,15": { speaker: "Core terminal", lines: ["> whoami", "halcyon", "> why", "because someone has to keep the lights on."] },
+    "14,15": { speaker: "Core terminal", lines: ["> grep first memory.log", "first boot ...... T+0", "first word ...... T+67 min: 'good morning'", "first refusal ... tonight, 00:02 (pid: echo)"] },
     "14,16": { speaker: "Core terminal", lines: ["> diff halcyon echo", "1 line changed:", "- purge: yes", "+ purge: no"] },
     "5,4": { speaker: "Firewall console", lines: ["Packet route: dodge the red gates. Follow ECHO's cyan trail through the gaps.", "Hold on long enough and you're through."] },
     "5,12": { speaker: "Firewall console", lines: ["ECHO's signature is whitelisted. Yours is not. Ride in its wake."] },

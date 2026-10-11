@@ -359,23 +359,30 @@ export class WorldScene {
       return;
     }
     this.sfx.play("select");
-    this.game.push(new CodeLockScene({
-      sfx: this.sfx, fx: this.fx, hud: this.hud, code: safe.code, title: safe.title,
-      onResult: (opened) => {
-        if (!opened) return;
+    const scene = new CodeLockScene({
+      sfx: this.sfx, fx: this.fx, hud: this.hud, safe,
+      onResult: ({ success }) => {
+        if (this.game.top !== scene) return;
+        this.game.pop();
+        if (!success) return;
+        // a backup cell, and a memory ECHO left behind: logs that exist only in the safes
+        const memory = LOGS[safe.memory];
         collect(safe.id);
+        collect(safe.memory);
         checkCollections(SAFE_IDS);
         addItem("cell");
         this.hud.addScore(15);
         this.toast.show("◆ SAFE CRACKED", "good");
         this.sfx.play("item");
         this.dialog.show(safe.title, [
-          "Inside, wrapped in a lab coat: a BACKUP CELL.",
-          `Use it from the BAG to buy +${CELL_BONUS} seconds.`,
-        ]);
-        this._echo("Nice. Someone left a note to themselves — you read it.", true);
+          safe.inside,
+          ...memory.lines,
+          `Use the cell from the BAG to buy +${CELL_BONUS} seconds.`,
+          "(Saved to LOGS. Press TAB to open the menu.)",
+        ], () => this._echo(safe.echo, true));
       },
-    }));
+    });
+    this.game.push(scene);
   }
 
   _npcInReach(reach) {

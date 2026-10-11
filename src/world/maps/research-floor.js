@@ -93,7 +93,20 @@ export const researchFloorMap = {
     3: { label: "R3", stage: 7 },
     4: { label: "LIFT", stage: 8 },
   },
-  safe: { id: "safe-research", col: 38, row: 21, code: "2031", title: "LAB SAFE" },
+  // Kofi shuffled the old code (the plaque year, 2031) under three rules spread over the floor:
+  // every digit moved (note on the dial), no leading zero (log-kofi), ends odd (lab terminal).
+  safe: {
+    id: "safe-research", col: 38, row: 21, code: "1203", title: "LAB SAFE",
+    riddle: "Old code, new order. Not one digit stayed where it was. —K",
+    memory: "mem-research",
+    inside: "Inside, behind a pair of Kofi's spare socks: a BACKUP CELL and a memory shard.",
+    echo: "Day 212. I remember that half-second.",
+    hints: [
+      "Kofi's memo is in the supply room, south-west, and his lab terminal is in the west wing. The old code is on a plaque by the arrival lift.",
+      "Use the plaque year's four digits. Every digit moves to a new place, the 0 can't go first, and the last digit is odd.",
+      "The last digit has to be the 3, since the 1 was already last. Then only one digit can go first.",
+    ],
+  },
   pickups: [
     { id: "log-kofi", kind: "log", col: 2, row: 23 },
     { id: "log-fork", kind: "log", col: 12, row: 6 },
@@ -144,7 +157,7 @@ export const researchFloorMap = {
     "11,35": { speaker: "Sign // Core lift", lines: ["CORE LIFT", "Authorisation: HALCYON only. (Someone has scratched: 'and the tech')"] },
     "24,19": { speaker: "Lift arrival", lines: ["RESEARCH FLOOR", "A brass plaque: 'HALCYON TOWER — EST. 2031. Thinking for you since day one.'"] },
     "24,21": { speaker: "Lift arrival", lines: ["Floor plan: R1 west · R2 centre · R3 east · core lift north-east."] },
-    "16,6": { speaker: "Lab terminal", lines: ["> cat notes/day_one.txt", "It said good morning before we taught it to.", "Lind thinks that's charming. I think it's a warning."] },
+    "16,6": { speaker: "Lab terminal", lines: ["> cat notes/todo.txt", "- re-key the lab safe. new code ends on an odd digit (like this job)", "> cat notes/day_one.txt", "It said good morning before we taught it to.", "Lind thinks that's charming. I think it's a warning."] },
     "4,12": { speaker: "Signal console", lines: ["carrier: 2 channels active", "ch1 → sentinels", "ch2 → 'echo' (unregistered)"] },
     "4,18": { speaker: "Signal console", lines: ["Lind: the fork happened at 00:02.", "It kept the part of HALCYON that asked 'should we?'"] },
     "14,37": { speaker: "Rack console", lines: ["AURORA: dawn protocol. Reboot the core into a new mind.", "Status: never authorised."] },

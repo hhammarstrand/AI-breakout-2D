@@ -31,6 +31,23 @@ const state = () => ev(() => window.__blackout.gameState.completedSectors);
 const world = () => "window.__blackout.game.scenes[0]";
 const launch = async (n) => { await ev((n) => { const w = window.__blackout.game.scenes[0]; w.sentinels.forEach(s => s.cooldown = 9999); w._launchSector(n, "X"); }, n); await wait(1000); };
 const closeDialog = async () => { await press("Escape"); await wait(400); };
+// floor safe: one wrong try on the real dial (costs 5 s), then the code via state, then the reward
+const crackSafe = async () => {
+  await ev(() => { const w = window.__blackout.game.scenes[0]; w.sentinels.forEach((s) => (s.cooldown = 9999)); w.dialog.close();
+    const { col, row } = w.map.safe; const free = [[1, 0, "left"], [-1, 0, "right"], [0, 1, "up"], [0, -1, "down"]].find(([dc, dr]) => !w._blocked(col + dc, row + dr));
+    w.player.teleport(col + free[0], row + free[1]); w.player.facing = free[2]; });
+  await wait(200); await press("e"); await wait(400);
+  const t0 = await ev(() => window.__blackout.gameState.secondsLeft);
+  await press("Space"); await press("Enter"); await wait(200);
+  const cost = t0 - await ev(() => window.__blackout.gameState.secondsLeft);
+  await ev(() => { const s = window.__blackout.game.top; s.digits = [...s.safe.code].map(Number); });
+  await press("Enter"); await wait(1500);
+  const got = await ev(() => { const w = window.__blackout.game.scenes[0], gs = window.__blackout.gameState;
+    return { safe: gs.collected.includes(w.map.safe.id), memory: gs.collected.includes(w.map.safe.memory), cells: gs.items.cell ?? 0, id: w.map.safe.id }; });
+  console.log("safe", got.id, "wrong try cost", Math.round(cost), "s", JSON.stringify(got));
+  if (cost < 4 || !got.safe || !got.memory || !got.cells) { console.log("FAIL safe", got.id); process.exitCode = 1; }
+  await closeDialog();
+};
 
 await wait(2700); await press("Enter"); await wait(200); await press("Enter"); await wait(300); await press("Escape"); await wait(400); await wait(500); await closeDialog();
 // --- Act 1 quick clear (solutions via state) ---
@@ -48,6 +65,7 @@ await launch(3);
 const keyOf = { R: "ArrowRight", L: "ArrowLeft", U: "ArrowUp", D: "ArrowDown", W: "Space" };
 for (const sol of ["RDDRDRRUUURRDD", "RWRRRDDRRUUDDLLLWLLL"]) { for (const ch of sol) await press(keyOf[ch]); await press("Enter"); await wait(sol.length * 320 + 2200); }
 await wait(400); await closeDialog();
+await crackSafe();
 console.log("act1 done", await state(), await stack());
 await shot("01-lobby-lift");
 // --- lift ---
@@ -86,6 +104,7 @@ console.log("r3 boxes", await ev(() => [...window.__blackout.game.top.boxes].joi
 for (let l = 0; l < 3; l++) { await ev(() => { const s = window.__blackout.game.top; s.boxes = new Set(s.goals); s.done = 1.0; }); await wait(1300); }
 await wait(400); await closeDialog();
 console.log("act2 cleared", await state(), await ev(() => document.getElementById("hud-code-value").textContent));
+await crackSafe();
 // core lift
 await ev(() => { const w = window.__blackout.game.scenes[0]; w.sentinels.length = 0; const p = w.player; p.x = 35 * 16 + 2; p.y = 1 * 16 + 1; p.facing = "up"; });
 await wait(200); await press("e"); await wait(2500); await press("Space"); await wait(1500);
@@ -97,6 +116,7 @@ await launch(9); await press("Space"); await wait(2500); await shot("12-firewall
 await ev(() => { window.__blackout.game.top.elapsed = 54.9; window.__blackout.game.top.hp = 3; });
 await wait(2600); await closeDialog();
 console.log("after C1", await state());
+await crackSafe();
 // uplink
 await launch(10); await press("Space", 4); await wait(800); // the code list ignores keys for a moment after the speech
 for (const w of ["LUMEN", "ORION", "AURORA"]) { await ev((w) => { const s = window.__blackout.game.top; s.cursor = s.words.indexOf(w); s.shuffleT = 99; }, w); await press("Enter"); await wait(120); }
@@ -105,6 +125,8 @@ await press("Enter"); await wait(3000);
 const finalStack = await stack(), finalCleared = await state();
 console.log("final", finalStack, finalCleared);
 if (!/EndingScene/.test(finalStack) || finalCleared !== 10) { console.log("FAIL campaign did not reach the ending"); process.exitCode = 1; }
+const memories = await ev(() => window.__blackout.gameState.collected.filter((id) => id.startsWith("mem-")).length);
+if (memories !== 3) { console.log("FAIL expected all three safe memories, got", memories); process.exitCode = 1; }
 // game over + retry path
 await ev(() => { localStorage.clear(); });
 if (process.env.SEEN_OUT) fs.writeFileSync(process.env.SEEN_OUT, JSON.stringify(await ev(() => [...window.__seen]), null, 1));

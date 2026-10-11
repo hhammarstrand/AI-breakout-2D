@@ -148,4 +148,37 @@ const quiet = (p) => p.ev(() => { const w = window.__blackout.game.scenes[0]; w.
   await p.browser.close();
 }
 
+// 10. Floor safes: Space never costs time, a wrong code does, Esc leaves cleanly, hints are the
+// floor's own, and the right code gives a cell plus that floor's ECHO memory in LOGS.
+{
+  const p = await open({ save: fresh({ completedSectors: 4 }) });
+  await p.title(); await quiet(p);
+  const toSafe = () => p.ev(() => { const w = window.__blackout.game.scenes[0]; w.player.teleport(37, 21); w.player.facing = "right"; });
+  await toSafe(); await p.press("e"); await p.wait(300);
+  check(await p.stack() === "WorldScene>CodeLockScene", "the research safe opens its dial", await p.stack());
+  const info = await p.ev(() => { const s = window.__blackout.game.top; return { riddle: s.safe.riddle, hints: s.hints, mine: s.hints === window.__blackout.game.scenes[0].map.safe.hints }; });
+  check(info.mine && info.hints.length === 3 && !!info.riddle, "the dial shows the floor's riddle and uses the floor's three hints");
+  const t0 = (await p.state()).secondsLeft;
+  await p.press("ArrowUp"); await p.press("Space"); await p.wait(200);
+  check(await p.stack() === "WorldScene>CodeLockScene" && t0 - (await p.state()).secondsLeft < 1, "Space never tries the code");
+  await p.press("Enter"); await p.wait(200);
+  check(t0 - (await p.disk()).secondsLeft >= 5, "a wrong code costs 5 s, saved at once");
+  await p.press("Escape"); await p.wait(300);
+  check(await p.stack() === "WorldScene" && !(await p.state()).collected.includes("safe-research"), "Esc leaves the safe shut");
+  await toSafe(); await p.press("e"); await p.wait(300);
+  await p.ev(() => { const s = window.__blackout.game.top; s.digits = [...s.safe.code].map(Number); });
+  await p.press("Enter"); await p.wait(1500);
+  const s = await p.state();
+  check(s.collected.includes("safe-research") && s.collected.includes("mem-research") && s.items.cell === 1, "the right code gives a backup cell and the floor's memory");
+  await p.press("Escape"); await p.wait(300); await quiet(p);
+  await p.press("Tab"); await p.wait(200); await p.press("ArrowDown"); await p.press("Space"); await p.wait(200);
+  const logs = await p.ev(() => window.__blackout.game.top._entries().map((e) => e.label));
+  check(logs.includes("ECHO memory — the vote"), "the memory can be read from LOGS", logs.join(" | "));
+  await p.press("Escape"); await p.press("Escape"); await p.wait(200);
+  await toSafe(); await p.press("e"); await p.wait(300);
+  const said = await p.ev(() => window.__blackout.game.scenes[0].dialog._current);
+  check(await p.stack() === "WorldScene" && /stands open/.test(said), "an opened safe stays open and empty", said);
+  await p.browser.close();
+}
+
 summary("regress");
