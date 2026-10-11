@@ -19,6 +19,8 @@ for (const [file, name] of [["smart-building.js", "smartBuildingMap"], ["researc
   const adj = (c, r) => [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dc, dr]) => seen.has(`${c + dc},${r + dr}`));
   const targets = [...(m.pickups ?? []).map((p) => [p.id, p.col, p.row]), ["safe", m.safe.col, m.safe.row],
     ...(m.npcs ?? []).map((n) => [n.id, n.col, n.row]),
+    // signs and terminals with something to read (L2's keyword is on one of them)
+    ...Object.entries(m.tileMessages ?? {}).map(([k, msg]) => { const [r, c] = k.split(",").map(Number); return [msg.speaker, c, r]; }),
     ...Object.entries(m.doors).map(([slot, d]) => { for (let r = 0; r < tm.rows; r++) for (let c = 0; c < tm.cols; c++) if (tm.doorSlot(tm.grid[r][c]) === Number(slot)) return [d.label, c, r]; })];
   const bad = targets.filter(([, c, r]) => !adj(c, r));
   console.log(name, "reachable tiles", seen.size, bad.length ? "UNREACHABLE: " + JSON.stringify(bad) : "all targets reachable");

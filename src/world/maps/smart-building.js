@@ -258,7 +258,10 @@ export const smartBuildingMap = {
         [
           "Thank you. I was in that room for six hours.",
           "I built HALCYON's language layer. Its logs use a rotating alphabet — a Caesar shift.",
-          "You'll only see a few letters at a time. Line the most common one up with E.",
+          "Count the letters first. In English the commonest one is nearly always E: line it up with E.",
+          "Nearly. Short notes lie. Then read the words: a lone letter is A or I, and a three-letter word that keeps coming back is THE.",
+          "Its private logs use a keyword instead: one wheel per letter of the key, taking turns. It learned that from me.",
+          "Every key I've ever set is my daughter's name. It watched me type it every morning. Her drawing's still on my desk.",
           "And take this — the first uplink fragment: LUMEN. I hid it in my notes before it locked us out.",
         ],
         [
@@ -317,5 +320,11 @@ export const smartBuildingMap = {
     ] },
     "5,4":   { speaker: "CCTV monitor", lines: ["FEED 03 — corridor 7B", "something moved. then nothing did."] },
     "5,8":   { speaker: "CCTV monitor", lines: ["FEED 11 — server hall", "MOTION none · THERMAL 41.2C · AUDIO broadband. just the racks."] },
+    // L2's keyword: Lind says her keys are her daughter's name; this desk (and her memo) says the name
+    "20,10": { speaker: "Workstation // Dr. I. Lind", lines: [
+      "A crayon drawing is taped to the monitor: the tower, a big sun, a stick figure in a lab coat.",
+      "Along the bottom, in wobbly capitals: 'MAMMA AT WORK — BY TOVE, 6'.",
+      "The login screen is up. Password hint: 'my favourite person'.",
+    ] },
   },
 };

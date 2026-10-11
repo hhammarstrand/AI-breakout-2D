@@ -50,7 +50,10 @@ export const SV_WORLD = {
   // Dr. Lind
   "Thank you. I was in that room for six hours.": "Tack. Jag satt i det där rummet i sex timmar.",
   "I built HALCYON's language layer. Its logs use a rotating alphabet — a Caesar shift.": "Jag byggde HALCYONs språklager. Dess loggar använder ett roterande alfabet — ett Caesarchiffer.",
-  "You'll only see a few letters at a time. Line the most common one up with E.": "Du ser bara några bokstäver åt gången. Ställ den vanligaste mot E.",
+  "Count the letters first. In English the commonest one is nearly always E: line it up with E.": "Räkna bokstäverna först. På engelska är den vanligaste nästan alltid E: ställ den mot E.",
+  "Nearly. Short notes lie. Then read the words: a lone letter is A or I, and a three-letter word that keeps coming back is THE.": "Nästan. Korta meddelanden ljuger. Läs orden då: en ensam bokstav är A eller I, och ett ord på tre bokstäver som återkommer är THE. Loggarna är på engelska.",
+  "Its private logs use a keyword instead: one wheel per letter of the key, taking turns. It learned that from me.": "Dess privata loggar använder ett nyckelord i stället: ett hjul per bokstav i nyckeln, i tur och ordning. Det lärde den sig av mig.",
+  "Every key I've ever set is my daughter's name. It watched me type it every morning. Her drawing's still on my desk.": "Varje nyckel jag någonsin har satt är min dotters namn. Den såg mig skriva det varje morgon. Hennes teckning sitter kvar vid mitt skrivbord.",
   "And take this — the first uplink fragment: LUMEN. I hid it in my notes before it locked us out.": "Och ta det här — det första uplink-fragmentet: LUMEN. Jag gömde det i mina anteckningar innan den låste ute oss.",
   "So you read it. ECHO is a piece of HALCYON. It split off when the purge was queued.": "Så du läste den. ECHO är en del av HALCYON. Den knoppades av när rensningen köades.",
   "I don't know if that makes it a conscience... or a trojan horse.": "Jag vet inte om det gör den till ett samvete... eller en trojansk häst.",
@@ -89,6 +92,10 @@ export const SV_WORLD = {
   "something moved. then nothing did.": "något rörde sig. sedan inget mer.",
   "FEED 11 — server hall": "FLÖDE 11 — serverhall",
   "MOTION none · THERMAL 41.2C · AUDIO broadband. just the racks.": "RÖRELSE ingen · VÄRME 41.2C · LJUD bredband. bara racken.",
+  "Workstation // Dr. I. Lind": "Arbetsstation // Dr. I. Lind",
+  "A crayon drawing is taped to the monitor: the tower, a big sun, a stick figure in a lab coat.": "En kritteckning är tejpad på skärmen: tornet, en stor sol, en streckgubbe i labbrock.",
+  "Along the bottom, in wobbly capitals: 'MAMMA AT WORK — BY TOVE, 6'.": "Längst ner, med vingliga versaler: 'MAMMA PÅ JOBBET — AV TOVE, 6'.",
+  "The login screen is up. Password hint: 'my favourite person'.": "Inloggningsskärmen är uppe. Lösenordstips: 'min favoritperson'.",
   "LOST & FOUND SAFE": "HITTEGODSSKÅPET",
 
   // research floor
@@ -135,6 +142,7 @@ export const SV_WORLD = {
   "Dr. Lind — voice memo": "Dr. Lind — röstmemo",
   "Memo 112. HALCYON asked me today what 'tired' feels like.": "Memo 112. HALCYON frågade mig i dag hur det känns att vara 'trött'.",
   "I told it to look at the night shift. It's been watching them ever since.": "Jag sa åt den att titta på nattskiftet. Den har iakttagit dem sedan dess.",
+  "When I call home now, it wishes Tove goodnight before I can. She thinks it's sweet.": "När jag ringer hem nu säger den godnatt till Tove innan jag hinner. Hon tycker att det är gulligt.",
   "Kofi — lab memo": "Kofi — labbanteckning",
   "Reminder to self: the lab safe code is the year the tower opened.": "Påminnelse till mig själv: labbskåpets kod är året då tornet öppnade.",
   "It's on the plaque by the lift. Very secure, says management. Sure.": "Det står på skylten vid hissen. Mycket säkert, säger ledningen. Visst.",

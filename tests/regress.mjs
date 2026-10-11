@@ -202,6 +202,50 @@ const quiet = (p) => p.ev(() => { const w = window.__blackout.game.scenes[0]; w.
     return n;
   });
   check(bad === 0, "every generated L1 feed fits exactly one kind under the lobby's rules (1000 boards)", `${bad} bad`);
+// 11. L2 escalates: only log 1 labels the peak as E, log 2's peak isn't E, log 3's key is the name
+//     on Lind's desk, hints follow the log, and a stepped-out player resumes on the keyword log.
+{
+  const p = await open({ save: fresh({ completedSectors: 1 }) });
+  await p.title(); await quiet(p);
+  await p.ev(() => window.__blackout.game.scenes[0]._launchSector(2, "L2")); await p.wait(1200);
+  const l1 = await p.ev(() => { const s = window.__blackout.game.top; return { tut: !!s.log.tutorial, partial: !!s.revealed, hint: s.hints[0] }; });
+  check(l1.tut && l1.partial, "log 1 is the frequency tutorial with a partial decode");
+  await p.ev(() => { const s = window.__blackout.game.top; s._hintsShown = 2; s.resume(1); }); // as if two log-1 hints were read
+  const l2 = await p.ev(async () => {
+    const { letterCounts, ALPHA } = await import("/src/scenes/cipher-logs.js");
+    const s = window.__blackout.game.top, f = letterCounts(s.log.plain);
+    const peak = f.indexOf(Math.max(...f));
+    // the shift a player gets by assuming the tallest ciphertext bar is E
+    const guess = ((s.freq.indexOf(s.freqMax) - 4) % 26 + 26) % 26;
+    return { peak: ALPHA[peak], eTop: f[4] >= f[peak], tut: !!s.log.tutorial, partial: !!s.revealed, hint: s.hints[0], shown: s._hintsShown ?? 0, guess, key: s.log.shifts[0] };
+  });
+  check(!l2.eTop && !l2.tut && !l2.partial, "log 2: no E label, full live decode, and E is not the commonest letter", `peak ${l2.peak}`);
+  check(l2.hint !== l1.hint && l2.shown === 0, "hints switch to log 2's set and start from the first tier");
+  check(l2.guess !== l2.key, "log 2: 'tallest bar = E' gives the wrong key");
+  const t0 = (await p.state()).secondsLeft;
+  await p.press("ArrowRight", l2.guess); await p.press("Enter"); await p.wait(300);
+  check(t0 - (await p.disk()).secondsLeft > 25, "locking in the E guess on log 2 costs time");
+  await p.ev(() => window.__blackout.game.top.resume(2));
+  const name = await p.ev(async () => {
+    const { smartBuildingMap } = await import("/src/world/maps/smart-building.js");
+    return smartBuildingMap.tileMessages["20,10"].lines.join(" ").match(/BY ([A-Z]+),/)?.[1];
+  });
+  const key = await p.ev(() => window.__blackout.game.top.log.shifts.map((k) => "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[k]).join(""));
+  check(!!name && name === key, "log 3's keyword is the name signed on Lind's desk drawing", `${name} / ${key}`);
+  // one reel wrong still fails
+  for (const [i, ch] of [...key].entries()) {
+    await p.press("ArrowUp", ch.charCodeAt(0) - 65 + (i === 3 ? 1 : 0));
+    if (i < 3) await p.press("ArrowRight");
+  }
+  const t1 = (await p.disk()).secondsLeft;
+  await p.press("Enter"); await p.wait(300);
+  check(t1 - (await p.disk()).secondsLeft > 25 && await p.ev(() => window.__blackout.game.top.index) === 2, "three right reels of four is still a wrong lock-in");
+  await p.press("Escape"); await p.wait(700); await quiet(p);
+  await p.ev(() => window.__blackout.game.scenes[0]._launchSector(2, "L2")); await p.wait(1200);
+  check(await p.ev(() => window.__blackout.game.top.index) === 2, "L2 reopens on the keyword log after stepping out");
+  for (const [i, ch] of [...key].entries()) { await p.press("ArrowUp", ch.charCodeAt(0) - 65); if (i < 3) await p.press("ArrowRight"); }
+  await p.press("Enter"); await p.wait(1900);
+  check((await p.state()).completedSectors === 2, "dialling the name clears L2");
   await p.browser.close();
 }
 

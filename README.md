@@ -19,7 +19,7 @@ out of time restarts the current act.
 
 | Act | Floor | Stages |
 | --- | ----- | ------ |
-| I (25 min) | Lobby | **L1** classify CCTV feeds from raw motion, thermal and audio readings, using sensor rules pieced together from the L1 sign and three lobby staff; two rounds (fragment LUMEN) · **L2** Caesar-wheel decryption with frequency analysis (ORION) · **L3** program ECHO through alternating laser gates · service lift |
+| I (25 min) | Lobby | **L1** classify CCTV feeds from raw motion, thermal and audio readings, using sensor rules pieced together from the L1 sign and three lobby staff; two rounds (fragment LUMEN) · **L2** three escalating cipher logs: a Caesar wheel by frequency analysis, one where E isn't the commonest letter and word shapes give the key, then a four-wheel keyword cipher keyed with a name found in the lobby (ORION) · **L3** program ECHO through alternating laser gates · service lift |
 | II (20 min) | Research floor | **R1** rotate conduits to restore power · **R2** match HALCYON's carrier wave (frequency, amplitude, phase) · **R3** sokoban coolant bays (AURORA) · core lift |
 | III (15 min) | The core | **C1** firewall run — an action sequence steering a packet through closing gates · **UPLINK** enter the code while HALCYON scrambles it, then decide ECHO's fate |
 
@@ -70,7 +70,7 @@ Progress (sectors, score, remaining containment time) autosaves to `localStorage
 English and **Swedish (svenska)**. The game picks Swedish automatically when the browser is set to
 Swedish; switch any time under LANGUAGE on the title screen or in OPTIONS. All dialogue, logs,
 menus, puzzles and HALCYON's lines are translated (`src/i18n/`); the L2 cipher logs stay English on
-purpose, since that puzzle is built on English letter frequency. `LANG_UNDER_TEST=sv` runs the
+purpose, since that puzzle is built on English letter frequency and word shapes. `LANG_UNDER_TEST=sv` runs the
 campaign test in Swedish.
 
 ## Difficulty, hints and the opening
