@@ -161,6 +161,8 @@ export const SV_SCENES = {
   "[←→] rotate key   [enter] lock in   [esc] retreat": "[←→] vrid nyckeln   [enter] lås fast   [esc] retirera",
   "[arrows] move  [space] wait  [backspace] undo  [enter] run  [esc] retreat": "[pilar] flytta  [mellanslag] vänta  [backsteg] ångra  [enter] kör  [esc] retirera",
   "THAT'S ME?": "DET ÄR JAG?", "JAMMED": "BLOCKERAD",
+  "CLEANBOT": "STÄDROBOT", "SENTINEL": "VAKTROBOT", "SERVER RACK": "SERVERRACK",
+  "HALCYON RE-JAMMED THE CAMERAS — NEW READINGS": "HALCYON BLOCKERADE KAMERORNA IGEN — NYA VÄRDEN",
   "ON CAMERA, ONE EACH: YOU · A CLEANBOT · A SENTINEL · A SERVER RACK": "I BILD, EN AV VARJE: DU · EN STÄDROBOT · EN VAKTROBOT · ETT SERVERRACK",
   "HALCYON: \"One sensor jammed on each. Every thermal is the same few degrees high.\"": "HALCYON: \"En sensor blockerad på var och en. Varje värmevärde är lika många grader för högt.\"",
   "INTERCEPTED // HALCYON KEY PHRASE": "AVLYSSNAT // HALCYONS NYCKELFRAS",

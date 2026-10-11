@@ -16,6 +16,7 @@ const SMALL_PENALTY = 10; // ECHO bumped a wall or reached the socket on the wro
 const CPS = 38;
 const STAMP_TIME = 1.6;
 const STEP_TIME = 0.32;
+const REJAM_TIME = 1.6; // a wrong LUMEN pick shows what it was, then HALCYON deals fresh feeds
 
 const INTRO = [
   ["HALCYON", "Technician. You came all this way to type three words."],
@@ -47,6 +48,7 @@ const WRONG_FEED = {
   sentinel: "That's my sentinel. Flattering.",
   rack: "That's a server rack. You do look tired.",
 };
+const WHO_LABEL = { cleanbot: "CLEANBOT", sentinel: "SENTINEL", rack: "SERVER RACK" };
 const DEAL = [
   ["HALCYON", "...Stop. Before you finish. You should know what that code really does."],
   ["HALCYON", "An override needs a mind to run the tower. It will choose ECHO. My broken little piece."],
@@ -110,6 +112,8 @@ export class Sector4Scene {
     this.override = 0;
     this.choice = 0;
     this.eyeAnger = 0;
+    this.rejam = null;
+    this.rejammed = 0;
     this._loadLock();
   }
 
@@ -136,7 +140,7 @@ export class Sector4Scene {
 
   _loadLock() {
     this.cursor = 0;
-    if (this.lock === 0) this.feeds = makeFeeds();
+    if (this.lock === 0) { this.feeds = makeFeeds(); this.rejam = null; }
     if (this.lock === 1) {
       this.key = pickKey();
       this.cipher = shiftText(KEY_PHRASE, this.key);
@@ -158,7 +162,8 @@ export class Sector4Scene {
 
   update(dt, input) {
     this._t += dt;
-    if (this.phase === "lock") this.hud.update(dt); // HALCYON's speeches and the choice don't eat the clock
+    // the welcome, the deal and the choice don't eat the clock; a lock's brief does, since the lock is on screen
+    if (this.phase === "lock" || this.phase === "brief") this.hud.update(dt);
     this.echo._t += dt;
     if (this.lock === 2 && this.echoTarget && (this.phase === "lock" || this.phase === "stamp")) {
       this.echo.x += (this.echoTarget.x - this.echo.x) * Math.min(1, dt * 14);
@@ -166,6 +171,7 @@ export class Sector4Scene {
     }
     this.eyeAnger = Math.max(0, this.eyeAnger - dt);
     if (this.taunt) { this.taunt.time -= dt; if (this.taunt.time <= 0) this.taunt = null; }
+    this.rejammed = Math.max(0, this.rejammed - dt);
 
     if (this.phase === "intro" || this.phase === "brief" || this.phase === "deal") {
       // stepping out is allowed until the deal: that conversation decides the ending
@@ -226,21 +232,36 @@ export class Sector4Scene {
     if (input.wasPressed("pause")) { this.onResult({ success: false, aborted: true }); return; }
     // the key that closed HALCYON's speech must not also act on the lock
     if (this.keyLock > 0) { this.keyLock -= dt; return; }
-    if (this.lock === 0) this._updateFeeds(input);
+    if (this.lock === 0) this._updateFeeds(dt, input);
     else if (this.lock === 1) this._updateWheel(dt, input);
     else this._updateProgram(input);
   }
 
   // --- LUMEN -----------------------------------------------------------------
 
-  _updateFeeds(input) {
+  _updateFeeds(dt, input) {
+    if (this.rejam) {
+      // fresh feeds after a miss, so the other warm feed can't simply be picked next
+      this.rejam.t -= dt;
+      if (this.rejam.t > 0) return;
+      this.rejam = null;
+      this.feeds = makeFeeds();
+      this.cursor = 0;
+      this.rejammed = 2.6;
+      this.fx.glitch();
+      this.sfx.play("paBlip");
+      return;
+    }
     const n = this.feeds.length;
     if (input.wasPressed("left") || input.wasPressed("up")) { this.cursor = (this.cursor + n - 1) % n; this.sfx.play("select"); }
     if (input.wasPressed("right") || input.wasPressed("down")) { this.cursor = (this.cursor + 1) % n; this.sfx.play("select"); }
     if (!input.wasPressed("submit")) return; // only Enter commits: Space must never cost time
     const feed = this.feeds[this.cursor];
     if (feed.who === "you") this._open();
-    else this._wrong(WRONG_FEED[feed.who], PENALTY);
+    else {
+      this._wrong(WRONG_FEED[feed.who], PENALTY);
+      this.rejam = { t: REJAM_TIME, i: this.cursor };
+    }
   }
 
   // --- ORION -----------------------------------------------------------------
@@ -457,10 +478,11 @@ export class Sector4Scene {
     const w = renderer.width;
     this.feeds.forEach((f, i) => {
       const x = 12 + i * (CARD_W + 8), y = CARD_Y;
-      const focused = i === this.cursor && this.phase === "lock";
+      const missed = this.rejam?.i === i;
+      const focused = i === this.cursor && this.phase === "lock" && !this.rejam;
       const won = this.phase === "stamp" && f.who === "you";
       renderer.fillRect(x, y, CARD_W, CARD_H, won ? "#08261a" : focused ? "#2a0a10" : "#120408");
-      renderer.strokeRect(x, y, CARD_W, CARD_H, won ? "#0aff7a" : focused ? "#ffd0d0" : "#5a1a22", focused || won ? 2 : 1);
+      renderer.strokeRect(x, y, CARD_W, CARD_H, won ? "#0aff7a" : missed ? "#ff3a3a" : focused ? "#ffd0d0" : "#5a1a22", focused || won || missed ? 2 : 1);
       renderer.text(`CON-${f.id}`, x + 8, y + 11, { color: "#ff9a9a", size: 10, weight: "bold", baseline: "middle" });
       // a scrap of camera static, like the lobby feeds
       const sx = x + CARD_W - 30, sy = y + 4;
@@ -485,7 +507,14 @@ export class Sector4Scene {
         }
       });
       if (focused) renderer.text("▶ THAT'S ME?", x + CARD_W / 2, y + CARD_H - 10, { color: "#ffd0d0", size: 8, align: "center", baseline: "middle", weight: "bold" });
+      if (missed) {
+        renderer.fillRect(x + 4, y + CARD_H - 19, CARD_W - 8, 15, "#3a0008");
+        renderer.text(WHO_LABEL[f.who], x + CARD_W / 2, y + CARD_H - 11, { color: "#ff5a5a", size: 9, align: "center", baseline: "middle", weight: "bold" });
+      }
     });
+    if (this.rejammed > 0) {
+      renderer.text("HALCYON RE-JAMMED THE CAMERAS — NEW READINGS", w / 2, CARD_Y + CARD_H + 58, { color: "#ffaa3a", size: 9, align: "center", baseline: "middle", weight: "bold" });
+    }
     renderer.text("ON CAMERA, ONE EACH: YOU · A CLEANBOT · A SENTINEL · A SERVER RACK", w / 2, CARD_Y + CARD_H + 14, { color: "#ff9a9a", size: 8, align: "center", baseline: "middle" });
     renderer.text("HALCYON: \"One sensor jammed on each. Every thermal is the same few degrees high.\"", w / 2, CARD_Y + CARD_H + 28, { color: "#a05050", size: 8, align: "center", baseline: "middle" });
     renderer.text("HALCYON: \"My cleanbot moves as slowly as you do.\"", w / 2, CARD_Y + CARD_H + 41, { color: "#a05050", size: 8, align: "center", baseline: "middle" });

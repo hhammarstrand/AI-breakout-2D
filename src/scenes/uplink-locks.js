@@ -16,7 +16,7 @@ const CHANNELS = ["motion", "thermal", "audio"];
 // fit two kinds, both are allowed, so a board only passes if it is unique even for a cautious reader.
 const KNOWN = {
   you: { motion: ["breathing", "shallow", "slow shift"], audio: ["coughing", "sobbing", "whispers"], t: [35.8, 37.4] },
-  cleanbot: { motion: ["slow sweep", "slow shift", "breathing?"], audio: [...BOT_SOUND, "fan whir"], t: [35.8, 38.0] },
+  cleanbot: { motion: ["slow sweep", "slow shift", "breathing?", "breathing"], audio: [...BOT_SOUND, "fan whir"], t: [35.8, 38.0] },
   sentinel: { motion: HOSTILE_MOTION, audio: HOSTILE_SOUND, t: [38.0, 43.0] },
   rack: { motion: ["none"], audio: ["fan whir", "motor hum"], t: [38.0, 42.0] },
 };
@@ -61,10 +61,11 @@ function drawFeeds(rnd) {
   const decoy = rnd() < 0.5;
   let you, bot;
   if (decoy) {
-    // the cleanbot shifts like a person and its microphone is out; you show one human-only sign
+    // the cleanbot shifts like a person and its microphone is out; you can be heard coughing or
+    // whispering. (Not breathing alone: L1's cleanbot showed "breathing?", so that reads both ways.)
     bot = { motion: "slow shift", audio: pickOf(rnd, BOT_SOUND), t: between(rnd, 36.4, 37.0), jam: "audio" };
-    const jam = pickOf(rnd, CHANNELS);
-    you = { motion: pickOf(rnd, jam === "audio" ? ["breathing", "shallow"] : KNOWN.you.motion), audio: pickOf(rnd, ["coughing", "whispers"]), t: between(rnd, 36.3, 37.0), jam };
+    const jam = pickOf(rnd, ["motion", "thermal"]);
+    you = { motion: pickOf(rnd, KNOWN.you.motion), audio: pickOf(rnd, ["coughing", "whispers"]), t: between(rnd, 36.3, 37.0), jam };
   } else {
     // you are the slow shift with a dead microphone; the cleanbot gives itself away somewhere else
     you = { motion: "slow shift", audio: "whispers", t: between(rnd, 36.3, 37.0), jam: "audio" };
