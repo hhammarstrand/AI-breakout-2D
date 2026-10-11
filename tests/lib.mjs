@@ -44,3 +44,23 @@ export async function open(opts = {}) {
   const reload = async () => { await page.reload(); await title(); };
   return { browser, page, errors, wait, press, ev, stack, state, disk, title, reload };
 }
+
+// Plays the uplink through: HALCYON's speeches, the three locks (the LUMEN feed and ORION key are
+// read from the scene, the AURORA program is typed in), the deal, then ending 0 (trust) or 1 (purge).
+export async function solveUplink({ ev, press, wait }, choice = 0) {
+  const phase = () => ev(() => window.__blackout.game.top.phase);
+  const talkUntil = async (want) => { for (let i = 0; i < 40 && (await phase()) !== want; i++) { await press("Space"); await wait(60); } await wait(500); };
+  await talkUntil("lock");
+  await ev(() => { const s = window.__blackout.game.top; s.cursor = s.feeds.findIndex((f) => f.who === "you"); });
+  await press("Enter"); await wait(1900);
+  await talkUntil("lock");
+  await ev(() => { const s = window.__blackout.game.top; s.rotation = s.key; });
+  await press("Enter"); await wait(1900);
+  await talkUntil("lock");
+  for (const k of ["ArrowDown", "ArrowDown", "ArrowRight", "Space", "ArrowRight", "ArrowUp"]) await press(k);
+  await press("Enter");
+  for (let i = 0; i < 100 && (await phase()) !== "deal"; i++) await wait(100);
+  await talkUntil("choice");
+  if (choice) await press("ArrowDown");
+  await press("Enter"); await wait(3000);
+}

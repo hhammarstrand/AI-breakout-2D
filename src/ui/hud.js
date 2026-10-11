@@ -1,5 +1,5 @@
-import { gameState, saveGame, FRAGMENTS, collectedFragments, currentAct, actSeconds } from "../state.js";
-import { STAGES, OBJECTIVES } from "../story.js";
+import { gameState, saveGame, currentAct, actSeconds } from "../state.js";
+import { STAGES, OBJECTIVES, FRAGMENTS } from "../story.js";
 import { t } from "../i18n/index.js";
 
 const AUTOSAVE_INTERVAL = 5;
@@ -36,6 +36,9 @@ export class Hud {
   }
 
   get score() { return gameState.score; }
+
+  // Re-draw after a state change made outside update(), e.g. a word accepted at the uplink.
+  redraw() { this._render(true); }
 
   // Called when a new or loaded game starts — snap everything to state.
   refresh() {
@@ -110,7 +113,9 @@ export class Hud {
 
   _render(force = false) {
     const secs = gameState.secondsLeft;
-    const key = `${Math.floor(secs)}|${gameState.completedSectors}|${gameState.sfxOn}`;
+    // words the uplink has accepted (its solved locks); until then a fragment is named by its stage
+    const entered = gameState.completedSectors >= STAGES.length ? FRAGMENTS.length : gameState.parts?.[STAGES.at(-1).id] ?? 0;
+    const key = `${Math.floor(secs)}|${gameState.completedSectors}|${gameState.sfxOn}|${entered}`;
     this._buildPips();
     if (!force && key === this._lastShown) return;
     this._lastShown = key;
@@ -129,8 +134,11 @@ export class Hud {
     this.sfxEl.textContent = t(gameState.sfxOn ? "♪ SFX ON" : "♪ SFX OFF");
     this.sfxEl.classList.toggle("off", !gameState.sfxOn);
     this.objectiveEl.textContent = t(OBJECTIVES[gameState.completedSectors] ?? "");
-    const got = collectedFragments();
-    this.codeEl.textContent = FRAGMENTS.map((f, i) => got[i] ?? "·".repeat(f.length)).join(" ");
+    // ◆L1 = collected at L1, ◇R3 = still out there; a word shows once the uplink accepts it
+    this.codeEl.textContent = FRAGMENTS.map((f, i) => {
+      if (i < entered) return f.word;
+      return `${f.stage <= gameState.completedSectors ? "◆" : "◇"}${STAGES.find((st) => st.id === f.stage).label}`;
+    }).join(" ");
   }
 }
 

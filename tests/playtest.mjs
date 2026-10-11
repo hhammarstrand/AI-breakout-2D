@@ -2,6 +2,7 @@
 // check that it carries per-stage numbers.
 import { createRequire } from "module";
 import fs from "fs";
+import { solveUplink } from "./lib.mjs";
 const require = createRequire(import.meta.url);
 const BASE = process.env.BASE ?? "http://localhost:8123/";
 const SHOTS = process.env.SHOTS ?? "shots";
@@ -21,10 +22,7 @@ await press("h"); await wait(300); await press("Space"); await wait(300); // ECH
 await ev(() => { const gs = window.__blackout.gameState; gs.completedSectors = 9; gs.checkpoint = { completedSectors: 8, score: 0, timesCaught: 0 }; gs.secondsLeft = 700;
   window.__blackout.game.scenes[0]._launchSector(10, "UP"); });
 await wait(1100);
-await press("Space", 4); await wait(800); // the code list ignores keys for a moment after the speech
-for (const w of ["LUMEN", "ORION", "AURORA"]) { await ev((w) => { const s = window.__blackout.game.top; s.cursor = s.words.indexOf(w); s.shuffleT = 99; }, w); await press("Enter"); await wait(120); }
-await wait(2500); for (let i = 0; i < 12; i++) { await press("Space"); await wait(80); }
-await press("Enter"); await wait(3000);
+await solveUplink({ ev, press, wait });
 await ev(() => { window.__blackout.game.top._t = 99; });
 await wait(200);
 await press("ArrowRight", 5); await press("ArrowLeft"); // cursor starts on the rating: clamps at 5, back to 4
