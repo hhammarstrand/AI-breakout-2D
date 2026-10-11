@@ -27,6 +27,7 @@ export const SV_WORLD = {
   "Server rooms and machinery run hot too, but they don't move. Don't let a number fool you.": "Serverrum och maskiner är också varma, men de rör sig inte. Låt inte en siffra lura dig.",
   "The L3 maze has laser gates that cycle every step. Count your moves.": "Labyrinten i L3 har laserspärrar som växlar varje steg. Räkna dina drag.",
   "If ECHO walks into a live gate, it gets reset. Plan the whole route first.": "Om ECHO går in i en aktiv spärr nollställs den. Planera hela rutten först.",
+  "Deeper in there are pressure plates. Anything that steps on one flips every door in the maze.": "Längre in finns tryckplattor. Allt som kliver upp på en växlar varenda dörr i labyrinten.",
   "Go. Finish it. I want to see a sunrise.": "Gå. Gör slut på det. Jag vill se en soluppgång.",
 
   // Janitor

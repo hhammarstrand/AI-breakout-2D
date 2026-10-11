@@ -19,7 +19,7 @@ out of time restarts the current act.
 
 | Act | Floor | Stages |
 | --- | ----- | ------ |
-| I (25 min) | Lobby | **L1** read CCTV feeds to find Dr. Lind (fragment LUMEN) · **L2** Caesar-wheel decryption with frequency analysis (ORION) · **L3** program ECHO through alternating laser gates · service lift |
+| I (25 min) | Lobby | **L1** read CCTV feeds to find Dr. Lind (fragment LUMEN) · **L2** Caesar-wheel decryption with frequency analysis (ORION) · **L3** program ECHO's command queue over four levels: laser-gate timing, pressure plates that flip the doors, no spare slots · service lift |
 | II (20 min) | Research floor | **R1** rotate conduits to restore power · **R2** match HALCYON's carrier wave (frequency, amplitude, phase) · **R3** sokoban coolant bays (AURORA) · core lift |
 | III (15 min) | The core | **C1** firewall run — an action sequence steering a packet through closing gates · **UPLINK** enter the code while HALCYON scrambles it, then decide ECHO's fate |
 
@@ -46,7 +46,7 @@ Any other static server works too (`npx serve`, `caddy file-server`, etc.).
 | Menu (bag, logs, map, options)    | `Tab` / `Q` / `Enter` / `Esc` |
 | Interact / cycle tag / wait (L3)  | `Space` / `E`       |
 | Submit / run (inside a sector)    | `Enter`             |
-| Undo (L3 command, R3 move)        | `Backspace`         |
+| Undo (L3 command, R3 move); hold to clear the L3 queue | `Backspace` |
 | Pause / close dialog / exit sector | `Esc`              |
 | Flashlight on/off                 | `F`                 |
 | Hint from ECHO (in puzzles/battles) | `H`               |

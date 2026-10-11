@@ -1,45 +1,95 @@
 import { music } from "../audio/music.js";
-import { gameState, penalize, scaledPenalty } from "../state.js";
+import { penalize, scaledPenalty } from "../state.js";
 import { Drone } from "../entities/drone.js";
 
 // Sector 3 — program ECHO. The player writes a queue of commands (moves and waits); ECHO then
-// executes it literally. Laser gates alternate every step: A gates are live on even steps,
-// B gates on odd steps. Level 2 also requires picking up the lift keycard.
-const LEVELS = [
+// executes it literally, one step per command. A gates are live on even steps, B gates on odd;
+// stepping onto a plate flips every door (O starts open, D starts shut). Each level adds one idea,
+// and the slot limits match the shortest queues (11 of 12, 20, 18, 24) so spare waits don't fit.
+// A BFS over (cell, step parity, doors, keycard) found nothing shorter.
+export const LEVELS = [
   {
     name: "CALIBRATION",
-    slots: 16,
+    slots: 12,
     rows: [
       "#########",
       "#S..#...#",
-      "##.##.#.#",
-      "#...#.#G#",
-      "#.#...###",
+      "###.#.#.#",
+      "#....A#G#",
+      "#.###...#",
       "#########",
     ],
-    brief: "Walk ECHO to the door controller (G). No gates yet.",
+    brief: "Reach the door controller (G). Mind the A gate.",
+    hints: [
+      "The number on each tile is the step ECHO lands there. Every command is one step, waits too.",
+      "Compare the number on the A gate with A's rule. A detour won't help: it adds two steps, so odd stays odd and even stays even.",
+      "Put one WAIT (space) anywhere before the A gate, never on it. Then walk on to G.",
+    ],
   },
   {
     name: "LASER GRID",
-    slots: 22,
+    slots: 20,
     rows: [
       "#########",
-      "#S.A..#C#",
-      "#.###.#.#",
-      "#G.B....#",
+      "#S..A.BC#",
+      "#######.#",
+      "#G..AA..#",
+      "#.#####.#",
+      "#..B.A..#",
       "#########",
     ],
-    brief: "Grab the lift keycard (C), then reach G. Mind the gate rhythm.",
+    brief: "Keycard (C) first, then G. Now there are B gates too.",
+    hints: [
+      "Two tiles side by side are always reached on back-to-back steps: one odd, one even.",
+      "ECHO can't wait on a gate, so a timing fix has to happen on a free tile between gates. And two A gates in a row can never both be safe.",
+      "Wait once in the gap between the top A and B. Skip the double A: take the bottom corridor, and wait once in its gap too.",
+    ],
+  },
+  {
+    name: "SWITCHBACK",
+    slots: 18,
+    rows: [
+      "#########",
+      "#S.P.O.C#",
+      "####.####",
+      "#G.D.####",
+      "#########",
+    ],
+    brief: "New: a pressure plate. Each step onto it flips every door.",
+    hints: [
+      "Only moving onto the plate flips the doors. Waiting on it does nothing.",
+      "You can't avoid crossing the plate, and that shuts the door to the keycard. Count how many times ECHO steps on it before each door.",
+      "Cross the plate, step off and back on, fetch the keycard, then step onto the plate a third time before the shut door.",
+    ],
+  },
+  {
+    name: "FULL CIRCUIT",
+    slots: 24,
+    rows: [
+      "##########",
+      "#S.APB.OC#",
+      "######.###",
+      "#G.D...###",
+      "##########",
+    ],
+    brief: "Gates, plate and doors together. No slot to spare.",
+    hints: [
+      "Same doors as before, now with gates around the plate. Fix each gate's timing with as few waits as possible.",
+      "The A and B gates beside the plate need a wait between them, and the plate is the only free tile there. Stepping back off and on again keeps the timing.",
+      "Wait once before the first A and once on the plate. Step back onto A and onto the plate again, fetch the keycard, then cross B onto the plate and back before the shut door.",
+    ],
   },
 ];
 
 const CELL = 22;
 const GRID_X = 14;
-const GRID_Y = 44;
 const STEP_TIME = 0.3;
-const PENALTY = { gate: 20, wall: 10, short: 10, chip: 10 };
+const CLEAR_HOLD = 0.6;
+const PENALTY = { gate: 20, wall: 10, door: 10, short: 10, chip: 10 };
 const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0], wait: [0, 0] };
 const GLYPH = { up: "↑", down: "↓", left: "←", right: "→", wait: "W" };
+// tiles whose effect depends on timing; after level 1 only these carry step numbers
+const TIMED = new Set(["A", "B", "P", "O", "D"]);
 
 export function gateLive(tile, step) {
   if (tile === "A") return step % 2 === 0;
@@ -47,9 +97,33 @@ export function gateLive(tile, step) {
   return false;
 }
 
+export function doorShut(tile, flipped) {
+  if (tile === "D") return !flipped;
+  if (tile === "O") return flipped;
+  return false;
+}
+
+// One command applied to ECHO's state { x, y, step, flipped, chip }. Shared by the run and by
+// the solver that checks the levels, so both follow exactly the same rules.
+export function stepEcho(rows, s, cmd) {
+  const [dx, dy] = DIRS[cmd];
+  const x = s.x + dx, y = s.y + dy, step = s.step + 1;
+  const t = rows[y]?.[x] ?? "#";
+  if (t === "#") return { fail: "wall", step };
+  if (doorShut(t, s.flipped)) return { fail: "door", step };
+  // only arriving on a plate presses it; waiting there doesn't
+  const flipped = t === "P" && cmd !== "wait" ? !s.flipped : s.flipped;
+  const next = { x, y, step, flipped, chip: s.chip || t === "C" };
+  if (gateLive(t, step)) return { ...next, fail: "gate", tile: t };
+  if (t === "G") {
+    if (rows.some((r) => r.includes("C")) && !next.chip) return { ...next, fail: "chip" };
+    return { ...next, goal: true };
+  }
+  return next;
+}
+
 export class Sector3Scene {
   constructor({ hud, sfx, fx, onResult }) {
-    this.hints = ["Count every command as one step, starting from 1. A gates are live on even steps, B gates on odd.", "A WAIT (space) before a gate shifts your timing by one step. Never wait while standing on a gate.", "Level 2: get the keycard (C) first, then come back west. You'll need two waits in total."];
     this.hud = hud;
     this.sfx = sfx;
     this.fx = fx;
@@ -64,39 +138,46 @@ export class Sector3Scene {
   onExit() { document.body.classList.remove("no-objective", "in-puzzle"); }
 
   get part() { return this.level; }
-  resume(i) { this.level = i; this._load(); }
+  resume(i) { this.level = Math.max(0, Math.min(LEVELS.length - 1, i | 0)); this._load(); }
+
+  // ECHO's hints follow the level on screen
+  get hints() {
+    if (this._hintLevel !== this.level) { this._hintLevel = this.level; this._hintsShown = 0; }
+    return LEVELS[this.level].hints;
+  }
 
   _load() {
     const lv = LEVELS[this.level];
-    this.grid = lv.rows.map((r) => [...r]);
-    for (let y = 0; y < this.grid.length; y++) {
-      for (let x = 0; x < this.grid[y].length; x++) {
-        if (this.grid[y][x] === "S") this.start = { x, y };
-      }
-    }
+    this.rows = lv.rows;
+    this.w = lv.rows[0].length;
+    this.h = lv.rows.length;
+    this.ox = GRID_X + Math.round(((11 - this.w) * CELL) / 2);
+    this.oy = Math.max(32, Math.round(152 - (this.h * CELL) / 2));
+    this.rows.forEach((r, y) => [...r].forEach((ch, x) => { if (ch === "S") this.start = { x, y }; }));
     this.queue = [];
     this._reset();
-    this.message = { text: lv.brief, color: "#4ae6ff", time: 5 };
+    this.message = { text: lv.brief, color: "#4ae6ff", time: 6 };
   }
 
   _reset() {
     this.mode = "edit";
-    this.pos = { ...this.start };
-    this.step = 0;
+    this.sim = { ...this.start, step: 0, flipped: false, chip: false };
     this.runIndex = 0;
     this.runTimer = 0;
-    this.hasChip = false;
+    this._backHeld = 0;
     this._placeEcho(true);
   }
 
+  get step() { return this.sim.step; }
+
   _placeEcho(snap) {
-    const tx = GRID_X + this.pos.x * CELL + CELL / 2;
-    const ty = GRID_Y + this.pos.y * CELL + CELL / 2 - 2;
+    const tx = this.ox + this.sim.x * CELL + CELL / 2;
+    const ty = this.oy + this.sim.y * CELL + CELL / 2 - 5;
     if (snap) { this.echo.x = tx; this.echo.y = ty; }
     this.echoTarget = { x: tx, y: ty };
   }
 
-  tile(x, y) { return this.grid[y]?.[x] ?? "#"; }
+  tile(x, y) { return this.rows[y]?.[x] ?? "#"; }
 
   update(dt, input) {
     this._t += dt;
@@ -127,10 +208,17 @@ export class Sector3Scene {
     }
     if (input.wasPressed("interact")) this._push("wait");
     if (input.wasPressed("back") && this.queue.length) { this.queue.pop(); this.sfx.play("select"); }
+    // holding backspace wipes the whole queue, so a long route can be rewritten quickly
+    this._backHeld = input.isDown("back") ? this._backHeld + dt : 0;
+    if (this._backHeld >= CLEAR_HOLD && this.queue.length) {
+      this.queue = [];
+      this.sfx.play("denied");
+    }
     if (input.wasPressed("submit")) {
       if (!this.queue.length) { this.message = { text: "Queue is empty. Give ECHO a route first.", color: "#ffaa3a", time: 2 }; return; }
       this.mode = "run";
       this.runTimer = 0.35;
+      this.message = null;
       this.sfx.play("drone");
     }
   }
@@ -154,33 +242,24 @@ export class Sector3Scene {
       this._fail("short", "ECHO ran out of instructions short of the goal.");
       return;
     }
-    const cmd = this.queue[this.runIndex++];
-    const [dx, dy] = DIRS[cmd];
-    const nx = this.pos.x + dx, ny = this.pos.y + dy;
-    this.step++;
-    if (this.tile(nx, ny) === "#") {
-      this._fail("wall", `Step ${this.step}: ECHO walked into a wall.`);
+    const r = stepEcho(this.rows, this.sim, this.queue[this.runIndex++]);
+    if (r.fail === "wall" || r.fail === "door") {
+      this.sim.step = r.step;
+      this._fail(r.fail, r.fail === "wall" ? `Step ${r.step}: ECHO walked into a wall.` : `Step ${r.step}: ECHO hit a shut door.`);
       return;
     }
-    this.pos = { x: nx, y: ny };
+    const before = this.sim;
+    this.sim = r;
     this._placeEcho(false);
     this.sfx.play("step");
-    const t = this.tile(nx, ny);
-    if (gateLive(t, this.step)) {
-      this._fail("gate", `Step ${this.step}: gate ${t} was live. ECHO got zapped.`);
-      return;
-    }
-    if (t === "C" && !this.hasChip) {
-      this.hasChip = true;
+    if (r.flipped !== before.flipped) this.sfx.play("door");
+    if (r.fail === "gate") { this._fail("gate", `Step ${r.step}: gate ${r.tile} was live. ECHO got zapped.`); return; }
+    if (r.fail === "chip") { this._fail("chip", "ECHO reached the controller without the keycard."); return; }
+    if (r.chip && !before.chip) {
       this.sfx.play("toast");
       this.message = { text: "Lift keycard acquired", color: "#0aff7a", time: 2.5 };
     }
-    if (t === "G") {
-      const needsChip = LEVELS[this.level].rows.some((r) => r.includes("C"));
-      if (needsChip && !this.hasChip) {
-        this._fail("chip", "ECHO reached the controller without the keycard.");
-        return;
-      }
+    if (r.goal) {
       this.mode = "done";
       this.runTimer = 1.4;
       this.sfx.play("success");
@@ -236,8 +315,12 @@ export class Sector3Scene {
       color: "#b07aff", size: 10, weight: "bold", baseline: "middle", align: "right",
     });
 
-    this._drawGrid(renderer);
-    this._drawGhost(renderer);
+    // floor, then the planned route, then tile contents and step numbers on top of it
+    const plan = this.mode === "edit" ? this._plan() : null;
+    this._drawFloor(renderer);
+    if (plan) this._drawRoute(renderer, plan);
+    this._drawTiles(renderer);
+    if (plan) this._drawNumbers(renderer, plan);
     this.echo.draw(renderer, { x: 0, y: 0 });
     this._drawPanel(renderer);
 
@@ -249,49 +332,56 @@ export class Sector3Scene {
     }
     renderer.fillRect(0, h - 22, w, 22, "#120a22");
     renderer.fillRect(0, h - 22, w, 1, "#b07aff");
-    renderer.text("[arrows] add move  [space] wait  [backspace] undo  [enter] run  [esc] exit", 8, h - 11, {
+    renderer.text("[arrows] move  [space] wait  [backspace] undo (hold: clear)  [enter] run  [esc] exit", 8, h - 11, {
       color: "#8a6aba", size: 8, baseline: "middle",
     });
     ctx.globalAlpha = 1;
   }
 
-  // while editing, gates show the state they'll be in when the next queued move lands (not a clock)
-  _currentStep() { return this.mode === "edit" ? this.queue.length + 1 : this.step; }
-
-  _drawGrid(renderer) {
-    const ctx = renderer.ctx;
-    const step = this._currentStep();
-    for (let y = 0; y < this.grid.length; y++) {
-      for (let x = 0; x < this.grid[y].length; x++) {
-        const t = this.grid[y][x];
-        const px = GRID_X + x * CELL, py = GRID_Y + y * CELL;
-        if (t === "#") {
+  _drawFloor(renderer) {
+    for (let y = 0; y < this.h; y++) {
+      for (let x = 0; x < this.w; x++) {
+        const px = this.ox + x * CELL, py = this.oy + y * CELL;
+        if (this.rows[y][x] === "#") {
           renderer.fillRect(px, py, CELL, CELL, "#1c1430");
           renderer.fillRect(px, py, CELL, 2, "#3a2a60");
-          continue;
+        } else {
+          renderer.fillRect(px, py, CELL, CELL, (x + y) & 1 ? "#0c0a16" : "#110d20");
+          renderer.strokeRect(px, py, CELL, CELL, "#1a1430", 1);
         }
-        renderer.fillRect(px, py, CELL, CELL, (x + y) & 1 ? "#0c0a16" : "#0f0c1c");
-        renderer.strokeRect(px, py, CELL, CELL, "#1a1430", 1);
+      }
+    }
+  }
+
+  _drawTiles(renderer) {
+    const ctx = renderer.ctx;
+    // gates and doors only show their real state while ECHO runs; the plan has to predict it
+    const live = this.mode !== "edit";
+    for (let y = 0; y < this.h; y++) {
+      for (let x = 0; x < this.w; x++) {
+        const t = this.rows[y][x];
+        const px = this.ox + x * CELL, py = this.oy + y * CELL;
         if (t === "A" || t === "B") {
-          const live = gateLive(t, step);
+          const hot = live && this.step > 0 && gateLive(t, this.step);
           const col = t === "A" ? "#ff5aa0" : "#b07aff";
           renderer.fillRect(px + 2, py + 2, 2, CELL - 4, col);
           renderer.fillRect(px + CELL - 4, py + 2, 2, CELL - 4, col);
-          if (live) {
-            const flick = 0.6 + 0.4 * Math.sin(this._t * 40);
-            ctx.globalAlpha = flick;
-            for (let i = 0; i < 3; i++) renderer.fillRect(px + 4, py + 5 + i * 6, CELL - 8, 1, "#ff3030");
-            ctx.globalAlpha = 1;
-          }
+          ctx.globalAlpha = hot ? 0.6 + 0.4 * Math.sin(this._t * 40) : 0.18;
+          for (let i = 0; i < 3; i++) renderer.fillRect(px + 4, py + 5 + i * 6, CELL - 8, 1, hot ? "#ff3030" : col);
+          ctx.globalAlpha = 1;
           renderer.text(t, px + CELL / 2, py + CELL / 2, {
-            color: live ? "#ffd0d0" : col, size: 8, align: "center", baseline: "middle", weight: "bold",
+            color: hot ? "#ffd0d0" : col, size: 9, align: "center", baseline: "middle", weight: "bold",
           });
+        } else if (t === "P") {
+          this._plateIcon(renderer, px + 4, py + 4, CELL - 8, live && this.sim.x === x && this.sim.y === y);
+        } else if (t === "O" || t === "D") {
+          this._doorIcon(renderer, px + 2, py + 2, CELL - 4, doorShut(t, this.sim.flipped));
         } else if (t === "G") {
           const pulse = 0.5 + 0.5 * Math.sin(this._t * 4);
           renderer.fillRect(px + 3, py + 3, CELL - 6, CELL - 6, `rgba(10,255,122,${0.2 + 0.25 * pulse})`);
           renderer.strokeRect(px + 3, py + 3, CELL - 6, CELL - 6, "#0aff7a", 1);
           renderer.text("G", px + CELL / 2, py + CELL / 2, { color: "#0aff7a", size: 9, align: "center", baseline: "middle", weight: "bold" });
-        } else if (t === "C" && !this.hasChip) {
+        } else if (t === "C" && !this.sim.chip) {
           const bob = Math.round(Math.sin(this._t * 5) * 1.5);
           renderer.fillRect(px + 7, py + 7 + bob, 8, 8, "#ffd15a");
           renderer.fillRect(px + 9, py + 9 + bob, 4, 4, "#7a5a10");
@@ -302,49 +392,119 @@ export class Sector3Scene {
     }
   }
 
-  // Dotted preview of the queued route with step numbers, so players can reason about gate parity.
-  _drawGhost(renderer) {
-    if (this.mode !== "edit") return;
+  _plateIcon(renderer, x, y, size, pressed) {
+    renderer.fillRect(x, y, size, size, pressed ? "#1a6a5a" : "#0e3a34");
+    renderer.strokeRect(x, y, size, size, "#4affc8", 1);
+    const m = Math.round(size * 0.3);
+    renderer.fillRect(x + m, y + m, size - 2 * m, size - 2 * m, pressed ? "#4affc8" : "#2a9a80");
+  }
+
+  // shut: barred panel; open: an empty amber frame
+  _doorIcon(renderer, x, y, size, shut) {
+    if (shut) {
+      renderer.fillRect(x, y, size, size, "#4a3010");
+      for (let by = y + 2; by < y + size - 2; by += 4) renderer.fillRect(x + 1, by, size - 2, 2, "#ffaa3a");
+      renderer.strokeRect(x, y, size, size, "#ffaa3a", 1);
+    } else {
+      renderer.ctx.globalAlpha = 0.65;
+      renderer.strokeRect(x, y, size, size, "#ffaa3a", 1);
+      renderer.fillRect(x + 1, y + 1, size - 2, 2, "#ffaa3a");
+      renderer.ctx.globalAlpha = 1;
+    }
+  }
+
+  // Where the queued route goes, without timing: walls are the only thing the preview checks
+  // (red X); gates and doors depend on the step count, which the player has to work out.
+  _plan() {
+    const all = this.level === 0; // level 1 numbers every tile; later levels only the timed ones
     let { x, y } = this.start;
-    const ctx = renderer.ctx;
-    // last step number that lands on each cell (revisits overwrite earlier ones)
-    const latest = new Map();
-    const bumps = []; // the real run fails on a wall, so the preview must say so
+    const path = [{ x, y }], waits = [], bumps = [];
+    const marks = new Map(); // tile -> step numbers ECHO spends on it
     this.queue.forEach((cmd, i) => {
       const [dx, dy] = DIRS[cmd];
-      if (this.tile(x + dx, y + dy) !== "#") { x += dx; y += dy; } else if (dx || dy) bumps.push({ x: x + dx, y: y + dy, n: i + 1 });
-      latest.set(`${x},${y}`, { x, y, n: i + 1 });
+      if (this.tile(x + dx, y + dy) !== "#") { x += dx; y += dy; } else bumps.push({ x: x + dx, y: y + dy });
+      if (cmd === "wait") waits.push({ x, y });
+      path.push({ x, y });
+      if (all || TIMED.has(this.tile(x, y))) {
+        const k = `${x},${y}`;
+        if (!marks.has(k)) marks.set(k, { x, y, steps: [] });
+        marks.get(k).steps.push(i + 1);
+      }
     });
+    return { path, waits, bumps, marks };
+  }
+
+  _drawRoute(renderer, { path, waits, bumps }) {
+    const ctx = renderer.ctx;
+    const cx = (gx) => this.ox + gx * CELL + CELL / 2 + 0.5;
+    const cy = (gy) => this.oy + gy * CELL + CELL / 2 + 0.5;
+    ctx.strokeStyle = "rgba(74,230,255,0.5)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    path.forEach((p, i) => (i ? ctx.lineTo(cx(p.x), cy(p.y)) : ctx.moveTo(cx(p.x), cy(p.y))));
+    ctx.stroke();
+    for (const p of path.slice(1)) renderer.fillRect(cx(p.x) - 1.5, cy(p.y) - 1.5, 3, 3, "rgba(74,230,255,0.75)");
+    ctx.strokeStyle = "#4ae6ff";
+    for (const p of waits) {
+      ctx.beginPath();
+      ctx.arc(cx(p.x), cy(p.y), 5, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = "#ff3a5a";
+    ctx.lineWidth = 2;
     for (const b of bumps) {
-      const px = GRID_X + b.x * CELL, py = GRID_Y + b.y * CELL;
-      ctx.strokeStyle = "#ff3a5a";
-      ctx.lineWidth = 2;
+      const px = this.ox + b.x * CELL, py = this.oy + b.y * CELL;
       ctx.beginPath();
       ctx.moveTo(px + 4, py + 4); ctx.lineTo(px + CELL - 4, py + CELL - 4);
       ctx.moveTo(px + CELL - 4, py + 4); ctx.lineTo(px + 4, py + CELL - 4);
       ctx.stroke();
     }
+    ctx.lineWidth = 1;
+  }
+
+  // Step numbers stacked in the middle of each tile (two per line once there are more than
+  // three), so numbers on neighbouring tiles never run together. Plain tiles keep the latest.
+  _drawNumbers(renderer, { marks }) {
+    const ctx = renderer.ctx;
     ctx.font = "bold 7px ui-monospace, monospace";
-    ctx.textAlign = "right";
-    ctx.textBaseline = "bottom";
-    for (const { x: cx, y: cy, n } of latest.values()) {
-      const px = GRID_X + cx * CELL, py = GRID_Y + cy * CELL;
-      renderer.fillRect(px + CELL / 2 - 1, py + CELL / 2 - 1, 3, 3, "rgba(74,230,255,0.6)");
-      ctx.fillStyle = "#4ae6ff";
-      ctx.fillText(String(n), px + CELL - 2, py + CELL - 1);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    for (const { x, y, steps } of marks.values()) {
+      const timed = TIMED.has(this.tile(x, y));
+      if (!timed) {
+        ctx.fillStyle = "#4ae6ff";
+        ctx.textAlign = "right";
+        ctx.textBaseline = "bottom";
+        ctx.fillText(String(steps.at(-1)), this.ox + x * CELL + CELL - 2, this.oy + y * CELL + CELL - 1);
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        continue;
+      }
+      const lines = [];
+      if (steps.length <= 3) steps.forEach((n) => lines.push(String(n)));
+      else for (let i = 0; i < steps.length && lines.length < 3; i += 2) lines.push(steps.slice(i, i + 2).join(" "));
+      if (steps.length > 6) lines[2] = `${steps[4]}…`;
+      const mx = this.ox + x * CELL + CELL / 2;
+      const top = this.oy + y * CELL + CELL / 2 - (lines.length * 7) / 2;
+      lines.forEach((line, i) => {
+        const tw = Math.ceil(ctx.measureText(line).width);
+        renderer.fillRect(mx - tw / 2 - 1, top + i * 7, tw + 2, 7, "rgba(5,4,10,0.9)");
+        ctx.fillStyle = "#e8ffff";
+        ctx.fillText(line, mx, top + i * 7 + 4);
+      });
     }
   }
 
   _drawPanel(renderer) {
     const lv = LEVELS[this.level];
     const x = GRID_X + 11 * CELL + 14;
-    let y = GRID_Y;
+    let y = 40;
     renderer.text("ECHO // COMMAND QUEUE", x, y, { color: "#d0b0ff", size: 8, weight: "bold" });
-    y += 12;
+    y += 10;
     const perRow = 8;
     for (let i = 0; i < lv.slots; i++) {
       const sx = x + (i % perRow) * 25;
-      const sy = y + Math.floor(i / perRow) * 22;
+      const sy = y + Math.floor(i / perRow) * 21;
       const cmd = this.queue[i];
       const running = this.mode !== "edit" && i === this.runIndex - 1;
       renderer.fillRect(sx, sy, 21, 18, running ? "#3a2a60" : cmd ? "#1c1430" : "#0c0a16");
@@ -355,18 +515,34 @@ export class Sector3Scene {
         });
       }
     }
-    y += Math.ceil(lv.slots / perRow) * 22 + 10;
+    y += Math.ceil(lv.slots / perRow) * 21 + 8;
     renderer.text(`${this.queue.length}/${lv.slots} slots`, x, y, { color: "#8a6aba", size: 8 });
     y += 16;
-    renderer.text("GATE RHYTHM", x, y, { color: "#d0b0ff", size: 8, weight: "bold" });
+    renderer.text("RULES", x, y, { color: "#d0b0ff", size: 8, weight: "bold" });
     y += 12;
-    renderer.text("A  live on EVEN steps (0, 2, 4…)", x, y, { color: "#ff5aa0", size: 8 });
-    y += 11;
-    renderer.text("B  live on ODD steps  (1, 3, 5…)", x, y, { color: "#b07aff", size: 8 });
-    y += 11;
+    const has = (ch) => lv.rows.some((r) => r.includes(ch));
+    if (has("A")) { this._legend(renderer, "A", x, y); renderer.text("live on EVEN steps (2, 4, 6…)", x + 14, y, { color: "#ff5aa0", size: 8 }); y += 12; }
+    if (has("B")) { this._legend(renderer, "B", x, y); renderer.text("live on ODD steps (1, 3, 5…)", x + 14, y, { color: "#b07aff", size: 8 }); y += 12; }
+    if (has("P")) {
+      this._plateIcon(renderer, x, y - 1, 10, false);
+      renderer.text("stepping onto it flips all doors", x + 14, y, { color: "#4affc8", size: 8 });
+      y += 12;
+      this._doorIcon(renderer, x, y - 1, 10, true);
+      this._doorIcon(renderer, x + 13, y - 1, 10, false);
+      renderer.text("door shut / open", x + 27, y, { color: "#ffaa3a", size: 8 });
+      y += 12;
+    }
     renderer.text("Every command is one step. Wait = stay put.", x, y, { color: "#8a6aba", size: 7 });
     y += 16;
     const status = this.mode === "run" ? `RUNNING — step ${this.step}` : this.mode === "fail" ? "RESETTING…" : this.mode === "done" ? "DOOR CONTROLLER REACHED" : "EDITING";
     renderer.text(status, x, y, { color: this.mode === "fail" ? "#ff5a5a" : this.mode === "done" ? "#0aff7a" : "#4ae6ff", size: 9, weight: "bold" });
+  }
+
+  // tiny gate icon in front of a rule line (the text's top edge is at y)
+  _legend(renderer, t, x, y) {
+    const col = t === "A" ? "#ff5aa0" : "#b07aff";
+    renderer.fillRect(x, y - 1, 1, 10, col);
+    renderer.fillRect(x + 9, y - 1, 1, 10, col);
+    renderer.text(t, x + 5, y + 4, { color: col, size: 8, weight: "bold", align: "center", baseline: "middle" });
   }
 }
