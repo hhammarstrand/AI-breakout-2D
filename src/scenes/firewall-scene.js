@@ -79,7 +79,7 @@ export class FirewallScene {
           report: [
             "[C1] You're through the firewall. ECHO's signature carried you in.",
             "The uplink is the last door. HALCYON knows you're coming.",
-            "Enter the code. LUMEN, ORION, AURORA. Then this night is over.",
+            "Enter the code. HALCYON will fight you for every word, so use what you learned on the way up. Then this night is over.",
           ],
         });
       } else {

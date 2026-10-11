@@ -21,7 +21,26 @@ out of time restarts the current act.
 | --- | ----- | ------ |
 | I (25 min) | Lobby | **L1** read CCTV feeds to find Dr. Lind (fragment LUMEN) · **L2** Caesar-wheel decryption with frequency analysis (ORION) · **L3** program ECHO through alternating laser gates · service lift |
 | II (20 min) | Research floor | **R1** rotate conduits to restore power · **R2** match HALCYON's carrier wave (frequency, amplitude, phase) · **R3** sokoban coolant bays (AURORA) · core lift |
-| III (15 min) | The core | **C1** firewall run — an action sequence steering a packet through closing gates · **UPLINK** enter the code while HALCYON scrambles it, then decide ECHO's fate |
+| III (15 min) | The core | **C1** firewall run — an action sequence steering a packet through closing gates · **UPLINK** three locks, one per code word, each a twist on an earlier puzzle (see below), then decide ECHO's fate |
+
+The HUD's UPLINK CODE cell names each fragment by the stage it came from (◆L1 ◆L2 ◆R3) and only
+spells a word once the uplink accepts it.
+
+### The uplink
+
+HALCYON puts a lock on every word of the code, and each one asks you to use something you learned
+on the way up, bent by one new rule:
+
+- **LUMEN** — four console cameras (you, a cleanbot, a sentinel, a server rack), one sensor jammed
+  on each and every thermal reading pushed up by the same few degrees, so nobody reads 36–37C.
+  Find yourself with L1's motion and sound rules; HALCYON warns that its cleanbot moves as slowly
+  as you do. Boards are random per visit and only kept if exactly one feed can be you.
+- **ORION** — HALCYON's key phrase on L2's cipher wheel with a new key and no live decode. It has
+  no E, so frequency analysis fails; the crib is the fragment it names: find the five-letter word
+  whose first and fourth letters match, and turn the wheel until it reads ORION.
+- **AURORA** — six commands, one per letter, and ECHO must reach the socket on exactly the sixth,
+  through L3's alternating gates. Working backwards rules out the short way (its B gate would be
+  live on step 5) and puts the long way's single wait in the only place that works.
 
 Mistakes cost containment time. Sentinels patrol every floor; your flashlight makes you easier
 to spot (`F` toggles it).
@@ -44,9 +63,9 @@ Any other static server works too (`npx serve`, `caddy file-server`, etc.).
 | Move (tap to turn, hold to walk)  | `WASD` / arrow keys |
 | Run                               | `Shift`             |
 | Menu (bag, logs, map, options)    | `Tab` / `Q` / `Enter` / `Esc` |
-| Interact / cycle tag / wait (L3)  | `Space` / `E`       |
+| Interact / cycle tag / wait (L3, AURORA) | `Space` / `E` |
 | Submit / run (inside a sector)    | `Enter`             |
-| Undo (L3 command, R3 move)        | `Backspace`         |
+| Undo (L3/AURORA command, R3 move) | `Backspace`        |
 | Pause / close dialog / exit sector | `Esc`              |
 | Flashlight on/off                 | `F`                 |
 | Hint from ECHO (in puzzles/battles) | `H`               |

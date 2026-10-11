@@ -148,7 +148,7 @@ export class CoolantScene {
       aborted: false,
       report: [
         "[R3] Vents sealed. Under the last canister: a chip labelled AURORA.",
-        "That's the third fragment, tech. LUMEN, ORION, AURORA — the full override code.",
+        "That's the third fragment, tech. All three words of the override code.",
         "The core lift in the north-east just went green. HALCYON's core is the top floor.",
       ],
     });

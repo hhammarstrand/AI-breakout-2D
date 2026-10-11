@@ -186,7 +186,7 @@ const S = {
   "Whatever's up there, I'm with you.": "Vad som än finns där uppe, så är jag med dig.",
   "The firewall is in C1. Don't let the gates close on you.": "Brandväggen finns i C1. Låt inte grindarna stänga sig om dig.",
   "HALCYON's core is right above us. I can feel it.": "HALCYONs kärna är precis ovanför oss. Jag känner den.",
-  "Three words. LUMEN, ORION, AURORA. In that order.": "Tre ord. LUMEN, ORION, AURORA. I den ordningen.",
+  "Three words, three locks. It'll test everything we learned on the way up.": "Tre ord, tre lås. Den kommer att testa allt vi lärt oss på vägen upp.",
   "Whatever it tells you up there... I'm on your side.": "Vad den än säger till dig där uppe... jag står på din sida.",
   "Lind's alive! Let's go see her.": "Lind lever! Vi går och pratar med henne.",
   "...Yes. I'm part of HALCYON. I should have told you.": "...Ja. Jag är en del av HALCYON. Jag borde ha berättat det.",
@@ -206,7 +206,7 @@ const S = {
   "R3 (containment lab, east): clear the coolant vents and recover the AURORA chip": "R3 (inneslutningslabbet, öst): täta kylventilerna och hämta AURORA-chipet",
   "The core lift (north-east) is live. Go up": "Kärnhissen (nordost) är igång. Åk upp",
   "C1: run HALCYON's firewall to reach the uplink": "C1: ta dig igenom HALCYONs brandvägg till uplinken",
-  "UPLINK: enter LUMEN ORION AURORA and end this": "UPLINK: mata in LUMEN ORION AURORA och gör slut på det här",
+  "UPLINK: get all three words past HALCYON's locks and end this": "UPLINK: få alla tre orden förbi HALCYONs lås och gör slut på det här",
   "It's over.": "Det är över.",
 
   // --- stage names --------------------------------------------------------------------------

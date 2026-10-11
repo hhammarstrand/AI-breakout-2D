@@ -37,7 +37,7 @@ export const OBJECTIVES = [
   "R3 (containment lab, east): clear the coolant vents and recover the AURORA chip",
   "The core lift (north-east) is live. Go up",
   "C1: run HALCYON's firewall to reach the uplink",
-  "UPLINK: enter LUMEN ORION AURORA and end this",
+  "UPLINK: get all three words past HALCYON's locks and end this",
   "It's over.",
 ];
 
@@ -51,7 +51,7 @@ export const ECHO_TIPS = [
   ["Containment lab, east side. The AURORA chip is under the coolant.", "Push the canisters onto the vents. Don't box yourself in."],
   ["Core lift, north-east. This is it.", "Whatever's up there, I'm with you."],
   ["The firewall is in C1. Don't let the gates close on you.", "HALCYON's core is right above us. I can feel it."],
-  ["Three words. LUMEN, ORION, AURORA. In that order.", "Whatever it tells you up there... I'm on your side."],
+  ["Three words, three locks. It'll test everything we learned on the way up.", "Whatever it tells you up there... I'm on your side."],
   [],
 ];
 
