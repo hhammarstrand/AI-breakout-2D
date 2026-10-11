@@ -19,7 +19,7 @@ out of time restarts the current act.
 
 | Act | Floor | Stages |
 | --- | ----- | ------ |
-| I (25 min) | Lobby | **L1** classify CCTV feeds from raw motion, thermal and audio readings, using sensor rules pieced together from the L1 sign and three lobby staff; two rounds (fragment LUMEN) · **L2** three escalating cipher logs: a Caesar wheel by frequency analysis, one where E isn't the commonest letter and word shapes give the key, then a four-wheel keyword cipher keyed with a name found in the lobby (ORION) · **L3** program ECHO through alternating laser gates · service lift |
+| I (25 min) | Lobby | **L1** classify CCTV feeds from raw motion, thermal and audio readings, using sensor rules pieced together from the L1 sign and three lobby staff; two rounds (fragment LUMEN) · **L2** three escalating cipher logs: a Caesar wheel by frequency analysis, one where E isn't the commonest letter and word shapes give the key, then a four-wheel keyword cipher keyed with a name found in the lobby (ORION) · **L3** program ECHO's command queue over four levels: laser-gate timing, pressure plates that flip the doors, no spare slots · service lift |
 | II (20 min) | Research floor | **R1** rotate conduits to restore power · **R2** match HALCYON's carrier wave (frequency, amplitude, phase) · **R3** sokoban coolant bays (AURORA) · core lift |
 | III (15 min) | The core | **C1** firewall run — an action sequence steering a packet through closing gates · **UPLINK** enter the code while HALCYON scrambles it, then decide ECHO's fate |
 
@@ -56,7 +56,7 @@ Any other static server works too (`npx serve`, `caddy file-server`, etc.).
 | Interact / cycle tag / wait (L3)  | `Space` / `E`       |
 | Submit / run (inside a sector)    | `Enter`             |
 | Field notes (L1: the rules you've been told) | `Tab`  |
-| Undo (L3 command, R3 move)        | `Backspace`         |
+| Undo (L3 command, R3 move); hold to clear the L3 queue | `Backspace` |
 | Pause / close dialog / exit sector | `Esc`              |
 | Flashlight on/off                 | `F`                 |
 | Hint from ECHO (in puzzles/battles) | `H`               |

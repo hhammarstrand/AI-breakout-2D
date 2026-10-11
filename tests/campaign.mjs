@@ -61,7 +61,8 @@ for (let l = 0; l < 3; l++) {
 await wait(600); await closeDialog();
 await launch(3);
 const keyOf = { R: "ArrowRight", L: "ArrowLeft", U: "ArrowUp", D: "ArrowDown", W: "Space" };
-for (const sol of ["RDDRDRRUUURRDD", "RWRRRDDRRUUDDLLLWLLL"]) { for (const ch of sol) await press(keyOf[ch]); await press("Enter"); await wait(sol.length * 320 + 2200); }
+// L3's four levels, typed for real (shortest queues: 11, 20, 18 and 24 commands)
+for (const sol of ["RRDDRWRDRRU", "RRRRWRRDDDDLLLWLLLUU", "RRLRRRRRLLLLRDDLLL", "RWRRLRWRRRRLLLLRRDDLLLLL"]) { for (const ch of sol) await press(keyOf[ch]); await press("Enter"); await wait(sol.length * 320 + 2200); }
 await wait(400); await closeDialog();
 console.log("act1 done", await state(), await stack());
 await shot("01-lobby-lift");

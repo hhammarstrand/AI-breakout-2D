@@ -219,6 +219,7 @@ export const smartBuildingMap = {
         [
           "The L3 maze has laser gates that cycle every step. Count your moves.",
           "If ECHO walks into a live gate, it gets reset. Plan the whole route first.",
+          "Deeper in there are pressure plates. Anything that steps on one flips every door in the maze.",
         ],
         ["Go. Finish it. I want to see a sunrise."],
       ],

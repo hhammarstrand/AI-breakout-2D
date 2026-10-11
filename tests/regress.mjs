@@ -252,4 +252,48 @@ const quiet = (p) => p.ev(() => { const w = window.__blackout.game.scenes[0]; w.
   await p.browser.close();
 }
 
+// 12. L3 (ECHO queue): Space only queues a wait; a zapped run costs time and keeps the queue; from
+// level 2 the preview numbers only timed tiles; plates flip doors on arrival, not while waiting;
+// hints follow the level; stepping out keeps the level reached.
+{
+  const p = await open({ save: fresh({ completedSectors: 2 }) });
+  await p.title(); await quiet(p);
+  await p.ev(() => window.__blackout.game.scenes[0]._launchSector(3, "L3")); await p.wait(1200);
+  const top = () => p.ev(() => { const s = window.__blackout.game.top; return { mode: s.mode, q: s.queue.join(","), level: s.level, msg: s.message?.text ?? "" }; });
+  await p.press("Space"); await p.wait(200);
+  let s = await top();
+  check(s.mode === "edit" && s.q === "wait", "L3: Space queues a wait and never starts a run", JSON.stringify(s));
+  await p.press("Backspace");
+  for (const k of ["ArrowRight", "ArrowRight", "ArrowDown", "ArrowDown", "ArrowRight", "ArrowRight"]) await p.press(k); // A gate on step 6
+  check((await p.ev(() => [...window.__blackout.game.top._plan().marks.keys()].length)) === 6, "L3: level 1 numbers every tile of the route");
+  const before = (await p.state()).secondsLeft;
+  await p.press("Enter");
+  for (let i = 0; i < 40 && (await top()).mode !== "fail"; i++) await p.wait(100);
+  s = await top();
+  check(/gate A was live.*\(-20s\)/.test(s.msg), "L3: a live gate zaps ECHO with a (-20s) penalty", s.msg);
+  check(before - (await p.state()).secondsLeft > 18, "L3: the zap costs 20 s");
+  await p.wait(1700);
+  s = await top();
+  check(s.mode === "edit" && s.q.split(",").length === 6, "L3: the queue survives a failed run", JSON.stringify(s));
+  await p.ev(() => window.__blackout.game.top.resume(1));
+  for (const k of ["ArrowRight", "ArrowRight", "ArrowRight", "ArrowRight", "Space", "ArrowRight", "ArrowRight"]) await p.press(k);
+  const tiles = await p.ev(() => { const s = window.__blackout.game.top; return [...s._plan().marks.values()].map((m) => s.tile(m.x, m.y)).join(""); });
+  check(tiles === "AB", "L3: from level 2 only gates carry step numbers", tiles);
+  const plate = await p.ev(async () => {
+    const { stepEcho, LEVELS } = await import("./src/scenes/sector3-scene.js");
+    const rows = LEVELS[2].rows;
+    let st = { x: 1, y: 1, step: 0, flipped: false, chip: false };
+    const seq = [];
+    for (const c of ["right", "right", "wait", "left", "right"]) { st = stepEcho(rows, st, c); seq.push(st.flipped); }
+    return seq.join(",");
+  });
+  check(plate === "false,true,true,true,false", "L3: the plate flips doors on each arrival, not while waiting", plate);
+  const hints = await p.ev(() => { const s = window.__blackout.game.top; const h1 = s.hints[0]; s._hintsShown = 2; s.resume(2); return { differs: s.hints[0] !== h1, shown: s._hintsShown }; });
+  check(hints.differs && hints.shown === 0, "L3: hints follow the level and restart at tier 1");
+  await p.press("Escape"); await p.wait(700); await quiet(p);
+  await p.ev(() => window.__blackout.game.scenes[0]._launchSector(3, "L3")); await p.wait(1200);
+  check((await top()).level === 2, "L3 reopens on the level the player reached");
+  await p.browser.close();
+}
+
 summary("regress");

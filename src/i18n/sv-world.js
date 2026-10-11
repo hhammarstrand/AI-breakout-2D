@@ -27,6 +27,7 @@ export const SV_WORLD = {
   "Machinery runs over 38.5C, never moves, and hums or roars (tonal or broadband). The PA still plays voices into empty rooms, too.": "Maskiner går över 38.5C, rör sig aldrig och brummar eller dånar (ton eller bredband). Högtalarna spelar dessutom fortfarande upp röster i tomma rum.",
   "The L3 maze has laser gates that cycle every step. Count your moves.": "Labyrinten i L3 har laserspärrar som växlar varje steg. Räkna dina drag.",
   "If ECHO walks into a live gate, it gets reset. Plan the whole route first.": "Om ECHO går in i en aktiv spärr nollställs den. Planera hela rutten först.",
+  "Deeper in there are pressure plates. Anything that steps on one flips every door in the maze.": "Längre in finns tryckplattor. Allt som kliver upp på en växlar varenda dörr i labyrinten.",
   "Go. Finish it. I want to see a sunrise.": "Gå. Gör slut på det. Jag vill se en soluppgång.",
 
   // Janitor
