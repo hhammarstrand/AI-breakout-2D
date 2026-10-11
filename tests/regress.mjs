@@ -361,4 +361,49 @@ const quiet = (p) => p.ev(() => { const w = window.__blackout.game.scenes[0]; w.
   await p.browser.close();
 }
 
+// 14. R2: Space never transmits; carrier 2 names the slip; carrier 3 gives per-dial marks, drops the
+// line after three refusals with a fully new answer, and keeps carriers 1-2 when the player steps out.
+{
+  const p = await open({ save: fresh({ completedSectors: 5, secondsLeft: 1100 }) });
+  await p.title(); await quiet(p);
+  const top = (fn, a) => p.ev(fn, a);
+  await p.ev(() => window.__blackout.game.scenes[0]._launchSector(6, "R2")); await p.wait(1200);
+  let t0 = (await p.state()).secondsLeft;
+  await p.press("Space"); await p.wait(200);
+  check(t0 - (await p.state()).secondsLeft < 2 && !(await top(() => window.__blackout.game.top.message)), "Space does not transmit in R2");
+  await top(() => window.__blackout.game.top.resume(1));
+  await top(async () => {
+    const s = window.__blackout.game.top;
+    const { received } = await import(new URL("src/scenes/signal-carriers.js", location.href).href);
+    s.mine = received(s.carrier); // copy the red trace: the habit carrier 1 taught
+  });
+  t0 = (await p.state()).secondsLeft;
+  await p.press("Enter"); await p.wait(200);
+  const msg = await top(() => window.__blackout.game.top.message?.text ?? "");
+  check(/both voices/.test(msg) && t0 - (await p.state()).secondsLeft > 15, "sending the sum on carrier 2 is refused with a reason", msg);
+  await top(() => window.__blackout.game.top.resume(2));
+  const first = await top(() => { const s = window.__blackout.game.top; return { target: { ...s.target }, chirps: s.carrier.chirps, echo: s.carrier.echo }; });
+  check(first.target.FREQ === first.chirps - first.echo.FREQ && first.target.AMP === 6 - first.echo.AMP
+    && first.target.PHASE === (first.echo.PHASE + 4) % 8, "carrier 3's answer follows the three floor rules");
+  const sends = [{ FREQ: 1, AMP: 1, PHASE: 0 }, { FREQ: 6, AMP: 5, PHASE: 1 }, { FREQ: 3, AMP: 3, PHASE: 2 }]
+    .map((v) => (v.PHASE === first.target.PHASE ? { ...v, PHASE: (v.PHASE + 3) % 8 } : v));
+  for (let i = 0; i < 2; i++) { await top((v) => { window.__blackout.game.top.mine = { ...v }; }, sends[i]); await p.press("Enter"); await p.wait(150); }
+  const log = await top(() => window.__blackout.game.top.log.map((l) => l.fb));
+  const mark = (a, b) => (a === b ? "✓" : a < b ? "▲" : "▼");
+  check(log.length === 2 && log.every((fb, i) => fb.FREQ === mark(sends[i].FREQ, first.target.FREQ) && fb.AMP === mark(sends[i].AMP, first.target.AMP) && fb.PHASE === "✗"),
+    "refused handshakes log ▲/▼/✓ per dial", JSON.stringify(log));
+  await top((v) => { window.__blackout.game.top.mine = { ...v }; }, sends[2]); await p.press("Enter"); await p.wait(3000);
+  const second = await top(() => { const s = window.__blackout.game.top; return { target: { ...s.target }, log: s.log.length, redial: s.redial }; });
+  check(second.log === 0 && second.redial <= 0 && ["FREQ", "AMP", "PHASE"].every((k) => second.target[k] !== first.target[k]),
+    "the third refusal drops the line and re-keys every dial", JSON.stringify([first.target, second.target]));
+  await p.press("Escape"); await p.wait(700); await quiet(p);
+  await p.ev(() => window.__blackout.game.scenes[0]._launchSector(6, "R2")); await p.wait(1200);
+  check(await top(() => window.__blackout.game.top.round) === 2, "R2 reopens on carrier 3 after stepping out");
+  await top(() => { const s = window.__blackout.game.top, c = s.carrier; s.mine = { FREQ: c.chirps - c.echo.FREQ, AMP: 6 - c.echo.AMP, PHASE: (c.echo.PHASE + 4) % 8 }; });
+  await p.press("Enter"); await p.wait(2200);
+  check((await p.state()).completedSectors === 6, "the rule-built handshake clears R2");
+  check(!p.errors.length, "no page errors in R2", p.errors.join(" | "));
+  await p.browser.close();
+}
+
 summary("regress");

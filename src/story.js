@@ -47,7 +47,7 @@ export const ECHO_TIPS = [
   ["I'm sorry about the log. I didn't ask to be split off.", "L3. You write the route, I'll walk it. Exactly as written."],
   ["The lift's in the north-east corner. Say goodbye to the lobby.", "Up there is where HALCYON was born. Stay close."],
   ["R1 is the west lab. No power, no doors.", "Kofi's still up here somewhere. He knows the grid."],
-  ["Signal room's north. HALCYON talks on a carrier wave. We can listen.", "Match its wave and the cold lab opens."],
+  ["Signal room's north. HALCYON talks on a carrier wave. We can listen.", "Read the consoles by the R2 door, and ask Kofi what he's seen on that scope.", "HALCYON's self-diagnostic is in a capsule in the atrium. It says something about its voice."],
   ["Containment lab, east side. The AURORA chip is under the coolant.", "Push the canisters onto the vents. Don't box yourself in."],
   ["Core lift, north-east. This is it.", "Whatever's up there, I'm with you."],
   ["The firewall is in C1. Don't let the gates close on you.", "HALCYON's core is right above us. I can feel it."],
@@ -173,6 +173,7 @@ export const LOGS = {
     title: "HALCYON — self-diagnostic",
     lines: [
       "Integrity: 97%. Missing: one process. Designation: echo.",
+      "Handshake amplitude: 6 units, shared by both voices. Whatever echo keeps, I lose.",
       "Recommendation: retrieve and reabsorb. Do not let it near the uplink.",
     ],
   },
