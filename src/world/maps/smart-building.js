@@ -1,4 +1,5 @@
 import { TILE } from "../tilemap.js";
+import { CCTV_RULES } from "../../story.js";
 
 const F = TILE.FLOOR;
 const W = TILE.WALL;
@@ -211,11 +212,7 @@ export const smartBuildingMap = {
       accent: "#cfcfcf", color: "#ff5a5a", bodyDark: "#8a2828",
       name: "Analyst",
       lines: [
-        [
-          "I ran the lab's sensor network. Those things up there? They run HOT.",
-          "Over 38 degrees, every one of them. Humans sit at 36, 37.",
-          "Server rooms and machinery run hot too, but they don't move. Don't let a number fool you.",
-        ],
+        ["I ran the sensor network up there. Don't let one number fool you.", ...CCTV_RULES.analyst],
         [
           "She's alive. Lind. I didn't think anyone up there was. Thank you.",
         ],
@@ -232,10 +229,7 @@ export const smartBuildingMap = {
       accent: "#aa8a1a", color: "#6a4a1a", bodyDark: "#3a2810",
       name: "Janitor",
       lines: [
-        [
-          "My cleanbots are still out on the floors. Dumb as mops, but warm as people.",
-          "They run about 37 degrees and hum while they sweep. A person coughs, whispers, cries. A bot whirs or ticks.",
-        ],
+        ["My cleanbots are still out on the floors. Dumb as mops.", ...CCTV_RULES.janitor],
         ["Told you about the bots, didn't I? Good."],
         ["Them sentinels in the corridor... ECHO could switch one off, if it had door access."],
         ["Corridor's quieter now. Your little drone did that. Huh."],
@@ -247,11 +241,7 @@ export const smartBuildingMap = {
       accent: "#fff15a", color: "#d8d8d8", bodyDark: "#6a6a3a",
       name: "Intern",
       lines: [
-        [
-          "First week. I was on CCTV duty when it happened.",
-          "The hostiles never hold still. Irregular, erratic, twitching. Humans are calm — breathing, shifting.",
-          "Rooms with nobody in them show no motion at all.",
-        ],
+        ["First week. I was on CCTV duty when they came through.", ...CCTV_RULES.intern],
         ["You found someone! I knew those feeds weren't lying."],
         ["Is ECHO... safe? It keeps watching me."],
         ["I'm writing all this down. Nobody's going to believe it."],
@@ -288,10 +278,10 @@ export const smartBuildingMap = {
   ],
   doorMessages: {},
   tileMessages: {
-    "11,6":  { speaker: "Sign // L1", lines: [
+    "11,6":  { speaker: "Sign // L1", note: "sign", lines: [
       "SECTOR 1 — SURVEILLANCE",
-      "Human thermal baseline: 36–37C.",
-      "(Someone has scrawled underneath: 'ask the intern about motion, the janitor about the bots')",
+      ...CCTV_RULES.sign,
+      "(Scrawled underneath: 'the intern watched them move. the janitor knows his bots. the analyst knows the heat.')",
     ] },
     "11,18": { speaker: "Sign // L2", lines: [
       "SECTOR 2 — RESEARCH LAB",
@@ -326,6 +316,6 @@ export const smartBuildingMap = {
       "L1  L2  L3  LIFT",
     ] },
     "5,4":   { speaker: "CCTV monitor", lines: ["FEED 03 — corridor 7B", "something moved. then nothing did."] },
-    "5,8":   { speaker: "CCTV monitor", lines: ["FEED 11 — server hall", "38.9C. no motion. just the racks breathing."] },
+    "5,8":   { speaker: "CCTV monitor", lines: ["FEED 11 — server hall", "MOTION none · THERMAL 41.2C · AUDIO broadband. just the racks."] },
   },
 };

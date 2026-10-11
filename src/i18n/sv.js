@@ -167,8 +167,8 @@ const S = {
   // --- ECHO story lines ---------------------------------------------------------------------
   "Research floor. Everything up here hums. Even the walls.": "Forskningsvåningen. Allt här uppe surrar. Till och med väggarna.",
   "This is HALCYON's core. And mine, I suppose.": "Det här är HALCYONs kärna. Och min, antar jag.",
-  "Talk to everyone first. Each of them saw a piece of what's up there.": "Prata med alla först. Var och en såg en bit av det som finns där uppe.",
-  "The intern and the janitor both mentioned the feeds. Worth asking.": "Både praktikanten och vaktmästaren nämnde kameraflödena. Värt att fråga.",
+  "Talk to everyone first. The L1 sign, the intern, the janitor and the analyst each know a sensor rule.": "Prata med alla först. L1-skylten, praktikanten, vaktmästaren och analytikern kan var sin sensorregel.",
+  "I keep notes of what they tell you. Press Tab on the CCTV grid to read them.": "Jag antecknar det de berättar. Tryck Tab vid kameranätet för att läsa.",
   "L1 is the far north-west door.": "L1 är dörren längst bort i nordväst.",
   "Dr. Lind's in the lobby now. She has something for you.": "Dr. Lind är i lobbyn nu. Hon har något åt dig.",
   "L2 is the second door from the left.": "L2 är den andra dörren från vänster.",
@@ -197,7 +197,7 @@ const S = {
   "We're through. The uplink's right there.": "Vi är igenom. Uplinken är precis där.",
 
   // --- objectives -------------------------------------------------------------------------
-  "L1 (north-west): find the survivor on the CCTV grid. Ask around for the sensor rules": "L1 (nordväst): hitta den överlevande i kameranätet. Fråga runt om sensorreglerna",
+  "L1 (north-west): find the survivor on the CCTV grid. Read the L1 sign and ask the staff": "L1 (nordväst): hitta den överlevande i kameranätet. Läs L1-skylten och fråga personalen",
   "L2: decrypt HALCYON's lab logs. Dr. Lind knows how its cipher works": "L2: dekryptera HALCYONs labbloggar. Dr. Lind vet hur chiffret fungerar",
   "L3: program ECHO to walk the door-control maze": "L3: programmera ECHO att gå genom dörrstyrningens labyrint",
   "The service lift (north-east) is unlocked. Ride it up to the research floor": "Servicehissen (nordost) är upplåst. Åk upp till forskningsvåningen",

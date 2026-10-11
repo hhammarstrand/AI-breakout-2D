@@ -1,185 +1,279 @@
 import { music } from "../audio/music.js";
 import { gameState, penalize, scaledPenalty } from "../state.js";
+import { CCTV_RULES } from "../story.js";
+import { t } from "../i18n/index.js";
 
-// Each visit generates a fresh set of feeds. The rules are spread across the lobby:
-//  - L1 sign / Analyst: humans read 36-37C, hostiles run over 38C
-//  - Intern: hostiles never hold still; humans are calm; empty rooms show no motion
-//  - Janitor: cleanbots are ~37C too, but they whir instead of making human sounds
-//  - Analyst (later): machinery runs hot but doesn't move
+// L1 — CCTV survivor search. Readings are neutral sensor values, and every value a survivor or a
+// hostile can show is shared with some other kind of feed, so no single reading decides a card.
+// The rules that tell them apart are split between the L1 sign and three lobby NPCs (CCTV_RULES
+// in story.js); each feed is random per visit but built only from the profiles below, which are
+// exactly what those rules allow. Round 2 adds machinery, hot hostiles and quiet movers that only
+// THERMAL can settle.
 const ROOM_NAMES = [
-  "LOBBY", "SERVER HALL", "CORRIDOR 7B", "WASHROOM", "LAB ANNEX", "STAIRWELL B",
-  "BREAK ROOM", "MAILROOM", "ELEVATOR 3", "ARCHIVE", "COLD STORAGE", "BOARDROOM",
-];
-const SURVIVOR_PROFILES = [
-  { motion: "breathing", audio: "coughing" },
-  { motion: "shallow", audio: "sobbing" },
-  { motion: "slow shift", audio: "whispers" },
-];
-const HOSTILE_PROFILES = [
-  { motion: "irregular", audio: "wet clicks" },
-  { motion: "erratic", audio: "servo whine" },
-  { motion: "erratic", audio: "skittering" },
-  { motion: "twitching", audio: "static hiss" },
-  { motion: "irregular", audio: "dragging" },
-];
-const CLEANBOT_PROFILES = [
-  { motion: "slow sweep", audio: "brush whir" },
-  { motion: "slow shift", audio: "motor hum" },
-  { motion: "breathing?", audio: "servo tick" },
-];
-const EMPTY_PROFILES = [
-  { motion: "none", audio: "ambient", temp: [19.5, 23.5] },
-  { motion: "none", audio: "fan whir", temp: [38.2, 40.5] },
-  { motion: "none", audio: "dripping", temp: [16.0, 21.0] },
+  "CORRIDOR 7B", "WASHROOM", "LAB ANNEX", "STAIRWELL B", "BREAK ROOM", "MAILROOM", "ELEVATOR 3",
+  "ARCHIVE", "BOARDROOM", "COPY ROOM", "OFFICE 3C", "STOREROOM", "OPEN PLAN", "LOADING BAY",
 ];
 
-const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-const temp = (lo, hi) => `${(lo + Math.random() * (hi - lo)).toFixed(1)}C`;
+// m: P = periodic at breathing pace, A = aperiodic, N = none. `late` variants only appear in
+// round 2; w weights the draw towards the look-alikes (quiet people, ticking bots).
+const PROFILES = {
+  survivor: [
+    { m: "P", a: "quiet", w: 3 }, { m: "P", a: "voiced", w: 2 }, { m: "A", a: "voiced", w: 2 },
+    { m: "A", a: "quiet", w: 3, temp: [[36.0, 36.8]], late: true }, // cool enough to rule out a hostile
+  ],
+  hostile: [
+    { m: "A", a: "impulsive", w: 2 }, { m: "A", a: "looped" }, { m: "N", a: "impulsive", w: 2 }, { m: "N", a: "looped" },
+    { m: "N", a: "quiet", w: 2 },
+    { m: "A", a: "quiet", temp: [[38.7, 41.3]], late: true }, // too hot to be a person
+  ],
+  cleanbot: [{ m: "P", a: "tonal", w: 2 }, { m: "P", a: "impulsive", w: 3 }],
+  machinery: [{ m: "N", a: "tonal" }, { m: "N", a: "broadband" }],
+  empty: [{ m: "N", a: "quiet" }, { m: "N", a: "broadband" }, { m: "N", a: "voiced" }, { m: "N", a: "looped" }],
+};
 
-function shuffle(arr) {
+// Survivors run a fever as often as not and many hostiles are cooled, so warm proves nothing.
+// A third value marks a band used only in round 2: with no machinery on floor 2, a hot hostile
+// there would be decided by THERMAL alone.
+const TEMPS = {
+  survivor: [[36.0, 37.2], [37.3, 38.4]],
+  hostile: [[37.1, 38.4], [37.1, 38.4], [38.6, 41.3, true]],
+  cleanbot: [[36.0, 37.9]],
+  machinery: [[38.6, 41.3], [41.6, 45.8]],
+  empty: [[15.5, 24.5]],
+};
+
+export const ROUNDS = [
+  {
+    area: "FLOOR 2, EAST WING", survivors: 1, hostiles: 2, decoys: (rnd) => (rnd() < 0.5 ? ["cleanbot", "empty", "empty"] : ["cleanbot", "cleanbot", "empty"]),
+    brief: "Reyes: someone badged a door on floor 2 four minutes ago. Find them, and whatever is up there with them.",
+    decoyText: "The other 3 feeds are decoys: cleanbots or empty rooms.",
+  },
+  {
+    area: "FLOOR 3, ARCHIVE WING", survivors: 1, hostiles: 3,
+    decoys: (rnd) => ["cleanbot", "cleanbot", "machinery", ...(rnd() < 0.5 ? ["machinery", "empty"] : ["empty", "empty"])],
+    brief: "Reyes: it's Lind! She ran for floor 3 and went to ground again. Find her, and every hostile between her and the stairs.",
+    decoyText: "The other 5 feeds are decoys: cleanbots, machinery or empty rooms.",
+  },
+];
+
+const NOTE_SOURCES = [["sign", "L1 SIGN"], ["intern", "INTERN"], ["janitor", "JANITOR"], ["analyst", "ANALYST"]];
+
+const pick = (arr, rnd) => arr[Math.floor(rnd() * arr.length)];
+
+function pickWeighted(arr, rnd) {
+  let x = rnd() * arr.reduce((n, p) => n + (p.w ?? 1), 0);
+  return arr.find((p) => (x -= p.w ?? 1) < 0) ?? arr.at(-1);
+}
+
+function shuffle(arr, rnd) {
   for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(rnd() * (i + 1));
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr;
 }
 
-function generateRooms() {
-  const roles = shuffle(["survivor", "hostile", "hostile", "hostile", "cleanbot", "empty"]);
-  const names = shuffle(ROOM_NAMES.slice());
-  return roles.map((role, i) => {
-    let p, thermal;
-    if (role === "survivor") { p = pick(SURVIVOR_PROFILES); thermal = temp(36.1, 37.2); }
-    else if (role === "hostile") { p = pick(HOSTILE_PROFILES); thermal = temp(38.1, 42.0); }
-    else if (role === "cleanbot") { p = pick(CLEANBOT_PROFILES); thermal = temp(36.3, 37.1); }
-    else { p = pick(EMPTY_PROFILES); thermal = temp(...p.temp); }
-    return { id: i + 1, name: names[i], role, motion: p.motion, thermal, audio: p.audio };
+// n different profiles, weighted, redrawn until `ok` accepts the set
+function pickDistinct(list, n, rnd, ok = () => true) {
+  for (;;) {
+    const left = list.slice(), out = [];
+    while (out.length < n) out.push(...left.splice(left.indexOf(pickWeighted(left, rnd)), 1));
+    if (ok(out)) return out;
+  }
+}
+
+const voiced = (p) => p.a === "voiced" || p.a === "looped";
+
+// One board for a round. Exported so tests/solvers can check it outside the browser.
+export function generateFeeds(round, rnd = Math.random) {
+  const r = ROUNDS[round];
+  const allowed = (role) => PROFILES[role].filter((p) => round > 0 || !p.late);
+  const hostiles = pickDistinct(allowed("hostile"), r.hostiles, rnd,
+    (hs) => round === 0 || (hs.some((p) => p.m === "N") && hs.some((p) => p.m === "A")));
+  // at least one empty room has the PA talking, so "voiced" never means "person" on its own
+  const roles = r.decoys(rnd);
+  const empties = pickDistinct(allowed("empty"), roles.filter((role) => role === "empty").length, rnd, (es) => es.some(voiced));
+  const decoys = roles.filter((role) => role !== "empty").map((role) => [role, pickWeighted(allowed(role), rnd)]);
+  const feeds = [["survivor", pickWeighted(allowed("survivor"), rnd)], ...hostiles.map((p) => ["hostile", p]),
+    ...decoys, ...empties.map((p) => ["empty", p])];
+  const names = shuffle(ROOM_NAMES.slice(), rnd);
+  return shuffle(feeds, rnd).map(([role, p], i) => {
+    const [lo, hi] = pick((p.temp ?? TEMPS[role]).filter((b) => round > 0 || !b[2]), rnd);
+    const temp = lo + rnd() * (hi - lo);
+    const hz = 0.21 + rnd() * 0.13;
+    const loop = 3 + Math.floor(rnd() * 7);
+    return {
+      id: i + 1, name: names[i], role, seed: rnd() * 100, m: p.m, a: p.a, hz,
+      motion: p.m === "P" ? `periodic ${hz.toFixed(2)} Hz` : p.m === "A" ? "aperiodic" : "none",
+      thermal: `${temp.toFixed(1)}C`,
+      audio: {
+        quiet: "quiet", voiced: "voiced, irregular", looped: `voiced, looped ${loop}s`,
+        tonal: "tonal 120 Hz", impulsive: "impulsive", broadband: "broadband",
+      }[p.a],
+    };
   });
 }
 
-const COLS = 3;
-const ROWS_GRID = 2;
-const HEADER_H = 24;
-const FOOTER_H = 24;
-const GUTTER = 12;
-const CARD_W = 144;
-const CARD_H = 116;
+const HEADER_H = 20;
+const STATUS_H = 13;
+const FOOTER_H = 16;
+const GRID_X = 9;
+const GRID_TOP = HEADER_H + STATUS_H + 4;
+const CARD_W = 150;
+const GUTTER = 6;
 
-const CYCLE = { none: "hostile", hostile: "survivor", survivor: "none" };
+const CYCLE = { none: "hostile", hostile: "survivor", survivor: "decoy", decoy: "none" };
+const STAMPS = {
+  hostile: ["✕ HOSTILE", "#ff5a5a", "#330a0a"],
+  survivor: ["▲ SURVIVOR", "#0aff7a", "#0a3322"],
+  decoy: ["◇ DECOY", "#5a8a7a", "#0a1410"],
+};
 
 const STAMP_TIME = 0.25;
 const TIME_PENALTY = 30;
+const COUNT_PENALTY = 10;
+const DONE_TIME = 1.8;
+const TRACE_SPAN = 8; // seconds of motion history in a trace
 
 export class Sector1Scene {
   constructor({ hud, sfx, fx, onResult }) {
-    this.hints = ["Humans read 36–37C, move calmly, and make human sounds: coughing, sobbing, whispers.", "Every hostile runs hotter than 38C and is always moving.", "The cleanbot is human-warm but whirs, hums or ticks. It's neither survivor nor hostile — leave it unmarked."];
+    this.hints = [
+      "No single reading settles a feed. Read MOTION and AUDIO together, then let THERMAL break ties. Tab shows what the sign, the intern, the janitor and the analyst told you.",
+      "Breathing pace (periodic 0.20–0.35 Hz) is a person or a sweeping cleanbot, and a cleanbot is never quiet. Hostiles never breathe, and a person never reads 'none'.",
+      "Survivor: periodic or aperiodic, and quiet or voiced, irregular. Hostile: aperiodic or none, and impulsive, looped or quiet. Still and under 25C is an empty room. Quiet and aperiodic: under 37C a person, over 38.5C a hostile.",
+    ];
     this.hud = hud;
     this.sfx = sfx;
     this.fx = fx;
     this.onResult = onResult;
-    this.rooms = generateRooms();
-    this.cursor = 0;
-    this.states = this.rooms.map(() => "none");
-    this.stamps = this.rooms.map(() => 0);
-    this.message = null;
-    this.messageTime = 0;
-    this.attempts = 0;
+    this.round = 0;
     this._t = 0;
+    this._load();
   }
 
   onEnter() { document.body.classList.add("no-objective", "in-puzzle"); music.play("sector"); music.setIntensity(0); }
   onExit() { document.body.classList.remove("no-objective", "in-puzzle"); }
+
+  get part() { return this.round; }
+  resume(i) { this.round = i; this._load(); }
+
+  _load() {
+    this.rooms = generateFeeds(this.round);
+    this.states = this.rooms.map(() => "none");
+    this.stamps = this.rooms.map(() => 0);
+    this.cursor = 0;
+    this.briefing = true;
+    this.notes = false;
+    this.message = null;
+    this.done = 0;
+  }
 
   update(dt, input) {
     this._t += dt;
     this.hud.update(dt);
     for (let i = 0; i < this.stamps.length; i++) this.stamps[i] = Math.max(0, this.stamps[i] - dt);
     if (this.message) {
-      this.messageTime -= dt;
-      if (this.messageTime <= 0) this.message = null;
+      this.message.time -= dt;
+      if (this.message.time <= 0) this.message = null;
+    }
+    if (this.done > 0) {
+      this.done -= dt;
+      if (this.done <= 0) this._next();
+      return;
+    }
+    if (input.wasPressed("pause")) { this.onResult({ success: false, aborted: true }); return; }
+
+    const toggleNotes = input.wasPressed("menu") || input.wasPressed("back");
+    if (this.notes) {
+      if (toggleNotes || input.wasPressed("interact") || input.wasPressed("submit")) { this.notes = false; this.sfx.play("select"); }
+      return;
+    }
+    if (toggleNotes) { this.notes = true; this.sfx.play("blip"); return; }
+    if (this.briefing) {
+      if (input.wasPressed("interact") || input.wasPressed("submit")) { this.briefing = false; this.sfx.play("select"); }
+      return;
     }
 
+    const cols = 3;
     const before = this.cursor;
-    if (input.wasPressed("up") && this.cursor >= COLS) this.cursor -= COLS;
-    else if (input.wasPressed("down") && this.cursor < this.rooms.length - COLS) this.cursor += COLS;
-    else if (input.wasPressed("left") && this.cursor % COLS > 0) this.cursor -= 1;
-    else if (input.wasPressed("right") && this.cursor % COLS < COLS - 1) this.cursor += 1;
+    if (input.wasPressed("up") && this.cursor >= cols) this.cursor -= cols;
+    else if (input.wasPressed("down") && this.cursor < this.rooms.length - cols) this.cursor += cols;
+    else if (input.wasPressed("left") && this.cursor % cols > 0) this.cursor -= 1;
+    else if (input.wasPressed("right") && this.cursor % cols < cols - 1) this.cursor += 1;
     if (this.cursor !== before) this.sfx.play("select");
 
-    if (input.wasPressed("pause")) { this.onResult({ success: false, aborted: true }); return; }
     if (input.wasPressed("interact")) this._cycle();
-    if (input.wasPressed("submit")) this._submit();
+    if (input.wasPressed("submit")) this._submit(); // only Enter commits: Space must never cost time
   }
 
   _cycle() {
     const next = CYCLE[this.states[this.cursor]];
     this.states[this.cursor] = next;
     this.stamps[this.cursor] = next === "none" ? 0 : STAMP_TIME;
-    this.sfx.play(next === "none" ? "select" : "stamp");
+    this.sfx.play(next === "none" || next === "decoy" ? "select" : "stamp");
   }
 
+  _marked(state) { return this.rooms.filter((_, i) => this.states[i] === state); }
+
   _submit() {
-    const survivors = [];
-    const hostiles = [];
-    for (let i = 0; i < this.states.length; i++) {
-      if (this.states[i] === "survivor") survivors.push(i + 1);
-      else if (this.states[i] === "hostile") hostiles.push(i + 1);
-    }
-
-    if (survivors.length !== 1) {
+    const r = ROUNDS[this.round];
+    const survivors = this._marked("survivor");
+    const hostiles = this._marked("hostile");
+    // a miscount costs a little too, so Enter can't be used to probe the board for free
+    if (survivors.length !== r.survivors || hostiles.length !== r.hostiles) {
+      penalize(COUNT_PENALTY);
       this.sfx.play("denied");
-      this._setMessage("Mark exactly 1 SURVIVOR.", "#ffaa3a");
+      this._setMessage(`COUNT MISMATCH: mark ▲${r.survivors} and ✕${r.hostiles}. (-${scaledPenalty(COUNT_PENALTY)}s)`, "#ffaa3a");
       return;
     }
-    if (hostiles.length !== 3) {
-      this.sfx.play("denied");
-      this._setMessage(`Mark exactly 3 HOSTILES (currently ${hostiles.length}).`, "#ffaa3a");
+    if (survivors.every((f) => f.role === "survivor") && hostiles.every((f) => f.role === "hostile")) {
+      this.done = DONE_TIME;
+      this.message = null;
+      this.sfx.play("success");
+      this.fx.flash("#0aff7a");
       return;
     }
+    this.hud.addScore(-2);
+    penalize(TIME_PENALTY);
+    this.sfx.play("error");
+    this.fx.shake();
+    this.fx.flash("#ff5a5a");
+    this._setMessage(`WRONG TARGETS. HALCYON noticed. (-${scaledPenalty(TIME_PENALTY)}s)`, "#ff5a5a");
+  }
 
-    this.attempts += 1;
-    const role = (id) => this.rooms[id - 1].role;
-    const correct =
-      role(survivors[0]) === "survivor" &&
-      hostiles.every((h) => role(h) === "hostile");
-
-    if (correct) {
-      const survivor = this.rooms[survivors[0] - 1].name;
-      const hostileNames = hostiles.map((h) => this.rooms[h - 1].name);
-      this.onResult({
-        success: true,
-        aborted: false,
-        report: [
-          `[L1] Survivor confirmed in ${survivor}. It's Dr. Ines Lind — HALCYON's lead engineer.`,
-          `Hostiles flagged in ${hostileNames.slice(0, -1).join(", ")} and ${hostileNames.at(-1)}. I've sealed those rooms.`,
-          "Lind's on her way down to the lobby. Go talk to her — she says she has something for you.",
-          "And L2 just unlocked.",
-        ],
-      });
-    } else {
-      this.hud.addScore(-2);
-      penalize(TIME_PENALTY);
-      this.sfx.play("error");
-      this.fx.shake();
-      this.fx.flash("#ff5a5a");
-      this._setMessage(`WRONG TARGETS. HALCYON noticed. (-${scaledPenalty(TIME_PENALTY)}s)`, "#ff5a5a");
+  _next() {
+    if (this.round + 1 < ROUNDS.length) {
+      this.round++;
+      this.sfx.play("door");
+      this.fx.glitch();
+      this._load();
+      return;
     }
+    const survivor = this._marked("survivor")[0].name;
+    const hostileNames = this._marked("hostile").map((f) => f.name);
+    this.onResult({
+      success: true,
+      aborted: false,
+      report: [
+        `[L1] Survivor confirmed in ${survivor}. It's Dr. Ines Lind — HALCYON's lead engineer.`,
+        `Hostiles flagged in ${hostileNames.slice(0, -1).join(", ")} and ${hostileNames.at(-1)}. I've sealed those rooms.`,
+        "Lind's on her way down to the lobby. Go talk to her — she says she has something for you.",
+        "And L2 just unlocked.",
+      ],
+    });
   }
 
   _setMessage(text, color) {
-    this.message = { text, color };
-    this.messageTime = 2.6;
+    this.message = { text, color, time: 2.6 };
   }
 
   render(renderer) {
     const w = renderer.width;
     const h = renderer.height;
+    const r = ROUNDS[this.round];
 
     renderer.fillRect(0, 0, w, h, "#020a08");
-    for (let y = 0; y < h; y += 4) {
-      renderer.fillRect(0, y, w, 1, "rgba(10,255,122,0.05)");
-    }
-
+    for (let y = 0; y < h; y += 4) renderer.fillRect(0, y, w, 1, "rgba(10,255,122,0.05)");
     const scanY = (this._t * 60) % h;
     renderer.fillRect(0, scanY, w, 2, "rgba(10,255,122,0.10)");
     renderer.fillRect(0, scanY - 6, w, 6, "rgba(10,255,122,0.04)");
@@ -187,123 +281,215 @@ export class Sector1Scene {
     renderer.fillRect(0, 0, w, HEADER_H, "#062612");
     renderer.fillRect(0, HEADER_H - 2, w, 2, "#0aff7a");
     renderer.text("SECTOR 1 // LOCATE THE SURVIVOR", 8, HEADER_H / 2, {
-      color: "#0aff7a", size: 11, weight: "bold", baseline: "middle",
+      color: "#0aff7a", size: 10, weight: "bold", baseline: "middle",
     });
     const blink = (Math.floor(this._t * 2) & 1) === 0;
-    renderer.text(blink ? "● LIVE FEED" : "  LIVE FEED", w - 8, HEADER_H / 2, {
-      color: "#ff5a5a", size: 9, align: "right", baseline: "middle", weight: "bold",
+    renderer.text(`FEEDS ${this.round + 1}/${ROUNDS.length}`, w - 66, HEADER_H / 2, {
+      color: "#cffcff", size: 8, align: "right", baseline: "middle", weight: "bold",
+    });
+    renderer.text(blink ? "● LIVE" : "  LIVE", w - 8, HEADER_H / 2, {
+      color: "#ff5a5a", size: 8, align: "right", baseline: "middle", weight: "bold",
     });
 
+    // the briefing's counts stay on screen; the right side counts the player's own marks
+    renderer.fillRect(0, HEADER_H, w, STATUS_H, "#04140c");
+    renderer.text(`FIND ▲${r.survivors} SURVIVOR · ✕${r.hostiles} HOSTILES`, 8, HEADER_H + STATUS_H / 2, {
+      color: "#8adcb0", size: 8, baseline: "middle", weight: "bold",
+    });
+    renderer.text(`MARKED ▲${this._marked("survivor").length} ✕${this._marked("hostile").length}`, w - 8, HEADER_H + STATUS_H / 2, {
+      color: "#5a8a7a", size: 8, align: "right", baseline: "middle",
+    });
+
+    const rows = Math.ceil(this.rooms.length / 3);
+    const gap = rows > 2 ? 5 : 8;
+    const cardH = Math.floor((h - FOOTER_H - 3 - GRID_TOP - gap * (rows - 1)) / rows);
     for (let i = 0; i < this.rooms.length; i++) {
-      const col = i % COLS;
-      const row = Math.floor(i / COLS);
-      const x = GUTTER + col * (CARD_W + GUTTER);
-      const y = HEADER_H + GUTTER + row * (CARD_H + 16);
-      this._drawCard(renderer, this.rooms[i], this.states[i], i === this.cursor, x, y, this.stamps[i]);
+      const x = GRID_X + (i % 3) * (CARD_W + GUTTER);
+      const y = GRID_TOP + Math.floor(i / 3) * (cardH + gap);
+      this._drawCard(renderer, this.rooms[i], this.states[i], i === this.cursor && !this.briefing, x, y, cardH, this.stamps[i]);
     }
 
     renderer.fillRect(0, h - FOOTER_H, w, FOOTER_H, "#062612");
     renderer.fillRect(0, h - FOOTER_H, w, 1, "#0aff7a");
-    renderer.text(
-      "[arrows] move   [space] cycle hostile/survivor   [enter] submit   [esc] exit",
-      8, h - FOOTER_H / 2,
-      { color: "#0a8a4a", size: 8, baseline: "middle" },
-    );
+    renderer.text("[arrows] move   [space] mark   [tab] notes   [enter] submit   [esc] exit", 8, h - FOOTER_H / 2, {
+      color: "#0a8a4a", size: 8, baseline: "middle",
+    });
 
     if (this.message) {
-      const my = h - FOOTER_H - 30;
-      renderer.fillRect(0, my, w, 26, "#0a0a0a");
+      const my = h - FOOTER_H - 28;
+      renderer.fillRect(0, my, w, 24, "#0a0a0a");
       renderer.fillRect(0, my, w, 1, this.message.color);
-      renderer.fillRect(0, my + 25, w, 1, this.message.color);
-      renderer.text(this.message.text, w / 2, my + 13, {
-        color: this.message.color, size: 10, align: "center", baseline: "middle", weight: "bold",
+      renderer.fillRect(0, my + 23, w, 1, this.message.color);
+      renderer.text(this.message.text, w / 2, my + 12, {
+        color: this.message.color, size: 9, align: "center", baseline: "middle", weight: "bold",
       });
     }
+
+    if (this.done > 0) this._drawDone(renderer);
+    else if (this.notes) this._drawNotes(renderer);
+    else if (this.briefing) this._drawBriefing(renderer, r);
   }
 
-  _drawCard(renderer, room, state, focused, x, y, stamp) {
-    let bg = "#0a1410";
-    let border = "#1a4a30";
-    let tag = null;
-    let tagColor = null;
-    if (state === "survivor") {
-      bg = "#0a3322"; border = "#0aff7a"; tag = "▲ SURVIVOR"; tagColor = "#0aff7a";
-    } else if (state === "hostile") {
-      bg = "#330a0a"; border = "#ff5a5a"; tag = "✕ HOSTILE"; tagColor = "#ff5a5a";
-    }
-
-    renderer.fillRect(x, y, CARD_W, CARD_H, bg);
-
+  _drawCard(renderer, room, state, focused, x, y, cardH, stamp) {
+    const roomy = cardH > 100;
+    const stampInfo = STAMPS[state];
+    renderer.fillRect(x, y, CARD_W, cardH, stampInfo && state !== "decoy" ? stampInfo[2] : "#0a1410");
     if (focused) {
       const pulse = (Math.sin(this._t * 6) + 1) * 0.5;
-      const focusColor = state === "survivor" ? "#0aff7a"
-                       : state === "hostile" ? "#ff5a5a"
-                       : "#cffcff";
-      renderer.strokeRect(x - 2, y - 2, CARD_W + 4, CARD_H + 4, focusColor, 2);
-      renderer.strokeRect(x, y, CARD_W, CARD_H, focusColor, 1);
+      const focusColor = stampInfo && state !== "decoy" ? stampInfo[1] : "#cffcff";
+      renderer.strokeRect(x - 2, y - 2, CARD_W + 4, cardH + 4, focusColor, 2);
       const ctx = renderer.ctx;
-      ctx.globalAlpha = 0.15 + 0.2 * pulse;
+      ctx.globalAlpha = 0.1 + 0.15 * pulse;
       ctx.fillStyle = focusColor;
-      ctx.fillRect(x, y, CARD_W, CARD_H);
+      ctx.fillRect(x, y, CARD_W, cardH);
       ctx.globalAlpha = 1;
     } else {
-      renderer.strokeRect(x, y, CARD_W, CARD_H, border, 1);
+      renderer.strokeRect(x, y, CARD_W, cardH, stampInfo ? stampInfo[1] : "#1a4a30", 1);
     }
 
-    renderer.text(`[${room.id}] ${room.name}`, x + 8, y + 10, {
-      color: "#0aff7a", size: 10, weight: "bold", baseline: "middle",
+    renderer.text(`[${room.id}] ${room.name}`, x + 5, y + (roomy ? 10 : 8), {
+      color: "#0aff7a", size: roomy ? 9 : 8, weight: "bold", baseline: "middle",
     });
-    renderer.fillRect(x + 8, y + 18, CARD_W - 16, 1, "#1a4a30");
+    renderer.fillRect(x + 5, y + (roomy ? 18 : 15), CARD_W - 10, 1, "#1a4a30");
 
-    const lines = [
-      ["MOTION",  room.motion],
-      ["THERMAL", room.thermal],
-      ["AUDIO",   room.audio],
-    ];
-    for (let i = 0; i < lines.length; i++) {
-      const ly = y + 28 + i * 12;
-      renderer.text(lines[i][0], x + 8, ly, { color: "#0a8a4a", size: 8, baseline: "top" });
-      renderer.text(lines[i][1], x + 50, ly, { color: "#cffcff", size: 8, baseline: "top" });
-    }
-
-    const thx = x + CARD_W - 38;
-    const thy = y + 26;
-    renderer.fillRect(thx, thy, 30, 30, "#000");
-    renderer.strokeRect(thx, thy, 30, 30, "#1a4a30", 1);
-    const noiseFrame = Math.floor(this._t * 4) & 3;
-    for (let i = 0; i < 22; i++) {
-      const dx = (room.id * 13 + i * 7 + noiseFrame * 5) % 28;
-      const dy = (room.id * 19 + i * 11 + noiseFrame * 3) % 28;
-      renderer.fillRect(thx + dx + 1, thy + dy + 1, 1, 1, "#1a3520");
-    }
-    if (room.motion !== "none" && Math.sin(this._t * 3 + room.id) > -0.3) {
-      const bx = thx + 10 + Math.round(Math.sin(this._t * 1.7 + room.id * 2) * 6);
-      renderer.fillRect(bx, thy + 9, 6, 4, "#2a6a40");
-      renderer.fillRect(bx + 1, thy + 13, 4, 7, "#2a6a40");
-    }
-    renderer.text(`CAM-0${room.id}`, thx + 15, thy + 26, {
-      color: "#4ae6ff", size: 6, align: "center", baseline: "middle",
+    const lines = [["MOTION", room.motion], ["THERMAL", room.thermal], ["AUDIO", room.audio]];
+    const top = y + (roomy ? 24 : 19);
+    const step = roomy ? 13 : 11;
+    lines.forEach(([label, value], i) => {
+      renderer.text(label, x + 5, top + i * step, { color: "#0a8a4a", size: 8, baseline: "top" });
+      renderer.text(value, x + 47, top + i * step, { color: "#cffcff", size: 8, baseline: "top" });
     });
 
-    if (tag) {
+    // the motion sensor's raw trace: the same information as the MOTION line, drawn over time
+    if (roomy) this._drawTrace(renderer, room, x + 5, top + 3 * step + 4, CARD_W - 10, 24);
+    else this._drawTrace(renderer, room, x + CARD_W - 39, y + 3, 34, 10);
+
+    const sy = y + cardH - (roomy ? 14 : 11);
+    if (stampInfo) {
       // rubber-stamp slam: starts big and tilted, settles into place
       const k = stamp / STAMP_TIME;
       const ctx = renderer.ctx;
       ctx.save();
-      ctx.translate(x + CARD_W / 2, y + CARD_H - 15);
+      ctx.translate(x + CARD_W / 2, sy);
       ctx.rotate(-0.05 - k * 0.25);
       ctx.scale(1 + k * 1.2, 1 + k * 1.2);
       ctx.globalAlpha = 1 - k * 0.5;
-      renderer.fillRect(-(CARD_W - 16) / 2, -7, CARD_W - 16, 14, "#000");
-      renderer.strokeRect(-(CARD_W - 16) / 2, -7, CARD_W - 16, 14, tagColor, 1);
-      renderer.text(tag, 0, 0, {
-        color: tagColor, size: 9, weight: "bold", align: "center", baseline: "middle",
-      });
+      renderer.fillRect(-(CARD_W - 20) / 2, -7, CARD_W - 20, 14, "#000");
+      renderer.strokeRect(-(CARD_W - 20) / 2, -7, CARD_W - 20, 14, stampInfo[1], 1);
+      renderer.text(stampInfo[0], 0, 0, { color: stampInfo[1], size: 9, weight: "bold", align: "center", baseline: "middle" });
       ctx.restore();
     } else {
-      renderer.text("[ unmarked ]", x + CARD_W / 2, y + CARD_H - 15, {
-        color: "#1a4a30", size: 8, align: "center", baseline: "middle",
-      });
+      renderer.text("[ unmarked ]", x + CARD_W / 2, sy, { color: "#1a4a30", size: 8, align: "center", baseline: "middle" });
     }
   }
+
+  _drawTrace(renderer, room, x, y, w, h) {
+    const ctx = renderer.ctx;
+    renderer.fillRect(x, y, w, h, "#000");
+    renderer.strokeRect(x, y, w, h, "#1a4a30", 1);
+    ctx.strokeStyle = room.m === "N" ? "#1a6a40" : "#2adf8a";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let i = 0; i <= w - 4; i++) {
+      const ts = this._t - ((w - 4 - i) / (w - 4)) * TRACE_SPAN;
+      let v = 0;
+      if (room.m === "P") v = Math.sin(ts * room.hz * Math.PI * 2 + room.seed);
+      else if (room.m === "A") v = jitter(room.seed, ts * 2.3);
+      const py = y + h / 2 - v * (h / 2 - 2);
+      if (i === 0) ctx.moveTo(x + 2 + i, py); else ctx.lineTo(x + 2 + i, py);
+    }
+    ctx.stroke();
+  }
+
+  _drawBriefing(renderer, r) {
+    const w = renderer.width;
+    const bw = 420, bx = (w - bw) / 2, by = 70;
+    const brief = wrap(renderer.ctx, r.brief, bw - 24, 8);
+    const bh = 98 + brief.length * 11;
+    renderer.fillRect(0, 0, w, renderer.height, "rgba(0,0,0,0.5)");
+    renderer.fillRect(bx, by, bw, bh, "#03140b");
+    renderer.strokeRect(bx, by, bw, bh, "#0aff7a", 2);
+    renderer.text(`FEEDS ${this.round + 1}/${ROUNDS.length} — ${r.area}`, bx + 12, by + 14, {
+      color: "#0aff7a", size: 10, weight: "bold", baseline: "middle",
+    });
+    brief.forEach((line, i) => renderer.text(line, bx + 12, by + 32 + i * 11, { color: "#cffcff", size: 8, baseline: "middle" }));
+    const cy = by + 40 + brief.length * 11;
+    renderer.text(`MARK  ▲ ${r.survivors} SURVIVOR   ✕ ${r.hostiles} HOSTILES`, w / 2, cy, {
+      color: "#ffffff", size: 10, weight: "bold", align: "center", baseline: "middle",
+    });
+    renderer.text(r.decoyText, w / 2, cy + 18, { color: "#8adcb0", size: 8, align: "center", baseline: "middle" });
+    renderer.text("Feeds are live readings. What they mean, the staff can tell you.", w / 2, cy + 32, {
+      color: "#5a8a7a", size: 8, align: "center", baseline: "middle",
+    });
+    renderer.text("[enter] start   [tab] field notes   [h] hint", w / 2, by + bh - 11, {
+      color: "#0a8a4a", size: 8, align: "center", baseline: "middle",
+    });
+  }
+
+  _drawNotes(renderer) {
+    const w = renderer.width;
+    const ctx = renderer.ctx;
+    const bx = 10, bw = w - 20, by = 24;
+    // one entry per rule: [first line?, text]; the bullet marks where each rule starts
+    const blocks = NOTE_SOURCES.map(([id, label]) => {
+      const heard = gameState.heard?.includes(id);
+      const lines = heard
+        ? CCTV_RULES[id].flatMap((rule) => wrap(ctx, rule, bw - 30, 8).map((line, i) => [i === 0, line]))
+        : [[false, t("nothing yet. Look around the lobby.")]];
+      return { label, heard, lines };
+    });
+    const bh = 26 + blocks.reduce((n, b) => n + 13 + b.lines.length * 10, 0) + 12;
+    renderer.fillRect(0, 0, w, renderer.height, "rgba(0,0,0,0.6)");
+    renderer.fillRect(bx, by, bw, bh, "#03140b");
+    renderer.strokeRect(bx, by, bw, bh, "#4ae6ff", 2);
+    renderer.text("FIELD NOTES — what you've been told", bx + 10, by + 12, {
+      color: "#4ae6ff", size: 10, weight: "bold", baseline: "middle",
+    });
+    let y = by + 28;
+    for (const b of blocks) {
+      renderer.text(b.label, bx + 10, y, { color: b.heard ? "#0aff7a" : "#3a6a5a", size: 8, weight: "bold", baseline: "middle" });
+      y += 11;
+      b.lines.forEach(([first, line]) => {
+        if (first) renderer.text("▸", bx + 12, y, { color: "#4ae6ff", size: 8, baseline: "middle" });
+        renderer.text(line, bx + 20, y, { color: b.heard ? "#cffcff" : "#3a6a5a", size: 8, baseline: "middle" });
+        y += 10;
+      });
+      y += 2;
+    }
+    renderer.text("[tab] close", bx + bw - 10, by + bh - 9, { color: "#2a7a8a", size: 8, align: "right", baseline: "middle" });
+  }
+
+  _drawDone(renderer) {
+    const w = renderer.width, h = renderer.height;
+    const last = this.round + 1 >= ROUNDS.length;
+    renderer.fillRect(0, h / 2 - 26, w, 52, "rgba(0,20,10,0.92)");
+    renderer.fillRect(0, h / 2 - 26, w, 1, "#0aff7a");
+    renderer.fillRect(0, h / 2 + 25, w, 1, "#0aff7a");
+    renderer.text(last ? "✓ ALL FEEDS CONFIRMED" : "✓ FEEDS CONFIRMED", w / 2, h / 2 - 8, {
+      color: "#0aff7a", size: 12, weight: "bold", align: "center", baseline: "middle",
+    });
+    renderer.text(last ? "Reyes: sealing those rooms now." : "Reyes: the survivor's moving. Switching cameras…", w / 2, h / 2 + 11, {
+      color: "#cffcff", size: 8, align: "center", baseline: "middle",
+    });
+  }
+}
+
+// Smooth, non-repeating wobble in [-1, 1] for aperiodic motion traces.
+function jitter(seed, x) {
+  const i = Math.floor(x), f = x - i;
+  const n = (k) => { const s = Math.sin((k + seed * 13.7) * 127.1) * 43758.5453; return (s - Math.floor(s)) * 2 - 1; };
+  const s = f * f * (3 - 2 * f);
+  return n(i) * (1 - s) + n(i + 1) * s;
+}
+
+function wrap(ctx, text, maxW, size) {
+  ctx.font = `normal ${size}px ui-monospace, "SF Mono", Menlo, Consolas, monospace`;
+  const out = [];
+  let line = "";
+  for (const word of t(text).split(" ")) {
+    const next = line ? `${line} ${word}` : word;
+    if (ctx.measureText(next).width > maxW && line) { out.push(line); line = word; } else line = next;
+  }
+  if (line) out.push(line);
+  return out;
 }

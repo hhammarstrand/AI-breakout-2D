@@ -28,6 +28,7 @@ import {
   difficulty,
   startAct,
   saveGame,
+  hear,
 } from "../state.js";
 import { Sector1Scene } from "./sector1-scene.js";
 import { Sector2Scene } from "./sector2-scene.js";
@@ -394,6 +395,7 @@ export class WorldScene {
     if (npc) {
       npc.react();
       this.sfx.play("select");
+      hear(npc.id);
       this.dialog.show(npc.name, npc.linesFor(gameState.completedSectors), null,
         { accent: npc.accent, lookId: npc.id });
       return;
@@ -430,6 +432,7 @@ export class WorldScene {
       const key = `${interactive.row},${interactive.col}`;
       const msg = this.map.tileMessages?.[key];
       if (msg) {
+        if (msg.note) hear(msg.note);
         this.dialog.show(msg.speaker, msg.lines);
       } else if (interactive.tile === TILE.TERMINAL) {
         this.dialog.show("Terminal", ["[ no signal ]", "Connection refused."]);

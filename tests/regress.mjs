@@ -84,6 +84,7 @@ const quiet = (p) => p.ev(() => { const w = window.__blackout.game.scenes[0]; w.
   await p.ev(() => window.__blackout.game.scenes[0]._launchSector(1, "L1")); await p.wait(1200);
   await p.ev(() => {
     const s = window.__blackout.game.top;
+    s.briefing = false;
     s.states = s.rooms.map((r) => (r.role === "survivor" ? "survivor" : r.role === "hostile" ? "hostile" : "none"));
     window.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
     window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
@@ -145,6 +146,62 @@ const quiet = (p) => p.ev(() => { const w = window.__blackout.game.scenes[0]; w.
   await p.reload(); await quiet(p);
   await p.ev(() => window.__blackout.game.scenes[0]._launchSector(7, "R3")); await p.wait(1200);
   check(await p.ev(() => window.__blackout.game.top.level) === 1, "solved bays survive a reload");
+  await p.browser.close();
+}
+
+// 10. L1: briefing first, a miscount costs time, notes only show what was heard, rounds resume.
+{
+  const p = await open({ save: fresh() });
+  await p.title(); await quiet(p);
+  await p.ev(() => { const w = window.__blackout.game.scenes[0]; w.player.teleport(14, 16); w.player.facing = "up"; });
+  await p.press("e"); await p.wait(300); await quiet(p);
+  check(JSON.stringify((await p.state()).heard) === '["analyst"]', "talking to the analyst records it as heard", JSON.stringify((await p.state()).heard));
+  await p.ev(() => window.__blackout.game.scenes[0]._launchSector(1, "L1")); await p.wait(1200);
+  const top = () => p.ev(() => { const s = window.__blackout.game.top; return { brief: s.briefing, notes: s.notes, round: s.round, marks: s.states.filter((x) => x !== "none").length, msg: s.message?.text ?? "" }; });
+  await p.press("Space"); await p.wait(100);
+  let t = await top();
+  check(t.brief === false && t.marks === 0, "space closes the briefing without marking a feed", JSON.stringify(t));
+  const t0 = (await p.state()).secondsLeft;
+  await p.press("Enter"); await p.wait(200);
+  t = await top();
+  const cost = t0 - (await p.state()).secondsLeft;
+  check(cost > 9 && cost < 12 && /COUNT MISMATCH/.test(t.msg) && t.round === 0, "submitting the wrong number of marks costs 10 s", `${cost.toFixed(1)} s, "${t.msg}"`);
+  const names = await p.ev(() => window.__blackout.game.top.rooms.map((r) => r.name));
+  check(!names.some((n) => t.msg.includes(n)), "the miscount message names no feed");
+  await p.press("Tab"); await p.wait(100);
+  const t1 = (await p.state()).secondsLeft;
+  await p.press("Enter"); await p.wait(200);
+  t = await top();
+  check(t.notes === false && t1 - (await p.state()).secondsLeft < 1, "Enter closes the notes instead of submitting");
+  const notes = await p.ev(() => { const s = window.__blackout.game.top, r = window.__blackout.game.renderer, drawn = [];
+    const f = r.ctx.fillText; r.ctx.fillText = function (x, ...a) { drawn.push(x); return f.call(this, x, ...a); };
+    s.notes = true; s.render(r); s.notes = false; r.ctx.fillText = f; return drawn.join("|"); });
+  check(/37\.0–41\.5C/.test(notes) && !/0\.20–0\.35 Hz/.test(notes), "field notes show the analyst's rules and hide the unheard ones");
+  await p.ev(() => { const s = window.__blackout.game.top; s.states = s.rooms.map((r) => (r.role === "survivor" || r.role === "hostile" ? r.role : "none")); });
+  await p.press("Enter"); await p.wait(2400);
+  t = await top();
+  check(t.round === 1 && t.brief === true && (await p.ev(() => window.__blackout.game.top.rooms.length)) === 9, "round 2 opens with a briefing and nine feeds");
+  await p.press("Escape"); await p.wait(700); await quiet(p);
+  await p.ev(() => window.__blackout.game.scenes[0]._launchSector(1, "L1")); await p.wait(1200);
+  check(await p.ev(() => window.__blackout.game.top.round) === 1, "L1 reopens on round 2 after stepping out");
+  // every generated card fits exactly one kind under the rules as the lobby states them (CCTV_RULES)
+  const bad = await p.ev(async () => {
+    const { generateFeeds } = await import(new URL("src/scenes/sector1-scene.js", location.href).href);
+    const fits = (c, t) => ({
+      survivor: c.m !== "N" && t >= 35 && t <= 38.5 && ["voiced", "quiet"].includes(c.a),
+      hostile: c.m !== "P" && t >= 37 && t <= 41.5 && ["impulsive", "looped", "quiet"].includes(c.a),
+      cleanbot: c.m === "P" && t >= 35 && t <= 38 && ["tonal", "impulsive"].includes(c.a),
+      machinery: c.m === "N" && t > 38.5 && ["tonal", "broadband"].includes(c.a),
+      empty: c.m === "N" && t < 25,
+    });
+    let n = 0;
+    for (let round = 0; round < 2; round++) for (let i = 0; i < 500; i++) for (const c of generateFeeds(round)) {
+      const kinds = Object.entries(fits(c, parseFloat(c.thermal))).filter(([k, ok]) => ok && (round || k !== "machinery")).map(([k]) => k);
+      if (kinds.length !== 1 || kinds[0] !== c.role) n++;
+    }
+    return n;
+  });
+  check(bad === 0, "every generated L1 feed fits exactly one kind under the lobby's rules (1000 boards)", `${bad} bad`);
   await p.browser.close();
 }
 

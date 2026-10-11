@@ -21,26 +21,28 @@ export const SV_WORLD = {
   "Door control gave us the service lift. North-east corner.": "Dörrstyrningen gav oss servicehissen. Nordöstra hörnet.",
   "The research floor is above us. The last fragment is up there somewhere. I'll stay on the radio.": "Forskningsvåningen är ovanför oss. Det sista fragmentet finns någonstans där uppe. Jag stannar på radion.",
 
-  // Analyst
-  "I ran the lab's sensor network. Those things up there? They run HOT.": "Jag skötte labbets sensornät. De där sakerna där uppe? De är VARMA.",
-  "Over 38 degrees, every one of them. Humans sit at 36, 37.": "Över 38 grader, varenda en. Människor ligger på 36, 37.",
-  "Server rooms and machinery run hot too, but they don't move. Don't let a number fool you.": "Serverrum och maskiner är också varma, men de rör sig inte. Låt inte en siffra lura dig.",
+  // Analyst (the L1 rule lines live in story.js CCTV_RULES)
+  "I ran the sensor network up there. Don't let one number fool you.": "Jag skötte sensornätet där uppe. Låt inte en enda siffra lura dig.",
+  "The hostiles run 37.0–41.5C, so warm proves nothing.": "Fienderna håller 37.0–41.5C, så värme bevisar ingenting.",
+  "Machinery runs over 38.5C, never moves, and hums or roars (tonal or broadband). The PA still plays voices into empty rooms, too.": "Maskiner går över 38.5C, rör sig aldrig och brummar eller dånar (ton eller bredband). Högtalarna spelar dessutom fortfarande upp röster i tomma rum.",
   "The L3 maze has laser gates that cycle every step. Count your moves.": "Labyrinten i L3 har laserspärrar som växlar varje steg. Räkna dina drag.",
   "If ECHO walks into a live gate, it gets reset. Plan the whole route first.": "Om ECHO går in i en aktiv spärr nollställs den. Planera hela rutten först.",
   "Go. Finish it. I want to see a sunrise.": "Gå. Gör slut på det. Jag vill se en soluppgång.",
 
   // Janitor
-  "My cleanbots are still out on the floors. Dumb as mops, but warm as people.": "Mina städrobotar är fortfarande ute på våningarna. Dumma som moppar, men varma som människor.",
-  "They run about 37 degrees and hum while they sweep. A person coughs, whispers, cries. A bot whirs or ticks.": "De håller ungefär 37 grader och surrar när de sopar. En människa hostar, viskar, gråter. En robot surrar eller tickar.",
+  "My cleanbots are still out on the floors. Dumb as mops.": "Mina städrobotar är fortfarande ute på våningarna. Dumma som moppar.",
+  "My cleanbots run 35.0–38.0C, warm as people. But a cleanbot is never quiet: a motor hum (tonal 120 Hz) or a tick (impulsive).": "Mina städrobotar håller 35.0–38.0C, varma som människor. Men en städrobot är aldrig tyst: ett motorbrum (ton 120 Hz) eller ett tickande (impulsiv).",
+  "A person coughs, sobs or whispers (voiced, irregular), or keeps quiet. Never hums or ticks.": "En människa hostar, snyftar eller viskar (röst, oregelbunden), eller håller tyst. Brummar eller tickar aldrig.",
   "She's alive. Lind. I didn't think anyone up there was. Thank you.": "Hon lever. Lind. Jag trodde inte att någon där uppe gjorde det. Tack.",
   "Told you about the bots, didn't I? Good.": "Jag berättade om robotarna, eller hur? Bra.",
   "Them sentinels in the corridor... ECHO could switch one off, if it had door access.": "De där vaktrobotarna i korridoren... ECHO skulle kunna stänga av en, om den hade dörråtkomst.",
   "Corridor's quieter now. Your little drone did that. Huh.": "Korridoren är lugnare nu. Det var din lilla drönare som gjorde det. Hm.",
 
   // Intern
-  "First week. I was on CCTV duty when it happened.": "Första veckan. Jag satt vid övervakningen när det hände.",
-  "The hostiles never hold still. Irregular, erratic, twitching. Humans are calm — breathing, shifting.": "Fienderna står aldrig still. Oregelbundna, ryckiga, darrande. Människor är lugna — de andas, flyttar sig lite.",
-  "Rooms with nobody in them show no motion at all.": "Rum där ingen finns visar ingen rörelse alls.",
+  "First week. I was on CCTV duty when they came through.": "Första veckan. Jag satt vid övervakningen när de kom.",
+  "The hostiles don't breathe. Ever. Moving, they read aperiodic; lying in wait, 'none'.": "Fienderna andas inte. Aldrig. När de rör sig blir det aperiodisk; när de ligger på lur, 'ingen'.",
+  "They click (impulsive) or replay a voice they stole, the same clip again and again (voiced, looped). Or they go dead quiet.": "De klickar (impulsiv) eller spelar upp en röst de har stulit, samma klipp om och om igen (röst, slinga). Eller så blir de helt tysta.",
+  "The cleanbots fooled me all week: they never stop, they sweep side to side at breathing pace, periodic 0.20–0.35 Hz.": "Städrobotarna lurade mig hela veckan: de stannar aldrig, de sveper fram och tillbaka i andningstakt, periodisk 0.20–0.35 Hz.",
   "You found someone! I knew those feeds weren't lying.": "Du hittade någon! Jag visste att flödena inte ljög.",
   "Is ECHO... safe? It keeps watching me.": "Är ECHO... säker? Den tittar hela tiden på mig.",
   "I'm writing all this down. Nobody's going to believe it.": "Jag skriver ner allt det här. Ingen kommer att tro på det.",
@@ -68,8 +70,10 @@ export const SV_WORLD = {
 
   // signs & terminals (lobby)
   "SECTOR 1 — SURVEILLANCE": "SEKTOR 1 — ÖVERVAKNING",
-  "Human thermal baseline: 36–37C.": "Mänsklig normaltemperatur: 36–37C.",
-  "(Someone has scrawled underneath: 'ask the intern about motion, the janitor about the bots')": "(Någon har klottrat under: 'fråga praktikanten om rörelse, vaktmästaren om robotarna')",
+  "MOTION: a person at rest shows breathing, periodic 0.20–0.35 Hz; on the move, aperiodic. A living person never reads 'none'.": "RÖRELSE: en människa i vila visar andning, periodisk 0.20–0.35 Hz; i rörelse, aperiodisk. En levande människa ger aldrig 'ingen'.",
+  "THERMAL: human body 35.0–38.5C, fever and shock included.": "VÄRME: människokroppen 35.0–38.5C, feber och chock inräknade.",
+  "EMPTY ROOM: room air under 25C, no motion, whatever the mic picks up.": "TOMT RUM: rumsluft under 25C, ingen rörelse, vad mikrofonen än fångar upp.",
+  "(Scrawled underneath: 'the intern watched them move. the janitor knows his bots. the analyst knows the heat.')": "(Klottrat under: 'praktikanten såg dem röra sig. vaktmästaren känner sina robotar. analytikern kan värmen.')",
   "SECTOR 2 — RESEARCH LAB": "SEKTOR 2 — FORSKNINGSLABB",
   "All HALCYON records are stored encrypted. Authorised staff only.": "Alla HALCYON-register lagras krypterade. Endast behörig personal.",
   "SECTOR 3 — DOOR CONTROL": "SEKTOR 3 — DÖRRSTYRNING",
@@ -84,7 +88,7 @@ export const SV_WORLD = {
   "FEED 03 — corridor 7B": "FLÖDE 03 — korridor 7B",
   "something moved. then nothing did.": "något rörde sig. sedan inget mer.",
   "FEED 11 — server hall": "FLÖDE 11 — serverhall",
-  "38.9C. no motion. just the racks breathing.": "38.9C. ingen rörelse. bara racken som andas.",
+  "MOTION none · THERMAL 41.2C · AUDIO broadband. just the racks.": "RÖRELSE ingen · VÄRME 41.2C · LJUD bredband. bara racken.",
   "LOST & FOUND SAFE": "HITTEGODSSKÅPET",
 
   // research floor

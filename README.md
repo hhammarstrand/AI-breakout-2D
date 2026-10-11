@@ -19,9 +19,18 @@ out of time restarts the current act.
 
 | Act | Floor | Stages |
 | --- | ----- | ------ |
-| I (25 min) | Lobby | **L1** read CCTV feeds to find Dr. Lind (fragment LUMEN) · **L2** Caesar-wheel decryption with frequency analysis (ORION) · **L3** program ECHO through alternating laser gates · service lift |
+| I (25 min) | Lobby | **L1** classify CCTV feeds from raw motion, thermal and audio readings, using sensor rules pieced together from the L1 sign and three lobby staff; two rounds (fragment LUMEN) · **L2** Caesar-wheel decryption with frequency analysis (ORION) · **L3** program ECHO through alternating laser gates · service lift |
 | II (20 min) | Research floor | **R1** rotate conduits to restore power · **R2** match HALCYON's carrier wave (frequency, amplitude, phase) · **R3** sokoban coolant bays (AURORA) · core lift |
 | III (15 min) | The core | **C1** firewall run — an action sequence steering a packet through closing gates · **UPLINK** enter the code while HALCYON scrambles it, then decide ECHO's fate |
+
+**L1 in detail.** Each camera feed shows neutral readings: MOTION (`periodic 0.27 Hz`, `aperiodic`,
+`none`), THERMAL in °C and AUDIO (`quiet`, `voiced, irregular`, `voiced, looped 6s`, `tonal 120 Hz`,
+`impulsive`, `broadband`). Survivors, hostiles, cleanbots, machinery and empty rooms share values on
+every channel, so no single reading decides a feed. The rules come from the L1 sign, the intern, the
+janitor and the analyst, each covering two kinds of feed; `Tab` in the puzzle shows the ones you have
+heard. Round 1 has 6 feeds; round 2 has 9, adding machinery and quiet look-alikes that only
+temperature separates. The briefing states how many survivors and hostiles to mark; a miscount costs
+10 s and wrong targets 30 s.
 
 Mistakes cost containment time. Sentinels patrol every floor; your flashlight makes you easier
 to spot (`F` toggles it).
@@ -46,6 +55,7 @@ Any other static server works too (`npx serve`, `caddy file-server`, etc.).
 | Menu (bag, logs, map, options)    | `Tab` / `Q` / `Enter` / `Esc` |
 | Interact / cycle tag / wait (L3)  | `Space` / `E`       |
 | Submit / run (inside a sector)    | `Enter`             |
+| Field notes (L1: the rules you've been told) | `Tab`  |
 | Undo (L3 command, R3 move)        | `Backspace`         |
 | Pause / close dialog / exit sector | `Esc`              |
 | Flashlight on/off                 | `F`                 |

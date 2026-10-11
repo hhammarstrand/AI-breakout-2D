@@ -19,6 +19,7 @@ export const gameState = {
   telemetry: null,
   pos: null,
   parts: {},
+  heard: [], // NPCs and signs the player has read, so puzzles can show what they were told
   difficulty: "normal",
   endingsSeen: readJson(SETTINGS_KEY)?.endingsSeen ?? [],
   achievements: readJson(SETTINGS_KEY)?.achievements ?? [],
@@ -120,6 +121,7 @@ export function resetGame() {
   gameState.telemetry = null;
   gameState.pos = null;
   gameState.parts = {};
+  gameState.heard = [];
   clearSave();
 }
 
@@ -141,6 +143,7 @@ export function loadGame() {
   gameState.telemetry = save.telemetry && typeof save.telemetry === "object" ? save.telemetry : null;
   gameState.pos = save.pos && typeof save.pos === "object" ? save.pos : null;
   gameState.parts = save.parts && typeof save.parts === "object" ? save.parts : {};
+  gameState.heard = Array.isArray(save.heard) ? save.heard : [];
   // backup cells can push the clock past the act's full time, never past all three of them
   const secs = Number(save.secondsLeft);
   gameState.secondsLeft = Number.isFinite(secs) ? Math.max(0, Math.min(actSeconds() + 3 * CELL_BONUS, secs)) : actSeconds();
@@ -163,6 +166,7 @@ export function saveGame() {
     telemetry: gameState.telemetry,
     pos: gameState.pos,
     parts: gameState.parts,
+    heard: gameState.heard,
   });
 }
 
@@ -243,6 +247,13 @@ export function hasCollected(id) { return gameState.collected.includes(id); }
 
 export function collect(id) {
   if (!hasCollected(id)) gameState.collected.push(id);
+  saveGame();
+}
+
+// What the player has been told survives a checkpoint retry: you can't unhear a rule.
+export function hear(id) {
+  if (gameState.heard.includes(id)) return;
+  gameState.heard.push(id);
   saveGame();
 }
 

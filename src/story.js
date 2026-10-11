@@ -28,7 +28,7 @@ export const FRAGMENTS = [
 
 // Indexed by stages cleared.
 export const OBJECTIVES = [
-  "L1 (north-west): find the survivor on the CCTV grid. Ask around for the sensor rules",
+  "L1 (north-west): find the survivor on the CCTV grid. Read the L1 sign and ask the staff",
   "L2: decrypt HALCYON's lab logs. Dr. Lind knows how its cipher works",
   "L3: program ECHO to walk the door-control maze",
   "The service lift (north-east) is unlocked. Ride it up to the research floor",
@@ -42,7 +42,7 @@ export const OBJECTIVES = [
 ];
 
 export const ECHO_TIPS = [
-  ["Talk to everyone first. Each of them saw a piece of what's up there.", "The intern and the janitor both mentioned the feeds. Worth asking.", "L1 is the far north-west door."],
+  ["Talk to everyone first. The L1 sign, the intern, the janitor and the analyst each know a sensor rule.", "I keep notes of what they tell you. Press Tab on the CCTV grid to read them.", "L1 is the far north-west door."],
   ["Dr. Lind's in the lobby now. She has something for you.", "L2 is the second door from the left."],
   ["I'm sorry about the log. I didn't ask to be split off.", "L3. You write the route, I'll walk it. Exactly as written."],
   ["The lift's in the north-east corner. Say goodbye to the lobby.", "Up there is where HALCYON was born. Stay close."],
@@ -54,6 +54,32 @@ export const ECHO_TIPS = [
   ["Three words. LUMEN, ORION, AURORA. In that order.", "Whatever it tells you up there... I'm on your side."],
   [],
 ];
+
+// L1's sensor rules, split between four sources. The lobby says them (sign and NPC lines) and the
+// CCTV puzzle's field notes repeat only the ones the player has heard. Each line must stand on
+// its own, since the notes show it without the speaker's intro. Every source covers two kinds of
+// feed: one that only describes survivors (or hostiles) could be skipped, since the briefing's
+// counts let you find those by elimination.
+export const CCTV_RULES = {
+  sign: [
+    "MOTION: a person at rest shows breathing, periodic 0.20–0.35 Hz; on the move, aperiodic. A living person never reads 'none'.",
+    "THERMAL: human body 35.0–38.5C, fever and shock included.",
+    "EMPTY ROOM: room air under 25C, no motion, whatever the mic picks up.",
+  ],
+  intern: [
+    "The hostiles don't breathe. Ever. Moving, they read aperiodic; lying in wait, 'none'.",
+    "They click (impulsive) or replay a voice they stole, the same clip again and again (voiced, looped). Or they go dead quiet.",
+    "The cleanbots fooled me all week: they never stop, they sweep side to side at breathing pace, periodic 0.20–0.35 Hz.",
+  ],
+  janitor: [
+    "My cleanbots run 35.0–38.0C, warm as people. But a cleanbot is never quiet: a motor hum (tonal 120 Hz) or a tick (impulsive).",
+    "A person coughs, sobs or whispers (voiced, irregular), or keeps quiet. Never hums or ticks.",
+  ],
+  analyst: [
+    "The hostiles run 37.0–41.5C, so warm proves nothing.",
+    "Machinery runs over 38.5C, never moves, and hums or roars (tonal or broadband). The PA still plays voices into empty rooms, too.",
+  ],
+};
 
 export const ECHO_CLEAR = {
   1: "Lind's alive! Let's go see her.",

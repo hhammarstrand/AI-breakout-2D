@@ -35,12 +35,18 @@ const closeDialog = async () => { await press("Escape"); await wait(400); };
 await wait(2700); await press("Enter"); await wait(200); await press("Enter"); await wait(300); await press("Escape"); await wait(400); await wait(500); await closeDialog();
 // --- Act 1 quick clear (solutions via state) ---
 await launch(1);
-const roles = await ev(() => window.__blackout.game.top.rooms.map((r) => r.role));
-let cur = 0;
-const move = async (to) => { const [fr, fc] = [Math.floor(cur / 3), cur % 3], [tr, tc] = [Math.floor(to / 3), to % 3];
-  await press(tr > fr ? "ArrowDown" : "ArrowUp", Math.abs(tr - fr)); await press(tc > fc ? "ArrowRight" : "ArrowLeft", Math.abs(tc - fc)); cur = to; };
-for (let i = 0; i < 6; i++) { if (roles[i] === "hostile") { await move(i); await press("Space"); } if (roles[i] === "survivor") { await move(i); await press("Space", 2); } }
-await press("Enter"); await wait(1200); await closeDialog();
+// L1: two rounds of CCTV feeds (6, then 9); each opens on a briefing that Enter dismisses
+for (const feeds of [6, 9]) {
+  await press("Enter"); await wait(150);
+  if (feeds === 6) { await press("Tab"); await wait(200); await shot("00-l1-notes"); await press("Tab"); await wait(100); }
+  const roles = await ev(() => window.__blackout.game.top.rooms.map((r) => r.role));
+  let cur = 0;
+  const move = async (to) => { const [fr, fc] = [Math.floor(cur / 3), cur % 3], [tr, tc] = [Math.floor(to / 3), to % 3];
+    await press(tr > fr ? "ArrowDown" : "ArrowUp", Math.abs(tr - fr)); await press(tc > fc ? "ArrowRight" : "ArrowLeft", Math.abs(tc - fc)); cur = to; };
+  for (let i = 0; i < feeds; i++) { if (roles[i] === "hostile") { await move(i); await press("Space"); } if (roles[i] === "survivor") { await move(i); await press("Space", 2); } }
+  await press("Enter"); await wait(2300);
+}
+await closeDialog();
 await launch(2);
 for (const k of [3, 11, 19]) { const r = await ev(() => window.__blackout.game.top.rotation); await press(k > r ? "ArrowRight" : "ArrowLeft", Math.abs(k - r)); await press("Enter"); await wait(1700); }
 await wait(600); await closeDialog();
