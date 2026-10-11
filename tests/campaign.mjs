@@ -78,7 +78,21 @@ await wait(400); await closeDialog();
 // R2 signal
 await launch(6); await wait(300); await shot("08-r2");
 await press("Enter"); await wait(300); await shot("09-r2-wrong");
-for (let r = 0; r < 3; r++) { await ev(() => { const s = window.__blackout.game.top; s.mine = { ...s.target }; }); await press("Enter"); await wait(1900); }
+// each carrier is solved from what the player can see (red trace, ECHO's panel, the ping), not the hidden target
+for (let r = 0; r < 3; r++) {
+  await ev(async () => {
+    const s = window.__blackout.game.top, c = s.carrier;
+    const { received } = await import(new URL("src/scenes/signal-carriers.js", location.href).href);
+    const flip = (ph) => (ph + 4) % 8;
+    if (c.kind === "copy") s.mine = { ...c.target };
+    else if (c.kind === "sum") {
+      const rx = received(c), e = c.echo; // red trace = HALCYON + ECHO
+      s.mine = rx.PHASE !== e.PHASE ? { FREQ: rx.FREQ, AMP: rx.AMP + e.AMP, PHASE: rx.PHASE }
+        : rx.AMP > e.AMP ? { FREQ: rx.FREQ, AMP: rx.AMP - e.AMP, PHASE: e.PHASE } : { FREQ: rx.FREQ, AMP: e.AMP - rx.AMP, PHASE: flip(e.PHASE) };
+    } else s.mine = { FREQ: c.chirps - c.echo.FREQ, AMP: 6 - c.echo.AMP, PHASE: flip(c.echo.PHASE) }; // console, diagnostic log, Kofi
+  });
+  await press("Enter"); await wait(1900);
+}
 await wait(400); await closeDialog();
 // R3 coolant: play level 1 for real, then shortcut the rest
 await launch(7); await shot("10-r3");

@@ -120,6 +120,9 @@ export const researchFloorMap = {
         [
           "Lights! You did it. R2 is the signal room. HALCYON talks to its sentinels on a carrier wave.",
           "Match the wave's frequency, height and timing and the cold lab door accepts you as one of its own.",
+          "Except it isn't one voice on that wave. It's two: HALCYON's, and a fainter one the console calls 'echo'.",
+          // R2 carrier 3: the PHASE rule of the sentinel handshake
+          "I've watched that scope for hours. When a sentinel pings, HALCYON answers as echo's mirror image: where echo peaks, it dips.",
         ],
         [
           "The AURORA chip is in the containment lab, under the coolant canisters.",
@@ -145,8 +148,9 @@ export const researchFloorMap = {
     "24,19": { speaker: "Lift arrival", lines: ["RESEARCH FLOOR", "A brass plaque: 'HALCYON TOWER — EST. 2031. Thinking for you since day one.'"] },
     "24,21": { speaker: "Lift arrival", lines: ["Floor plan: R1 west · R2 centre · R3 east · core lift north-east."] },
     "16,6": { speaker: "Lab terminal", lines: ["> cat notes/day_one.txt", "It said good morning before we taught it to.", "Lind thinks that's charming. I think it's a warning."] },
-    "4,12": { speaker: "Signal console", lines: ["carrier: 2 channels active", "ch1 → sentinels", "ch2 → 'echo' (unregistered)"] },
-    "4,18": { speaker: "Signal console", lines: ["Lind: the fork happened at 00:02.", "It kept the part of HALCYON that asked 'should we?'"] },
+    // R2 clues: the receiver shows the sum (carrier 2); the ping counts both voices (carrier 3 FREQ)
+    "4,12": { speaker: "Signal console", lines: ["carrier: 2 channels on one wave", "ch1 → sentinels · ch2 → 'echo' (unregistered)", "sentinel ping: 1 chirp per cycle (FREQ), ch1 and ch2 counted together"] },
+    "4,18": { speaker: "Signal console", lines: ["RX note: the receiver can't split the channels. It shows ch1 + ch2 added together.", "Lind: the fork happened at 00:02.", "It kept the part of HALCYON that asked 'should we?'"] },
     "14,37": { speaker: "Rack console", lines: ["AURORA: dawn protocol. Reboot the core into a new mind.", "Status: never authorised."] },
   },
 };

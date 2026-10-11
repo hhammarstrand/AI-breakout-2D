@@ -20,7 +20,7 @@ out of time restarts the current act.
 | Act | Floor | Stages |
 | --- | ----- | ------ |
 | I (25 min) | Lobby | **L1** read CCTV feeds to find Dr. Lind (fragment LUMEN) · **L2** Caesar-wheel decryption with frequency analysis (ORION) · **L3** program ECHO through alternating laser gates · service lift |
-| II (20 min) | Research floor | **R1** rotate conduits to restore power · **R2** match HALCYON's carrier wave (frequency, amplitude, phase) · **R3** sokoban coolant bays (AURORA) · core lift |
+| II (20 min) | Research floor | **R1** rotate conduits to restore power · **R2** tune HALCYON's carrier: copy a wave, pick HALCYON's voice out of its sum with ECHO's (opposite phases subtract), then answer a sentinel handshake from rules found on the floor, with ▲/▼/✓ marks per try · **R3** sokoban coolant bays (AURORA) · core lift |
 | III (15 min) | The core | **C1** firewall run — an action sequence steering a packet through closing gates · **UPLINK** enter the code while HALCYON scrambles it, then decide ECHO's fate |
 
 Mistakes cost containment time. Sentinels patrol every floor; your flashlight makes you easier
