@@ -202,6 +202,9 @@ const quiet = (p) => p.ev(() => { const w = window.__blackout.game.scenes[0]; w.
     return n;
   });
   check(bad === 0, "every generated L1 feed fits exactly one kind under the lobby's rules (1000 boards)", `${bad} bad`);
+  await p.browser.close();
+}
+
 // 11. L2 escalates: only log 1 labels the peak as E, log 2's peak isn't E, log 3's key is the name
 //     on Lind's desk, hints follow the log, and a stepped-out player resumes on the keyword log.
 {
