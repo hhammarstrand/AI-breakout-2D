@@ -236,9 +236,12 @@ const quiet = (p) => p.ev(() => { const w = window.__blackout.game.scenes[0]; w.
     const peak = f.indexOf(Math.max(...f));
     // the shift a player gets by assuming the tallest ciphertext bar is E
     const guess = ((s.freq.indexOf(s.freqMax) - 4) % 26 + 26) % 26;
-    return { peak: ALPHA[peak], eTop: f[4] >= f[peak], tut: !!s.log.tutorial, partial: !!s.revealed, hint: s.hints[0], shown: s._hintsShown ?? 0, guess, key: s.log.shifts[0] };
+    // the live decode is a probe: only the focused short word reads, the rest stays dotted
+    const shown = [...s.cipher].filter((ch, i) => ch !== " " && s._shown(i)).length;
+    return { peak: ALPHA[peak], eTop: f[4] >= f[peak], tut: !!s.log.tutorial, partial: !!s.revealed, hint: s.hints[0], shown: s._hintsShown ?? 0, guess, key: s.log.shifts[0], probed: shown, probes: s.probes?.length ?? 0 };
   });
-  check(!l2.eTop && !l2.tut && !l2.partial, "log 2: no E label, full live decode, and E is not the commonest letter", `peak ${l2.peak}`);
+  check(!l2.eTop && !l2.tut && !l2.partial, "log 2: no E label, and E is not the commonest letter", `peak ${l2.peak}`);
+  check(l2.probes > 0 && l2.probed > 0 && l2.probed <= 3, "log 2: the live decode shows one short word, never the whole log", `${l2.probed} letters, ${l2.probes} probe words`);
   check(l2.hint !== l1.hint && l2.shown === 0, "hints switch to log 2's set and start from the first tier");
   check(l2.guess !== l2.key, "log 2: 'tallest bar = E' gives the wrong key");
   const t0 = (await p.state()).secondsLeft;
@@ -251,6 +254,7 @@ const quiet = (p) => p.ev(() => { const w = window.__blackout.game.scenes[0]; w.
   });
   const key = await p.ev(() => window.__blackout.game.top.log.shifts.map((k) => "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[k]).join(""));
   check(!!name && name === key, "log 3's keyword is the name signed on Lind's desk drawing", `${name} / ${key}`);
+  check(await p.ev(() => { const s = window.__blackout.game.top; return !s.probes && [...s.cipher].every((ch, i) => ch === " " || !s._shown(i)); }), "log 3 decodes nothing live");
   // one reel wrong still fails
   for (const [i, ch] of [...key].entries()) {
     await p.press("ArrowUp", ch.charCodeAt(0) - 65 + (i === 3 ? 1 : 0));
@@ -269,7 +273,7 @@ const quiet = (p) => p.ev(() => { const w = window.__blackout.game.scenes[0]; w.
 }
 
 // 12. L3 (ECHO queue): Space only queues a wait; a zapped run costs time and keeps the queue; from
-// level 2 the preview numbers only timed tiles; plates flip doors on arrival, not while waiting;
+// level 2 the preview numbers no tiles, only the one a failed run stopped on; plates flip doors on arrival, not while waiting;
 // hints follow the level; stepping out keeps the level reached.
 {
   const p = await open({ save: fresh({ completedSectors: 2 }) });
@@ -294,7 +298,15 @@ const quiet = (p) => p.ev(() => { const w = window.__blackout.game.scenes[0]; w.
   await p.ev(() => window.__blackout.game.top.resume(1));
   for (const k of ["ArrowRight", "ArrowRight", "ArrowRight", "ArrowRight", "Space", "ArrowRight", "ArrowRight"]) await p.press(k);
   const tiles = await p.ev(() => { const s = window.__blackout.game.top; return [...s._plan().marks.values()].map((m) => s.tile(m.x, m.y)).join(""); });
-  check(tiles === "AB", "L3: from level 2 only gates carry step numbers", tiles);
+  check(tiles === "", "L3: from level 2 the preview numbers no tile (the player counts steps)", tiles);
+  await p.ev(() => { window.__blackout.game.top.queue = ["right", "right", "wait", "right"]; });
+  await p.press("Enter");
+  for (let i = 0; i < 40 && (await top()).mode !== "fail"; i++) await p.wait(100);
+  await p.wait(1700);
+  const mark = await p.ev(() => { const s = window.__blackout.game.top; return s.failMark && `${s.tile(s.failMark.x, s.failMark.y)}${s.failMark.step}`; });
+  check(mark === "A4", "L3: after a failed run the tile it failed on shows its step number", mark);
+  await p.press("Backspace"); await p.wait(100);
+  check(await p.ev(() => window.__blackout.game.top.failMark) === null, "L3: editing the queue clears the failure mark");
   const plate = await p.ev(async () => {
     const { stepEcho, LEVELS } = await import("./src/scenes/sector3-scene.js");
     const rows = LEVELS[2].rows;
@@ -327,6 +339,11 @@ const quiet = (p) => p.ev(() => { const w = window.__blackout.game.scenes[0]; w.
   await p.ev(() => window.__blackout.game.scenes[0]._launchSector(10, "UP")); await p.wait(1200);
   await talk();
   check(await top(() => window.__blackout.game.top.hints[0].startsWith("No feed")), "H gives LUMEN hints at the first lock");
+  check(await top(() => { const f = window.__blackout.game.top.feeds; return f.length === 5 && f.filter((x) => x.jam.length === 2).length === 2; }), "LUMEN deals five feeds, two of them with two jammed sensors");
+  await p.press("Tab"); await p.wait(150);
+  const notes = await top(() => window.__blackout.game.top.notes);
+  await p.press("Tab"); await p.wait(150);
+  check(notes && !(await top(() => window.__blackout.game.top.notes)), "Tab opens and closes the lobby field notes at the LUMEN lock");
   let t0 = await secs();
   await top(() => { const s = window.__blackout.game.top; s.cursor = s.feeds.findIndex((f) => f.who !== "you"); });
   await p.press("Space"); await p.wait(200);
@@ -340,37 +357,42 @@ const quiet = (p) => p.ev(() => { const w = window.__blackout.game.scenes[0]; w.
   await p.press("Enter"); await p.wait(300);
   check(/^LUMEN ◆L2 ◆R3$/.test(await code()), "the HUD shows a word once its lock opens", await code());
   await p.wait(1700); await talk();
-  check(await top(() => window.__blackout.game.top.hints[1].includes("first and fourth")), "the hints follow the lock (ORION)");
+  check(await top(() => window.__blackout.game.top.hints[1].includes("first, third and fifth")), "the hints follow the lock (ORION)");
   await p.press("Escape"); await p.wait(700); await quiet(p);
   check((await p.state()).parts?.[10] === 1 && /^LUMEN /.test(await code()), "stepping out keeps LUMEN accepted", await code());
   await p.ev(() => window.__blackout.game.scenes[0]._launchSector(10, "UP")); await p.wait(1200);
   check(await top(() => { const s = window.__blackout.game.top; return s.lock === 1 && s.phase === "brief"; }), "the uplink reopens on the ORION lock without the intro");
   await talk();
   t0 = await secs();
-  await top(() => { const s = window.__blackout.game.top; s.rotation = s.key + 1; });
+  await top(() => { const s = window.__blackout.game.top; s.keys = [s.key[0], (s.key[1] + 1) % 26]; });
   await p.press("Space"); await p.wait(150);
   check(t0 - (await secs()) < 3, "Space never locks in a cipher key");
   await p.press("Enter"); await p.wait(200);
-  check(t0 - (await secs()) > 18, "a wrong cipher key costs time");
-  await top(() => { const s = window.__blackout.game.top; s.rotation = s.key; });
+  check(t0 - (await secs()) > 18, "a wrong cipher key costs time (one wheel of two off)");
+  await top(() => { const s = window.__blackout.game.top; s.keys = [...s.key]; });
   await p.press("Enter"); await p.wait(400);
   await p.reload(); await quiet(p);
   check(/^LUMEN ORION ◆R3$/.test(await code()), "an opened lock is saved at once and survives a reload", await code());
   await p.ev(() => window.__blackout.game.scenes[0]._launchSector(10, "UP")); await p.wait(1200);
   check(await top(() => window.__blackout.game.top.lock) === 2, "after a reload the uplink reopens on the AURORA lock");
   await talk();
-  // AURORA: five commands is refused for free; the short way past the B gate zaps ECHO on step 5
+  // AURORA: five commands is refused for free; waiting out the start puts the A gate on step 4
   for (const k of ["Space", "Space", "Space", "ArrowRight", "ArrowRight"]) await p.press(k);
   t0 = await secs();
   await p.press("Enter"); await p.wait(200);
   check(await top(() => window.__blackout.game.top.mode) === "edit" && t0 - (await secs()) < 3, "an unfilled protocol is refused without a penalty");
   await p.press("ArrowDown"); await p.press("Enter"); await p.wait(6 * 330 + 400);
-  check(/Step 5: gate B/.test(await top(() => window.__blackout.game.top.taunt?.text ?? "")), "the B gate beside the socket is live on step 5");
+  check(/Step 4: gate A/.test(await top(() => window.__blackout.game.top.taunt?.text ?? "")), "the A gate is live on an even step");
   await p.wait(1600); await p.press("Backspace", 6); // the failed program stays queued for editing
-  for (const k of ["ArrowDown", "ArrowDown", "ArrowRight", "Space", "ArrowRight", "ArrowUp"]) await p.press(k);
+  // straight over the plate: arriving on it shuts the door to the socket
+  for (const k of ["ArrowRight", "ArrowDown", "ArrowRight", "Space", "Space", "Space"]) await p.press(k);
+  await p.press("Enter"); await p.wait(3 * 330 + 500);
+  check(/Step 3: ECHO hit a shut door/.test(await top(() => window.__blackout.game.top.taunt?.text ?? "")), "AURORA: the plate shuts the socket's door");
+  await p.wait(1600); await p.press("Backspace", 6);
+  for (const k of ["ArrowRight", "ArrowDown", "ArrowUp", "ArrowDown", "ArrowRight", "ArrowRight"]) await p.press(k);
   await p.press("Enter");
   for (let i = 0; i < 60 && (await phase()) !== "deal"; i++) await p.wait(100);
-  check(await phase() === "deal", "the forced-wait route opens AURORA and HALCYON makes its deal");
+  check(await phase() === "deal", "stepping off the plate and back on opens AURORA and HALCYON makes its deal");
   await p.press("Escape"); await p.wait(200);
   check(/Sector4Scene$/.test(await p.stack()), "Esc can't skip the deal");
   for (let i = 0; i < 30 && (await phase()) !== "choice"; i++) { await p.press("Space"); await p.wait(50); }
@@ -380,7 +402,8 @@ const quiet = (p) => p.ev(() => { const w = window.__blackout.game.scenes[0]; w.
 }
 
 // 14. R2: Space never transmits; carrier 2 names the slip; carrier 3 gives per-dial marks, drops the
-// line after three refusals with a fully new answer, and keeps carriers 1-2 when the player steps out.
+// line after three refusals with a fully new answer, refuses a repeat for free, and keeps every
+// carrier (carrier 3's values and dials included) when the player steps out.
 {
   const p = await open({ save: fresh({ completedSectors: 5, secondsLeft: 1100 }) });
   await p.title(); await quiet(p);
@@ -406,6 +429,11 @@ const quiet = (p) => p.ev(() => { const w = window.__blackout.game.scenes[0]; w.
   const sends = [{ FREQ: 1, AMP: 1, PHASE: 0 }, { FREQ: 6, AMP: 5, PHASE: 1 }, { FREQ: 3, AMP: 3, PHASE: 2 }]
     .map((v) => (v.PHASE === first.target.PHASE ? { ...v, PHASE: (v.PHASE + 3) % 8 } : v));
   for (let i = 0; i < 2; i++) { await top((v) => { window.__blackout.game.top.mine = { ...v }; }, sends[i]); await p.press("Enter"); await p.wait(150); }
+  // the same voice again is refused for free and doesn't use up a handshake
+  t0 = (await p.state()).secondsLeft;
+  await top((v) => { window.__blackout.game.top.mine = { ...v }; }, sends[1]); await p.press("Enter"); await p.wait(150);
+  const rep = await top(() => ({ n: window.__blackout.game.top.log.length, msg: window.__blackout.game.top.message?.text ?? "" }));
+  check(rep.n === 2 && /ALREADY SENT/.test(rep.msg) && t0 - (await p.state()).secondsLeft < 2, "a repeated transmission is refused at no cost", JSON.stringify(rep));
   const log = await top(() => window.__blackout.game.top.log.map((l) => l.fb));
   const mark = (a, b) => (a === b ? "✓" : a < b ? "▲" : "▼");
   check(log.length === 2 && log.every((fb, i) => fb.FREQ === mark(sends[i].FREQ, first.target.FREQ) && fb.AMP === mark(sends[i].AMP, first.target.AMP) && fb.PHASE === "✗"),
@@ -414,9 +442,13 @@ const quiet = (p) => p.ev(() => { const w = window.__blackout.game.scenes[0]; w.
   const second = await top(() => { const s = window.__blackout.game.top; return { target: { ...s.target }, log: s.log.length, redial: s.redial }; });
   check(second.log === 0 && second.redial <= 0 && ["FREQ", "AMP", "PHASE"].every((k) => second.target[k] !== first.target[k]),
     "the third refusal drops the line and re-keys every dial", JSON.stringify([first.target, second.target]));
+  await top(() => { window.__blackout.game.top.mine = { FREQ: 2, AMP: 2, PHASE: 2 }; });
+  const held = await top(() => { const s = window.__blackout.game.top; return JSON.stringify([s.carrier, s.log, s.mine]); });
   await p.press("Escape"); await p.wait(700); await quiet(p);
   await p.ev(() => window.__blackout.game.scenes[0]._launchSector(6, "R2")); await p.wait(1200);
   check(await top(() => window.__blackout.game.top.round) === 2, "R2 reopens on carrier 3 after stepping out");
+  check(held === await top(() => { const s = window.__blackout.game.top; return JSON.stringify([s.carrier, s.log, s.mine]); }),
+    "carrier 3 keeps its ping, ECHO's reading, the log and the dials across a step-out");
   await top(() => { const s = window.__blackout.game.top, c = s.carrier; s.mine = { FREQ: c.chirps - c.echo.FREQ, AMP: 6 - c.echo.AMP, PHASE: (c.echo.PHASE + 4) % 8 }; });
   await p.press("Enter"); await p.wait(2200);
   check((await p.state()).completedSectors === 6, "the rule-built handshake clears R2");

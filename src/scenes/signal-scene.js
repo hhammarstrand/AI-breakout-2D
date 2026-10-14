@@ -21,7 +21,7 @@ const HINTS = [
   [
     "No wave to copy. HALCYON's handshake rules are out on the floor: the signal consoles by this door, Kofi, and HALCYON's self-diagnostic log.",
     "The console says how the ping counts cycles, the diagnostic says how the two voices share amplitude, and Kofi says how HALCYON answers ECHO.",
-    "FREQ = chirps minus ECHO's FREQ. AMP = 6 minus ECHO's AMP. PHASE = ECHO's phase + 180°.",
+    "Each rule turns one of ECHO's numbers on the panel into one dial: the ping's chirps with ECHO's FREQ, the shared power with ECHO's AMP, the mirror with ECHO's PHASE. If one is missing, re-read its source; the marks in the log say which dial is still off.",
   ],
 ];
 const TIME_PENALTY = 20;
@@ -38,6 +38,10 @@ const FONT8 = 'normal 8px ui-monospace, "SF Mono", Menlo, Consolas, monospace';
 const C_HALCYON = "#ff5a6a", C_ECHO = "#4ae6ff", C_YOU = "#ffd24a", C_OK = "#0aff7a";
 
 const rnd = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
+
+// Carrier 3 as the player left it (ping, ECHO's reading, the log and the dials), so stepping out to
+// re-read a rule on the floor doesn't silently deal a new handshake. Cleared once it locks.
+let heldLine = null;
 
 export class SignalScene {
   constructor({ hud, sfx, fx, onResult }) {
@@ -61,7 +65,8 @@ export class SignalScene {
   _load() {
     this.hints = HINTS[this.round];
     this._hintsShown = 0; // each carrier starts again from its gentlest hint
-    this._line();
+    if (this.round === 2 && heldLine) this._restoreLine(heldLine);
+    else this._line();
     this.sel = 0;
     this.done = 0;
     this.message = null;
@@ -74,9 +79,23 @@ export class SignalScene {
     this.redial = 0;
     this._chirpT = 0;
     this._lit = 0;
+    this.sent = []; // every voice already sent on this line: a repeat is refused for free
     do {
       this.mine = { FREQ: rnd(1, 6), AMP: rnd(1, 5), PHASE: rnd(0, 7) };
     } while (sameVoice(this.mine, this.target));
+    this._hold();
+  }
+
+  _hold() {
+    if (this.carrier.kind === "handshake") heldLine = { carrier: this.carrier, log: this.log, sent: this.sent, mine: { ...this.mine } };
+  }
+
+  _restoreLine(line) {
+    ({ carrier: this.carrier, log: this.log, sent: this.sent } = line);
+    this.mine = { ...line.mine };
+    this.redial = 0;
+    this._chirpT = 0;
+    this._lit = 0;
   }
 
   update(dt, input) {
@@ -89,7 +108,7 @@ export class SignalScene {
       if (this.done <= 0) this._next();
       return;
     }
-    if (input.wasPressed("pause")) { this.onResult({ success: false, aborted: true }); return; }
+    if (input.wasPressed("pause")) { this._hold(); this.onResult({ success: false, aborted: true }); return; }
     if (this.redial > 0) {
       this.redial -= dt;
       if (this.redial <= 0) { this._line(this.carrier); this.sfx.play("door"); }
@@ -121,11 +140,19 @@ export class SignalScene {
 
   _transmit() {
     if (sameVoice(this.mine, this.target)) {
+      if (this.carrier.kind === "handshake") heldLine = null;
       this.done = DONE_TIME;
       this.sfx.play("success");
       this.fx.flash("#4ae6ff");
       return;
     }
+    // the same voice twice tells nobody anything: refuse it without a penalty or a used handshake
+    if (this.sent.some((v) => sameVoice(v, this.mine))) {
+      this.sfx.play("denied");
+      this.message = { text: "ALREADY SENT — HALCYON ignores repeats. Change a dial first.", time: 2.4 };
+      return;
+    }
+    this.sent.push({ ...this.mine });
     penalize(TIME_PENALTY);
     this.sfx.play("error");
     this.fx.shake();
@@ -251,7 +278,7 @@ export class SignalScene {
     const body = {
       copy: "Match HALCYON's red wave with your dials, then press Enter to transmit.",
       sum: "The receiver hears HALCYON and ECHO at once: red is the two added together. Send HALCYON's voice alone.",
-      handshake: "HALCYON went silent. Answer the sentinel's ping in HALCYON's voice, using the rules found out on the floor. Stepping out keeps carriers 1-2.",
+      handshake: "HALCYON went silent. Answer the sentinel's ping in HALCYON's voice, using the rules found out on the floor. Stepping out keeps every carrier as you left it.",
     }[kind];
     renderer.text(head, PX + 8, PY + 10, { color: "#cffcff", size: 9, weight: "bold", baseline: "middle" });
     let y = PY + 24;

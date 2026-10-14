@@ -141,7 +141,7 @@ export class Sector1Scene {
     this.hints = [
       "No single reading settles a feed. Read MOTION and AUDIO together, then let THERMAL break ties. Tab shows what the sign, the intern, the janitor and the analyst told you.",
       "Breathing pace (periodic 0.20–0.35 Hz) is a person or a sweeping cleanbot, and a cleanbot is never quiet. Hostiles never breathe, and a person never reads 'none'.",
-      "Survivor: periodic or aperiodic, and quiet or voiced, irregular. Hostile: aperiodic or none, and impulsive, looped or quiet. Still and under 25C is an empty room. Quiet and aperiodic: under 37C a person, over 38.5C a hostile.",
+      "Go feed by feed and cross out what it can't be. Motion and body heat are on the L1 sign; hostiles and cleanbot motion are the intern's; cleanbot sounds and people's voices the janitor's; hostile and machine heat the analyst's. When two kinds are left, THERMAL decides, and the counts in the briefing settle the rest.",
     ];
     this.hud = hud;
     this.sfx = sfx;
@@ -429,39 +429,7 @@ export class Sector1Scene {
     });
   }
 
-  _drawNotes(renderer) {
-    const w = renderer.width;
-    const ctx = renderer.ctx;
-    const bx = 10, bw = w - 20, by = 24;
-    // one entry per rule: [first line?, text]; the bullet marks where each rule starts
-    const blocks = NOTE_SOURCES.map(([id, label]) => {
-      const heard = gameState.heard?.includes(id);
-      const lines = heard
-        ? CCTV_RULES[id].flatMap((rule) => wrap(ctx, rule, bw - 30, 8).map((line, i) => [i === 0, line]))
-        : [[false, t("nothing yet. Look around the lobby.")]];
-      return { label, heard, lines };
-    });
-    const bh = 26 + blocks.reduce((n, b) => n + 13 + b.lines.length * 10, 0) + 12;
-    renderer.fillRect(0, 0, w, renderer.height, "rgba(0,0,0,0.88)");
-    renderer.fillRect(bx, by, bw, bh, "#03140b");
-    renderer.strokeRect(bx, by, bw, bh, "#4ae6ff", 2);
-    drawClockPaused(renderer, bx + bw - 10, by + 12);
-    renderer.text("FIELD NOTES — what you've been told", bx + 10, by + 12, {
-      color: "#4ae6ff", size: 10, weight: "bold", baseline: "middle",
-    });
-    let y = by + 28;
-    for (const b of blocks) {
-      renderer.text(b.label, bx + 10, y, { color: b.heard ? "#0aff7a" : "#3a6a5a", size: 8, weight: "bold", baseline: "middle" });
-      y += 11;
-      b.lines.forEach(([first, line]) => {
-        if (first) renderer.text("▸", bx + 12, y, { color: "#4ae6ff", size: 8, baseline: "middle" });
-        renderer.text(line, bx + 20, y, { color: b.heard ? "#cffcff" : "#3a6a5a", size: 8, baseline: "middle" });
-        y += 10;
-      });
-      y += 2;
-    }
-    renderer.text("[tab] close", bx + bw - 10, by + bh - 9, { color: "#2a7a8a", size: 8, align: "right", baseline: "middle" });
-  }
+  _drawNotes(renderer) { drawFieldNotes(renderer); }
 
   _drawDone(renderer) {
     const w = renderer.width, h = renderer.height;
@@ -476,6 +444,42 @@ export class Sector1Scene {
       color: "#cffcff", size: 8, align: "center", baseline: "middle",
     });
   }
+}
+
+// The lobby rules the player has heard; the uplink's LUMEN lock shows the same notes.
+export function drawFieldNotes(renderer) {
+  const w = renderer.width;
+  const ctx = renderer.ctx;
+  const bx = 10, bw = w - 20, by = 24;
+  // one entry per rule: [first line?, text]; the bullet marks where each rule starts
+  const blocks = NOTE_SOURCES.map(([id, label]) => {
+    const heard = gameState.heard?.includes(id);
+    const lines = heard
+      ? CCTV_RULES[id].flatMap((rule) => wrap(ctx, rule, bw - 30, 8).map((line, i) => [i === 0, line]))
+      : [[false, t("nothing yet. Look around the lobby.")]];
+    return { label, heard, lines };
+  });
+  const bh = 26 + blocks.reduce((n, b) => n + 13 + b.lines.length * 10, 0) + 12;
+  // dark enough that the notes can't be read side by side with the feeds while the clock is paused
+  renderer.fillRect(0, 0, w, renderer.height, "rgba(0,0,0,0.88)");
+  renderer.fillRect(bx, by, bw, bh, "#03140b");
+  renderer.strokeRect(bx, by, bw, bh, "#4ae6ff", 2);
+  drawClockPaused(renderer, bx + bw - 10, by + 12);
+  renderer.text("FIELD NOTES — what you've been told", bx + 10, by + 12, {
+    color: "#4ae6ff", size: 10, weight: "bold", baseline: "middle",
+  });
+  let y = by + 28;
+  for (const b of blocks) {
+    renderer.text(b.label, bx + 10, y, { color: b.heard ? "#0aff7a" : "#3a6a5a", size: 8, weight: "bold", baseline: "middle" });
+    y += 11;
+    b.lines.forEach(([first, line]) => {
+      if (first) renderer.text("▸", bx + 12, y, { color: "#4ae6ff", size: 8, baseline: "middle" });
+      renderer.text(line, bx + 20, y, { color: b.heard ? "#cffcff" : "#3a6a5a", size: 8, baseline: "middle" });
+      y += 10;
+    });
+    y += 2;
+  }
+  renderer.text("[tab] close", bx + bw - 10, by + bh - 9, { color: "#2a7a8a", size: 8, align: "right", baseline: "middle" });
 }
 
 // Smooth, non-repeating wobble in [-1, 1] for aperiodic motion traces.

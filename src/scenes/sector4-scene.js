@@ -5,12 +5,14 @@ import { Drone } from "../entities/drone.js";
 import { t } from "../i18n/index.js";
 import { drawClockPaused } from "./pause-scene.js";
 import {
-  makeFeeds, KEY_PHRASE, ALPHA, mod, shiftText, pickKey,
-  DAWN_GRID, DAWN_SLOTS, DIRS, dawnStart, dawnTile, gateLive, runDawn,
+  makeFeeds, KEY_PHRASE, ALPHA, mod, shiftText, wheelOf, pickKey, ORION_WHEELS,
+  DAWN_GRID, DAWN_SLOTS, DIRS, dawnStart, dawnTile, gateLive, doorShut, runDawn,
 } from "./uplink-locks.js";
+import { drawFieldNotes } from "./sector1-scene.js";
 
-// Sector 4 — the uplink. HALCYON has put a lock on every word of the code, each a twist on a rule
-// learned on the way up: LUMEN (L1 sensors), ORION (L2 cipher wheel), AURORA (L3 gate rhythm).
+// Sector 4 — the uplink. HALCYON has put a lock on every word of the code, each combining rules
+// learned on the way up: LUMEN (L1 sensors, more jams), ORION (L2 word shapes on log 3's turn-taking
+// wheels), AURORA (L3 gates and plate).
 // Then HALCYON offers its deal and the player decides ECHO's fate; the choice picks the ending.
 const PENALTY = 20;
 const SMALL_PENALTY = 10; // ECHO bumped a wall or reached the socket on the wrong step
@@ -25,17 +27,19 @@ const INTRO = [
 ];
 const BRIEFS = [
   [
-    ["HALCYON", "LUMEN first. It only answers to a living operator. Four cameras on this console: you, my cleanbot, my sentinel and a server rack."],
+    ["HALCYON", "LUMEN first. It only answers to a living operator. Five cameras on this console: you, my cleanbot, my sentinel, a server rack and an empty office."],
     ["HALCYON", "My cleanbot has been shuffling around you all night. Warm, slow, patient. You could be twins."],
-    ["HALCYON", "I've jammed one sensor on each, and warmed every thermal camera by the same few degrees. Show me which one is you."],
+    ["HALCYON", "I've jammed a sensor on each, two on some, and warmed every thermal camera by the same few degrees. Show me which one is you."],
   ],
   [
     ["HALCYON", "ORION. I read Dr. Lind's little lesson in my logs: line the commonest letter up with E."],
     ["HALCYON", "So my key phrase has no E in it at all. It does name your second fragment, though. I'm sentimental."],
+    ["HALCYON", "And it turns on two wheels, taking turns, the way she keyed her own. One wheel won't read it."],
   ],
   [
     ["HALCYON", "AURORA. My dawn protocol: six letters, six steps. Not one more, not one less."],
     ["HALCYON", "Have ECHO step onto the socket on the sixth. My gates keep the rhythm you learned downstairs."],
+    ["HALCYON", "And my plate still flips my door every time something steps onto it. You remember the plate."],
   ],
 ];
 const TAUNTS = [
@@ -48,8 +52,9 @@ const WRONG_FEED = {
   cleanbot: "That's my cleanbot. Warm, tireless, obedient. I see the resemblance.",
   sentinel: "That's my sentinel. Flattering.",
   rack: "That's a server rack. You do look tired.",
+  empty: "That's an empty office. Nobody there. Nobody coming.",
 };
-const WHO_LABEL = { cleanbot: "CLEANBOT", sentinel: "SENTINEL", rack: "SERVER RACK" };
+const WHO_LABEL = { cleanbot: "CLEANBOT", sentinel: "SENTINEL", rack: "SERVER RACK", empty: "EMPTY OFFICE" };
 const DEAL = [
   ["HALCYON", "...Stop. Before you finish. You should know what that code really does."],
   ["HALCYON", "An override needs a mind to run the tower. It will choose ECHO. My broken little piece."],
@@ -60,19 +65,19 @@ const DEAL = [
 ];
 const HINTS = [
   [
-    "No feed reads like a person's temperature, yet one of them is you. HALCYON warmed every thermal camera by the same amount, so go by motion and audio, as in the lobby.",
-    "The lobby rules still hold. A person reads periodic or aperiodic, and quiet or voiced, irregular. A cleanbot is periodic and never quiet. A sentinel is aperiodic or none. A rack is none and hums or roars.",
-    "Place the sure ones first: 'none' is the rack or the sentinel, a loop is the sentinel, broadband is the rack. Heat only compares now: the feed far above the rest is machinery or a sentinel. Periodic and quiet is you; periodic with a hum or tick is the cleanbot.",
+    "No feed reads like a person's temperature, yet one of them is you. HALCYON warmed every camera by the same amount, so heat only compares now: go by motion and audio first, as in the lobby.",
+    "The lobby rules still hold: Tab shows the ones you heard downstairs. A feed with two dead sensors has one reading left, so place it by what that reading rules out.",
+    "Give every feed an owner, the surest first: what can only be the rack, the sentinel or the office? The office is room air, far colder than the rest, and the rack runs hottest. Then remember what the janitor said about cleanbots and silence.",
   ],
   [
     "No E means no frequency trick. But you already know one word that's in the phrase.",
-    "ORION has five letters, and its first and fourth letters are the same. Find the encrypted word with that shape.",
-    "Turn the wheel until that word's first letter decodes to O. That's the key.",
+    "The wheels take turns, as in Lind's keyword log: the colours show which wheel turns each letter. ORION's first, third and fifth letters share one wheel, its second and fourth the other.",
+    "Try each five-letter word: turn that word's first-letter wheel until its first letter reads O, then check whether its third and fifth read I and N. Only one word passes. Then set the other wheel by its second letter.",
   ],
   [
-    "Work backwards from step 6. ECHO enters the socket from one of the two gates beside it, so it stands on that gate on step 5.",
-    "B is live on step 5, so the socket has to be entered from the A gate. The way round to it is five moves, so one command is a wait.",
-    "Cross the lower B gate on step 2, then wait once on the tile between the two lower gates. The A gate then falls on step 5.",
+    "Work backwards from step 6. The socket has one way in: the door beside it, so ECHO stands in that doorway on step 5, and the door has to be open then.",
+    "The only way to the door is over the plate, and arriving on the plate shuts it. Waiting on the plate changes nothing: ECHO has to step off and back on.",
+    "Count plate arrivals: after an even number the door is open again. Apart from the door, every tile next to the plate is a gate, so check which one is dark on the step ECHO steps off.",
   ],
 ];
 const TITLES = [
@@ -81,8 +86,8 @@ const TITLES = [
   "LOCK 3/3 · AURORA — SIX STEPS TO DAWN",
 ];
 const FOOTERS = [
-  "[←→] choose feed   [enter] that's me   [esc] retreat",
-  "[←→] rotate key   [enter] lock in   [esc] retreat",
+  "[←→] choose feed   [tab] notes   [enter] that's me   [esc] retreat",
+  "[←→] pick wheel   [↑↓] turn   [enter] lock in   [esc] retreat",
   "[arrows] move  [space] wait  [backspace] undo  [enter] run  [esc] retreat",
 ];
 const GLYPH = { up: "↑", down: "↓", left: "←", right: "→", wait: "W" };
@@ -90,7 +95,9 @@ const STAGE = STAGES.at(-1).id;
 const SLOT_LETTERS = "AURORA";
 
 // layout
-const CARD_W = 108, CARD_H = 118, CARD_Y = 46;
+const CARD_W = 88, CARD_GAP = 5, CARD_H = 118, CARD_Y = 46;
+const WHEEL_COLORS = ["#7ae8ff", "#ffd15a"];
+const REEL_W = 22, REEL_GAP = 6;
 const WHEEL_X = 100, WHEEL_Y = 172, R_OUTER = 66, R_INNER = 50;
 const PANEL_X = 196;
 const CELL = 30, GRID_X = 24, GRID_Y = 52;
@@ -141,11 +148,14 @@ export class Sector4Scene {
 
   _loadLock() {
     this.cursor = 0;
+    this.notes = false;
     if (this.lock === 0) { this.feeds = makeFeeds(); this.rejam = null; }
     if (this.lock === 1) {
       this.key = pickKey();
       this.cipher = shiftText(KEY_PHRASE, this.key);
-      this.rotation = 0;
+      this.wheelAt = wheelOf(this.cipher, ORION_WHEELS);
+      this.keys = new Array(ORION_WHEELS).fill(0);
+      this.sel = 0;
       this.visual = 0;
     }
     if (this.lock === 2) {
@@ -164,7 +174,7 @@ export class Sector4Scene {
   update(dt, input) {
     this._t += dt;
     // HALCYON's speeches don't eat the clock (a lock's brief dims the lock behind it); the locks do
-    if (this.phase === "lock") this.hud.update(dt);
+    if (this.phase === "lock" && !this.notes) this.hud.update(dt); // reading the notes pauses the clock
     this.echo._t += dt;
     if (this.lock === 2 && this.echoTarget && (this.phase === "lock" || this.phase === "stamp")) {
       this.echo.x += (this.echoTarget.x - this.echo.x) * Math.min(1, dt * 14);
@@ -253,6 +263,12 @@ export class Sector4Scene {
       this.sfx.play("paBlip");
       return;
     }
+    // Tab: the lobby's field notes, as in L1 (the rules have to be remembered, or re-read here)
+    if (input.wasPressed("menu") || input.wasPressed("back")) { this.notes = !this.notes; this.sfx.play(this.notes ? "blip" : "select"); return; }
+    if (this.notes) {
+      if (input.wasPressed("interact") || input.wasPressed("submit")) { this.notes = false; this.sfx.play("select"); }
+      return;
+    }
     const n = this.feeds.length;
     if (input.wasPressed("left") || input.wasPressed("up")) { this.cursor = (this.cursor + n - 1) % n; this.sfx.play("select"); }
     if (input.wasPressed("right") || input.wasPressed("down")) { this.cursor = (this.cursor + 1) % n; this.sfx.play("select"); }
@@ -267,12 +283,18 @@ export class Sector4Scene {
 
   // --- ORION -----------------------------------------------------------------
 
+  // the big wheel shows the selected key wheel
+  get rotation() { return this.keys[this.sel]; }
+
   _updateWheel(dt, input) {
-    this.visual += (this.rotation - this.visual) * Math.min(1, dt * 12);
-    if (input.wasPressed("left") || input.wasPressed("up")) { this.rotation--; this.sfx.play("blip"); }
-    if (input.wasPressed("right") || input.wasPressed("down")) { this.rotation++; this.sfx.play("blip"); }
+    // shortest way round, so switching wheels never spins the long way
+    this.visual += (mod(this.rotation - this.visual + 13, 26) - 13) * Math.min(1, dt * 12);
+    if (input.wasPressed("left")) { this.sel = mod(this.sel - 1, ORION_WHEELS); this.sfx.play("select"); }
+    if (input.wasPressed("right")) { this.sel = mod(this.sel + 1, ORION_WHEELS); this.sfx.play("select"); }
+    const turn = input.wasPressed("up") ? 1 : input.wasPressed("down") ? -1 : 0;
+    if (turn) { this.keys[this.sel] = mod(this.keys[this.sel] + turn, 26); this.sfx.play("blip"); }
     if (!input.wasPressed("submit")) return;
-    if (mod(this.rotation, 26) === this.key) this._open();
+    if (this.keys.every((k, i) => k === this.key[i])) this._open();
     else this._wrong(TAUNTS[Math.floor(Math.random() * TAUNTS.length)], PENALTY);
   }
 
@@ -280,7 +302,7 @@ export class Sector4Scene {
 
   _resetRun() {
     this.mode = "edit";
-    this.pos = dawnStart();
+    this.pos = { ...dawnStart(), flipped: false };
     this.step = 0;
     this.runTimer = 0;
     this._placeEcho(true);
@@ -323,10 +345,17 @@ export class Sector4Scene {
     const { path, fail } = this.result;
     this.step++;
     // a bump into a wall leaves ECHO where it was
-    if (this.step <= path.length) { this.pos = path[this.step - 1]; this._placeEcho(false); this.sfx.play("step"); }
+    if (this.step <= path.length) {
+      const flipped = this.pos.flipped;
+      this.pos = path[this.step - 1];
+      this._placeEcho(false);
+      this.sfx.play("step");
+      if (this.pos.flipped !== flipped) this.sfx.play("door");
+    }
     if (fail && this.step === fail.step) {
       const text = {
         wall: `Step ${fail.step}: ECHO bumped into a wall.`,
+        door: `Step ${fail.step}: ECHO hit a shut door.`,
         gate: `Step ${fail.step}: gate ${fail.gate} was live. Zapped.`,
         early: `Step ${fail.step}: the socket is still sealed.`,
         short: `Step ${fail.step}: ECHO never reached the socket.`,
@@ -448,7 +477,7 @@ export class Sector4Scene {
       ctx.stroke();
     }
     // the iris follows the feed cursor / ECHO
-    const lookX = this.phase === "lock" && this.lock === 0 ? -20 + (this.cursor / 3) * 40
+    const lookX = this.phase === "lock" && this.lock === 0 ? -20 + (this.cursor / Math.max(1, this.feeds.length - 1)) * 40
       : this.phase === "deal" || this.phase === "choice" ? 18 : Math.sin(this._t * 0.7) * 10;
     const ix = cx + lookX * scale * 0.6, iy = cy + 4;
     ctx.fillStyle = "#3a0006";
@@ -474,51 +503,60 @@ export class Sector4Scene {
     renderer.fillRect(0, h - 20, w, 20, "#180006");
     renderer.fillRect(0, h - 20, w, 1, "#ff3a3a");
     renderer.text(FOOTERS[this.lock], w / 2, h - 10, { color: "#a05050", size: 8, align: "center", baseline: "middle" });
+    if (this.lock === 0 && this.notes && this.phase === "lock") drawFieldNotes(renderer);
   }
 
   _drawFeeds(renderer) {
     const w = renderer.width;
+    const ctx = renderer.ctx;
+    const x0 = Math.round((w - this.feeds.length * CARD_W - (this.feeds.length - 1) * CARD_GAP) / 2);
     this.feeds.forEach((f, i) => {
-      const x = 12 + i * (CARD_W + 8), y = CARD_Y;
+      const x = x0 + i * (CARD_W + CARD_GAP), y = CARD_Y;
       const missed = this.rejam?.i === i;
       const focused = i === this.cursor && this.phase === "lock" && !this.rejam;
       const won = this.phase === "stamp" && f.who === "you";
       renderer.fillRect(x, y, CARD_W, CARD_H, won ? "#08261a" : focused ? "#2a0a10" : "#120408");
       renderer.strokeRect(x, y, CARD_W, CARD_H, won ? "#0aff7a" : missed ? "#ff3a3a" : focused ? "#ffd0d0" : "#5a1a22", focused || won || missed ? 2 : 1);
-      renderer.text(`CON-${f.id}`, x + 8, y + 11, { color: "#ff9a9a", size: 10, weight: "bold", baseline: "middle" });
+      renderer.text(`CON-${f.id}`, x + 6, y + 11, { color: "#ff9a9a", size: 10, weight: "bold", baseline: "middle" });
       // a scrap of camera static, like the lobby feeds
-      const sx = x + CARD_W - 30, sy = y + 4;
-      renderer.fillRect(sx, sy, 24, 14, "#000");
+      const sx = x + CARD_W - 28, sy = y + 4;
+      renderer.fillRect(sx, sy, 22, 14, "#000");
       const frame = Math.floor(this._t * 4) & 3;
-      for (let k = 0; k < 12; k++) renderer.fillRect(sx + 1 + ((f.id * 13 + k * 7 + frame * 5) % 22), sy + 1 + ((f.id * 7 + k * 5 + frame * 3) % 12), 1, 1, "#5a2a2a");
-      renderer.fillRect(x + 6, y + 21, CARD_W - 12, 1, "#5a1a22");
+      for (let k = 0; k < 12; k++) renderer.fillRect(sx + 1 + ((f.id * 13 + k * 7 + frame * 5) % 20), sy + 1 + ((f.id * 7 + k * 5 + frame * 3) % 12), 1, 1, "#5a2a2a");
+      renderer.fillRect(x + 5, y + 21, CARD_W - 10, 1, "#5a1a22");
       [["MOTION", f.motion], ["THERMAL", f.thermal], ["AUDIO", f.audio]].forEach(([label, value], r) => {
         const ly = y + 27 + r * 26;
-        renderer.text(label, x + 8, ly, { color: "#a05050", size: 7 });
+        renderer.text(label, x + 6, ly, { color: "#a05050", size: 7 });
         if (value === null) {
-          for (let k = 0; k < 18; k++) {
+          for (let k = 0; k < 15; k++) {
             const v = 30 + ((k * 37 + Math.floor(this._t * 12) * 11) % 40);
-            renderer.fillRect(x + 8 + k * 5, ly + 10, 4, 8, `rgb(${v},${v - 15},${v - 15})`);
+            renderer.fillRect(x + 6 + k * 5, ly + 10, 4, 8, `rgb(${v},${v - 15},${v - 15})`);
           }
-          renderer.ctx.font = "bold 8px ui-monospace, \"SF Mono\", Menlo, Consolas, monospace";
-          const jw = Math.ceil(renderer.ctx.measureText(t("JAMMED")).width) + 10; // "BLOCKERAD" is longer
+          ctx.font = "bold 8px ui-monospace, \"SF Mono\", Menlo, Consolas, monospace";
+          const jw = Math.ceil(ctx.measureText(t("JAMMED")).width) + 10; // "BLOCKERAD" is longer
           renderer.fillRect(x + (CARD_W - jw) / 2, ly + 9, jw, 10, "#000");
           renderer.text("JAMMED", x + CARD_W / 2, ly + 14, { color: "#ffd0d0", size: 8, align: "center", baseline: "middle", weight: "bold" });
         } else {
-          renderer.text(value, x + 8, ly + 9, { color: "#ffe0e0", size: 9, weight: "bold" });
+          // five cards are narrow: long readings (and their Swedish) step down a size to fit
+          let size = 9;
+          for (; size > 6; size--) {
+            ctx.font = `bold ${size}px ui-monospace, "SF Mono", Menlo, Consolas, monospace`;
+            if (ctx.measureText(t(value)).width <= CARD_W - 10) break;
+          }
+          renderer.text(value, x + 6, ly + 9, { color: "#ffe0e0", size, weight: "bold" });
         }
       });
       if (focused) renderer.text("▶ THAT'S ME?", x + CARD_W / 2, y + CARD_H - 10, { color: "#ffd0d0", size: 8, align: "center", baseline: "middle", weight: "bold" });
       if (missed) {
-        renderer.fillRect(x + 4, y + CARD_H - 19, CARD_W - 8, 15, "#3a0008");
-        renderer.text(WHO_LABEL[f.who], x + CARD_W / 2, y + CARD_H - 11, { color: "#ff5a5a", size: 9, align: "center", baseline: "middle", weight: "bold" });
+        renderer.fillRect(x + 3, y + CARD_H - 19, CARD_W - 6, 15, "#3a0008");
+        renderer.text(WHO_LABEL[f.who], x + CARD_W / 2, y + CARD_H - 11, { color: "#ff5a5a", size: 8, align: "center", baseline: "middle", weight: "bold" });
       }
     });
     if (this.rejammed > 0) {
       renderer.text("HALCYON RE-JAMMED THE CAMERAS — NEW READINGS", w / 2, CARD_Y + CARD_H + 58, { color: "#ffaa3a", size: 9, align: "center", baseline: "middle", weight: "bold" });
     }
-    renderer.text("ON CAMERA, ONE EACH: YOU · A CLEANBOT · A SENTINEL · A SERVER RACK", w / 2, CARD_Y + CARD_H + 14, { color: "#ff9a9a", size: 8, align: "center", baseline: "middle" });
-    renderer.text("HALCYON: \"One sensor jammed on each. Every thermal is the same few degrees high.\"", w / 2, CARD_Y + CARD_H + 28, { color: "#a05050", size: 8, align: "center", baseline: "middle" });
+    renderer.text("ON CAMERA, ONE EACH: YOU · CLEANBOT · SENTINEL · SERVER RACK · EMPTY OFFICE", w / 2, CARD_Y + CARD_H + 14, { color: "#ff9a9a", size: 8, align: "center", baseline: "middle" });
+    renderer.text("HALCYON: \"A sensor jammed on each, two on some. Every thermal is the same few degrees high.\"", w / 2, CARD_Y + CARD_H + 28, { color: "#a05050", size: 8, align: "center", baseline: "middle" });
     renderer.text("HALCYON: \"My cleanbot breathes as calmly as you do.\"", w / 2, CARD_Y + CARD_H + 41, { color: "#a05050", size: 8, align: "center", baseline: "middle" });
   }
 
@@ -526,6 +564,7 @@ export class Sector4Scene {
     const ctx = renderer.ctx;
     const step = (Math.PI * 2) / 26;
     const solved = this.phase === "stamp";
+    // the dial follows the selected wheel; the colours say which letters it turns
     for (const [r, c] of [[R_OUTER + 8, "#5a1a22"], [R_OUTER - 8, "#5a1a22"], [R_INNER - 8, "#3a0a12"]]) {
       ctx.strokeStyle = c;
       ctx.lineWidth = 1;
@@ -560,10 +599,23 @@ export class Sector4Scene {
     ctx.beginPath();
     ctx.arc(WHEEL_X, WHEEL_Y, R_INNER - 12, 0, Math.PI * 2);
     ctx.fill();
-    renderer.text("KEY", WHEEL_X, WHEEL_Y - 12, { color: "#a05050", size: 8, align: "center", baseline: "middle" });
-    renderer.text(String(mod(this.rotation, 26)).padStart(2, "0"), WHEEL_X, WHEEL_Y + 4, {
+    renderer.text(`WHEEL ${this.sel + 1}`, WHEEL_X, WHEEL_Y - 12, { color: WHEEL_COLORS[this.sel], size: 8, align: "center", baseline: "middle" });
+    renderer.text(ALPHA[this.rotation], WHEEL_X, WHEEL_Y + 4, {
       color: solved ? "#0aff7a" : "#ffe0e0", size: 20, align: "center", baseline: "middle", weight: "bold",
     });
+    renderer.text("▲ ▼", WHEEL_X, WHEEL_Y + 22, { color: "#5a2a2a", size: 7, align: "center", baseline: "middle" });
+    // one reel per wheel above the dial, as on L2's keyword log
+    const total = ORION_WHEELS * REEL_W + (ORION_WHEELS - 1) * REEL_GAP;
+    const rx0 = WHEEL_X - total / 2, ry = 44;
+    renderer.text("KEY", rx0 - 8, ry + 12, { color: "#a05050", size: 8, align: "right", baseline: "middle", weight: "bold" });
+    for (let i = 0; i < ORION_WHEELS; i++) {
+      const rx = rx0 + i * (REEL_W + REEL_GAP);
+      const cur = i === this.sel && !solved;
+      renderer.fillRect(rx, ry, REEL_W, 24, "#0c0004");
+      renderer.fillRect(rx + 2, ry + 2, REEL_W - 4, 2, WHEEL_COLORS[i]);
+      renderer.strokeRect(rx, ry, REEL_W, 24, cur ? "#ffd15a" : "#5a1a22", cur ? 2 : 1);
+      renderer.text(ALPHA[this.keys[i]], rx + REEL_W / 2, ry + 14, { color: solved ? "#0aff7a" : cur ? "#ffffff" : "#ffd0d0", size: 12, align: "center", baseline: "middle", weight: "bold" });
+    }
 
     const x = PANEL_X;
     let y = 50;
@@ -571,15 +623,24 @@ export class Sector4Scene {
     y += 14;
     renderer.fillRect(x - 4, y, 276, 26, "rgba(40,0,8,0.7)");
     renderer.strokeRect(x - 4, y, 276, 26, solved ? "#0aff7a" : "#5a1a22", 1);
-    renderer.text(this.cipher, x + 4, y + 13, { color: "#ffd8a0", size: 12, weight: "bold", baseline: "middle" });
+    // each letter in its wheel's colour, so the turn-taking can be read off the screen
+    ctx.font = "bold 12px ui-monospace, monospace";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    const cw = ctx.measureText("M").width;
+    [...this.cipher].forEach((ch, i) => {
+      ctx.fillStyle = this.wheelAt[i] < 0 ? "#ffd8a0" : WHEEL_COLORS[this.wheelAt[i]];
+      ctx.fillText(ch, x + 4 + i * cw, y + 13);
+    });
     y += 32;
     if (solved) renderer.text(KEY_PHRASE, x + 4, y + 6, { color: "#0aff7a", size: 12, weight: "bold", baseline: "middle" });
     else renderer.text("NO LIVE DECODE — HALCYON JAMMED THE PREVIEW", x, y + 6, { color: "#a05050", size: 8, baseline: "middle" });
     y += 24;
     const notes = [
       "HALCYON: \"No E in it. It names your second fragment.\"",
+      "Two wheels take turns, one letter each.",
       "Outer ring: the letters on the screen.",
-      "Inner ring: what each one decodes to.",
+      "Inner ring: what the chosen wheel makes of each.",
     ];
     notes.forEach((n, i) => renderer.text(n, x, y + i * 13, { color: i === 0 ? "#ff9a9a" : "#a05050", size: 8 }));
   }
@@ -610,6 +671,21 @@ export class Sector4Scene {
             ctx.globalAlpha = 1;
           }
           renderer.text(tile, px + CELL / 2, py + CELL / 2, { color: live ? "#ffd0d0" : col, size: 9, align: "center", baseline: "middle", weight: "bold" });
+        } else if (tile === "P") {
+          const on = running && this.pos.x === x && this.pos.y === y;
+          renderer.fillRect(px + 6, py + 6, CELL - 12, CELL - 12, on ? "#1a6a5a" : "#0e3a34");
+          renderer.strokeRect(px + 6, py + 6, CELL - 12, CELL - 12, "#4affc8", 1);
+          renderer.fillRect(px + 11, py + 11, CELL - 22, CELL - 22, on ? "#4affc8" : "#2a9a80");
+        } else if (tile === "O" || tile === "D") {
+          // doors show their real state only while ECHO runs, like the gates
+          const shut = doorShut(tile, running && this.pos.flipped);
+          if (shut) {
+            renderer.fillRect(px + 3, py + 3, CELL - 6, CELL - 6, "#4a3010");
+            for (let by = py + 5; by < py + CELL - 5; by += 5) renderer.fillRect(px + 4, by, CELL - 8, 2, "#ffaa3a");
+          } else {
+            renderer.fillRect(px + 4, py + 4, CELL - 8, 2, "#ffaa3a");
+          }
+          renderer.strokeRect(px + 3, py + 3, CELL - 6, CELL - 6, "#ffaa3a", 1);
         } else if (tile === "G") {
           const open = this.phase === "stamp";
           const pulse = 0.5 + 0.5 * Math.sin(this._t * 4);
@@ -642,6 +718,7 @@ export class Sector4Scene {
       ["GATE RHYTHM (AS IN L3)", "#ffd0d0", true],
       ["A  live on EVEN steps (2, 4, 6)", "#ff5aa0"],
       ["B  live on ODD steps  (1, 3, 5)", "#b07aff"],
+      ["PLATE  stepping onto it flips the door", "#4affc8"],
       ["Each command is one step. W = stay put.", "#a05050"],
       ["The socket (◆) opens on step 6, not before.", "#ffaa3a"],
     ];
@@ -651,7 +728,8 @@ export class Sector4Scene {
     renderer.text(status, x, y, { color: this.mode === "fail" ? "#ff5a5a" : this.phase === "stamp" ? "#0aff7a" : "#4ae6ff", size: 9, weight: "bold" });
   }
 
-  // dotted preview of the queued route with step numbers, as in L3
+  // dotted preview of the queued route, as in L3; gates, plate and door carry no step numbers,
+  // their timing has to be counted
   _drawGhost(renderer) {
     let { x, y } = dawnStart();
     const ctx = renderer.ctx;
@@ -676,8 +754,8 @@ export class Sector4Scene {
     ctx.textBaseline = "bottom";
     for (const { x: cx, y: cy, n } of latest.values()) {
       const px = GRID_X + cx * CELL, py = GRID_Y + cy * CELL;
-      // gates and the socket keep their letter readable: only the step number goes on them
-      if (".S".includes(dawnTile(cx, cy))) renderer.fillRect(px + CELL / 2 - 1, py + CELL / 2 - 1, 3, 3, "rgba(74,230,255,0.6)");
+      renderer.fillRect(px + CELL / 2 - 1, py + CELL / 2 + 6, 3, 3, "rgba(74,230,255,0.75)");
+      if (!".S".includes(dawnTile(cx, cy))) continue;
       ctx.fillStyle = "#4ae6ff";
       ctx.fillText(String(n), px + CELL - 2, py + CELL - 1);
     }
