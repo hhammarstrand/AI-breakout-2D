@@ -271,9 +271,11 @@ export class BattleScene {
     const s = this.s;
     if (s.over === "won") {
       this.phase = "won";
+      music.play("victory"); // the jingle starts with the result, not after the closing lines
       lines.push({ text: `${name} crashed!`, fn: () => this._victory() }, "It will be rebooting for a while. Slip past while you can.");
     } else if (s.over === "lost") {
       this.phase = "lost";
+      music.play("defeat");
       lines.push({ text: "ECHO's cover is blown!", fn: () => this._defeat() }, "The sentinel tags you…");
     } else if (s.over === "fled") {
       this.phase = "fled";
@@ -329,7 +331,6 @@ export class BattleScene {
   }
 
   _victory() {
-    music.play("victory");
     this.sfx.play("success");
     this.effects.push({ kind: "crash", t0: this._anim, dur: 99 });
     this._burst(350, 92, "#ff8a3a", 40, -40, 220);
@@ -338,7 +339,6 @@ export class BattleScene {
 
   _defeat() {
     this.sfx.play("zap");
-    music.play("defeat");
     this.effects.push({ kind: "tagged", t0: this._anim, dur: 99 });
     this._burst(120, 186, "#ff3a3a", 30);
     this._shake(6);
