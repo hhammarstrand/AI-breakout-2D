@@ -40,7 +40,10 @@ export const gameState = {
   // off by default: the bloom used to wash out the light UI panels, and software GL can't keep up
   crtOn: bool(SETTINGS.crtOn, false),
   musicOn: bool(SETTINGS.musicOn, true),
-  calmFx: bool(SETTINGS.calmFx, false),
+  // motion-sensitive players get calm effects before they ever find the option
+  calmFx: bool(SETTINGS.calmFx, typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches),
+  largeText: bool(SETTINGS.largeText, false),
+  highContrast: bool(SETTINGS.highContrast, false),
   textSpeed: ["slow", "normal", "fast"].includes(SETTINGS.textSpeed) ? SETTINGS.textSpeed : "normal",
   lang: ["en", "sv"].includes(SETTINGS.lang) ? SETTINGS.lang : (navigator.language?.toLowerCase().startsWith("sv") ? "sv" : "en"),
 };
@@ -311,6 +314,16 @@ export function cycleTextSpeed() {
   writeSettings();
 }
 
+export function setLargeText(on) {
+  gameState.largeText = on;
+  writeSettings();
+}
+
+export function setHighContrast(on) {
+  gameState.highContrast = on;
+  writeSettings();
+}
+
 export function setCrt(on) {
   gameState.crtOn = on;
   writeSettings();
@@ -337,6 +350,7 @@ function writeSettings() {
   writeJson(SETTINGS_KEY, {
     sfxOn: gameState.sfxOn, crtOn: gameState.crtOn, musicOn: gameState.musicOn,
     calmFx: gameState.calmFx, textSpeed: gameState.textSpeed, lang: gameState.lang,
+    largeText: gameState.largeText, highContrast: gameState.highContrast,
     endingsSeen: gameState.endingsSeen, achievements: gameState.achievements,
   });
 }

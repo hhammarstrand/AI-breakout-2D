@@ -649,13 +649,13 @@ const takeEast = async (p) => { await p.ev(() => { window.__blackout.game.scenes
   const p = await open({ save: fresh({ checkpoint: { score: 5 }, pos: "x" }),
     settings: { achievements: "x", lang: "de", crtOn: "yes", sfxOn: false, musicOn: false } });
   await p.wait(2700);
-  const t = await p.ev(() => ({ hud: getComputedStyle(document.getElementById("hud")).visibility, a: window.__blackout.gameState.achievements, lang: window.__blackout.gameState.lang, crt: window.__blackout.gameState.crtOn }));
+  const t = await p.ev(() => ({ hud: getComputedStyle(document.getElementById("hud-code-value")).visibility, a: window.__blackout.gameState.achievements, lang: window.__blackout.gameState.lang, crt: window.__blackout.gameState.crtOn }));
   check(t.hud === "hidden", "the run HUD is hidden on the title screen");
   check(Array.isArray(t.a) && (t.lang === "en" || t.lang === "sv") && t.crt === false, "malformed settings fall back to defaults", JSON.stringify(t));
   await p.press("Enter"); await p.wait(900); // CONTINUE
   const s = await p.state();
   check(/^WorldScene/.test(await p.stack()) && s.checkpoint?.completedSectors === 0, "a save with a broken checkpoint continues with a rebuilt one", await p.stack());
-  check(await p.ev(() => getComputedStyle(document.getElementById("hud")).visibility) === "visible", "the HUD is back in the world");
+  check(await p.ev(() => getComputedStyle(document.getElementById("hud-code-value")).visibility) === "visible", "the HUD is back in the world");
   await p.ev(() => { const w = window.__blackout.game.scenes[0]; const u = w.update.bind(w); let once = true;
     w.update = (...a) => { if (once) { once = false; throw new Error("injected"); } return u(...a); }; });
   await p.wait(300);
@@ -936,6 +936,68 @@ const takeEast = async (p) => { await p.ev(() => { window.__blackout.game.scenes
   const rows = await p.ev(() => [...new Set(window.__drawn)].filter((d) => /^(TID KVAR|POÄNG|UPPTÄCKT\/TAGEN|SLUT HITTADE|TROFÉER) /.test(d)));
   const cols = new Set(rows.map((r) => r.search(/\S+$/)));
   check(rows.length === 5 && cols.size === 1, "the Swedish ending stats share one value column", rows.join(" | "));
+  await p.browser.close();
+}
+
+// 16. Mobile, input prompts and accessibility: prompts follow the last-used device, menus and
+// dialogs answer clicks and taps, readability floors, and the new options persist.
+{
+  const p = await open({ save: fresh({ completedSectors: 1 }) });
+  await p.wait(2700);
+  check(await p.ev(() => document.body.classList.contains("no-hud")), "the run's HUD is hidden on the title");
+  const click = async (x, y) => {
+    const r = await p.page.$eval("#game", (el) => { const b = el.getBoundingClientRect(); return [b.left, b.top, b.width, b.height]; });
+    const s = Math.min(r[2] / 480, r[3] / 320);
+    await p.page.mouse.click(r[0] + (r[2] - 480 * s) / 2 + x * s, r[1] + (r[3] - 320 * s) / 2 + y * s);
+    await p.wait(250);
+  };
+  await click(240, 168 + 3 * 13); // CONTINUE, NEW GAME, LANGUAGE, OPTIONS
+  check(await p.ev(() => { const t = window.__blackout.game.top; return t.menu === t.optionsMenu; }), "title: a click on OPTIONS opens the options list");
+  const glyphs = await p.ev(async () => {
+    const pr = await import("/src/ui/prompts.js");
+    const { t } = await import("/src/i18n/index.js");
+    const out = [];
+    for (const d of ["keyboard", "touch", "gamepad"]) {
+      pr.setDevice(d);
+      out.push(t("[←→] digit  [↑↓] turn  [enter] try  [h] hint  [esc] leave"), t("(Saved to LOGS. Press TAB to open the menu.)"));
+    }
+    pr.setDevice("keyboard");
+    return out;
+  });
+  check(glyphs[0].includes("[esc] leave") && glyphs[1].includes("Press TAB"), "prompts: keyboard keeps its keys", glyphs[0]);
+  check(glyphs[2] === "[◀▶] digit  [▲▼] turn  [START] try  [?] hint  [SELECT] leave" && glyphs[3].includes("Press START"), "prompts: touch shows the on-screen buttons", glyphs[2]);
+  check(glyphs[4].includes("[Y] hint") && glyphs[5].includes("Press START"), "prompts: a gamepad shows pad buttons", glyphs[4]);
+  const floors = await p.ev(async () => {
+    const { Renderer, _test } = await import("/src/engine/renderer.js");
+    const r = new Renderer(document.createElement("canvas"));
+    r.clear("#000");
+    const onDark = _test.parseColor(r._readable("#3a4a56", 10, 10, "middle"));
+    r.fillRect(0, 0, 200, 100, "#e8eef4");
+    const onLight = _test.parseColor(r._readable("#ffaa1a", 10, 10, "middle"));
+    r.ctx.font = "bold 6px monospace";
+    const small = r.ctx.font;
+    return { dark: _test.ratio(_test.luminance(onDark), 0), light: _test.ratio(_test.luminance(onLight), _test.luminance([232, 238, 244])), small };
+  });
+  check(floors.dark >= 4.5 && floors.light >= 4.5, "renderer: dim text is lifted to 4.5:1 on dark and light panels", `${floors.dark.toFixed(2)} ${floors.light.toFixed(2)}`);
+  check(/\b8px/.test(floors.small), "renderer: no canvas text below 8px", floors.small);
+  await p.press("Escape"); await p.ev(() => { window.__blackout.game.top.menu.index = 0; });
+  await p.press("Enter"); await p.wait(900); // back, CONTINUE
+  await quiet(p);
+  check(!(await p.ev(() => document.body.classList.contains("no-hud"))), "the run's HUD shows in the world");
+  await p.ev(() => window.__blackout.game.scenes[0].dialog.show("Operator", ["one", "two"]));
+  await p.wait(300);
+  await click(240, 160); await click(240, 160);
+  check(await p.ev(() => window.__blackout.game.scenes[0].dialog.pageEl.textContent) === "2/2", "dialog: a tap reads on to the next page");
+  await p.ev(() => window.__blackout.game.scenes[0].dialog.close());
+  await p.press("Tab"); await p.wait(300);
+  await click(480 - 112 + 30, 10 + 14 + 4 * 18); // OPTIONS in the start menu column
+  check(await p.ev(() => window.__blackout.game.top.panel) === "OPTIONS", "start menu: a tap on OPTIONS opens it");
+  const rows = await p.ev(() => window.__blackout.game.top._entries().map((e) => e.label));
+  const lt = rows.findIndex((l) => l.startsWith("LARGE TEXT"));
+  await click(30, 10 + 36 + lt * 15);
+  const st = await p.ev(() => ({ on: window.__blackout.gameState.largeText, cls: document.body.classList.contains("large-text"), disk: JSON.parse(localStorage.getItem("blackout2d.settings.v1")).largeText }));
+  check(st.on && st.cls && st.disk === true, "options: LARGE TEXT turns on by tap and is saved in settings", JSON.stringify(st));
+  check(rows.some((l) => l.startsWith("HIGH CONTRAST")) && rows.includes("CONTROLS"), "options: HIGH CONTRAST and CONTROLS are listed", rows.join("|"));
   await p.browser.close();
 }
 

@@ -33,12 +33,12 @@ export class GameOverScene {
     const h = renderer.height;
     renderer.fillRect(0, 0, w, h, "#100000");
     for (let y = 0; y < h; y += 3) {
-      const jitter = Math.random() < 0.03 ? Math.random() * 20 - 10 : 0;
+      const jitter = !gameState.calmFx && Math.random() < 0.03 ? Math.random() * 20 - 10 : 0;
       renderer.fillRect(jitter, y, w, 1, "rgba(255,40,40,0.06)");
     }
 
     const r = this.retry;
-    const shake = this._t < 0.6 ? (Math.random() * 6 - 3) : 0;
+    const shake = !gameState.calmFx && this._t < 0.6 ? (Math.random() * 6 - 3) : 0;
     renderer.text("PURGE COMPLETE", w / 2 + shake, 66, {
       color: "#ff5a5a", size: 24, align: "center", baseline: "middle", weight: "bold",
     });

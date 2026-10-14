@@ -1,15 +1,34 @@
 import { t as t_ } from "../i18n/index.js";
 
-// Shared keyboard menu used by the title and pause screens.
+// Shared menu used by the title and game-over screens: keys, pad, and a click or tap on a row.
 export class Menu {
   constructor(items, sfx) {
     this.items = items;
     this.sfx = sfx;
     this.index = 0;
+    this._rows = null; // row geometry from the last draw, for pointer hit-tests
+  }
+
+  _rowAt(p) {
+    const r = this._rows;
+    if (!p || !r || Math.abs(p.x - r.cx) > r.half) return -1;
+    const i = Math.round((p.y - r.y) / r.spacing);
+    return i >= 0 && i < this.items.length && Math.abs(p.y - (r.y + i * r.spacing)) <= r.spacing / 2 ? i : -1;
   }
 
   update(input) {
     const n = this.items.length;
+    if (input.hoverMoved) {
+      const i = this._rowAt(input.hover);
+      if (i >= 0 && i !== this.index) { this.index = i; this.sfx.play("select"); }
+    }
+    const tapped = this._rowAt(input.tap);
+    if (tapped >= 0) {
+      this.index = tapped;
+      this.sfx.play("confirm");
+      this.items[tapped].action();
+      return;
+    }
     if (input.wasPressed("up")) { this.index = (this.index + n - 1) % n; this.sfx.play("select"); }
     if (input.wasPressed("down")) { this.index = (this.index + 1) % n; this.sfx.play("select"); }
     if (input.wasPressed("interact") || input.wasPressed("submit")) {
@@ -19,6 +38,7 @@ export class Menu {
   }
 
   draw(renderer, cx, y, t, spacing = 16) {
+    this._rows = { cx, y, spacing, half: 90 };
     for (let i = 0; i < this.items.length; i++) {
       const item = this.items[i];
       const label = typeof item.label === "function" ? item.label() : item.label;

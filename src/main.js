@@ -30,7 +30,10 @@ import {
   currentAct, startAct, restoreCheckpoint, actSeconds, setLanguage, setPenaltyListener, actUnspotted,
   storageOk, setSaveListener,
   retryStage, clearedThisAct,
+  setCalmFx, cycleTextSpeed, setLargeText, setHighContrast,
 } from "./state.js";
+import { setDevice, getDevice, onDeviceChange, glyph, controlsLine } from "./ui/prompts.js";
+import { setOptionHandlers } from "./ui/options.js";
 
 const canvas = document.getElementById("game");
 const stageEl = document.getElementById("stage");
@@ -74,6 +77,8 @@ const game = new Game({
   },
 });
 
+const NO_HUD = new Set([TitleScene, IntroScene, ElevatorScene, EndingScene]);
+
 const toggleMusic = () => {
   setMusic(!gameState.musicOn);
   music.setEnabled(gameState.musicOn);
@@ -83,12 +88,14 @@ const toggleLang = () => {
   setLanguage(gameState.lang === "sv" ? "en" : "sv");
   setLang(gameState.lang);
   applyDom();
+  refreshPrompts();
   hud.refresh();
 };
 
 const toggleCrt = () => {
   setCrt(!gameState.crtOn);
   postfx.setEnabled(gameState.crtOn);
+  fitCanvas();
   fx.glitch();
 };
 
@@ -99,6 +106,91 @@ const toggleSfx = () => {
   hud.refresh();
   if (gameState.sfxOn) sfx.play("confirm");
 };
+
+// --- readability, input prompts, pointer & touch -------------------------------------------
+
+// LARGE TEXT and HIGH CONTRAST: the renderer's font and contrast floors plus the DOM overlays.
+function applyA11y() {
+  renderer.textFloor = gameState.largeText ? 9 : 8;
+  renderer.largeText = gameState.largeText;
+  renderer.contrastFloor = gameState.highContrast ? 7 : 4.5;
+  document.body.classList.toggle("large-text", gameState.largeText);
+  document.body.classList.toggle("high-contrast", gameState.highContrast);
+}
+applyA11y();
+
+// Sharp text on big or high-DPI screens: draw at 2x when the canvas is shown that large. The
+// CRT shader resamples the frame anyway, so it keeps the cheap 1x source.
+function fitCanvas() {
+  const rect = canvas.getBoundingClientRect();
+  const shown = Math.min(rect.width / 480, rect.height / 320) * (window.devicePixelRatio || 1);
+  renderer.setScale(postfx.enabled || shown < 1.3 ? 1 : 2);
+}
+new ResizeObserver(fitCanvas).observe(stageEl);
+
+setOptionHandlers({
+  lang: toggleLang,
+  sfx: () => toggleSfx(),
+  music: toggleMusic,
+  crt: () => (postfx.ok ? toggleCrt() : sfx.play("denied")),
+  crtAvailable: () => postfx.ok,
+  calm: () => setCalmFx(!gameState.calmFx),
+  textSpeed: cycleTextSpeed,
+  largeText: () => { setLargeText(!gameState.largeText); applyA11y(); },
+  highContrast: () => { setHighContrast(!gameState.highContrast); applyA11y(); },
+});
+
+// The keyboard legend under the stage follows the last-used device too.
+const LEGEND_KEYS = new Map([...document.querySelectorAll("#legend [data-glyph]")].map((el) => [el, el.innerHTML]));
+function refreshPrompts() {
+  const dev = getDevice();
+  document.body.dataset.device = dev;
+  for (const [el, html] of LEGEND_KEYS) {
+    if (dev === "keyboard") el.innerHTML = html;
+    else el.innerHTML = `<kbd>${glyph(el.dataset.glyph, gameState.lang)}</kbd>`;
+  }
+  applyDom(document.getElementById("legend"));
+}
+onDeviceChange(refreshPrompts);
+refreshPrompts();
+
+// Click or tap on the canvas: map to 480x320 and hand it to the scene (menus hit-test rows).
+// While a dialog is open, a tap anywhere on the stage reads on.
+const TAP_ADVANCES = new Set([IntroScene, ElevatorScene, HintScene]);
+function toCanvas(e) {
+  const el = postfx.enabled ? postfx.canvas : canvas;
+  const r = el.getBoundingClientRect();
+  const s = Math.min(r.width / 480, r.height / 320);
+  const x = (e.clientX - r.left - (r.width - 480 * s) / 2) / s;
+  const y = (e.clientY - r.top - (r.height - 320 * s) / 2) / s;
+  return x >= 0 && y >= 0 && x < 480 && y < 320 ? { x, y } : null;
+}
+stageEl.addEventListener("pointerdown", (e) => {
+  if (e.target.closest("#touch")) return;
+  if (e.pointerType === "touch" || e.pointerType === "pen") setDevice("touch");
+  const top = game.top;
+  if (dialog.isOpen || TAP_ADVANCES.has(top?.constructor) || (top instanceof EndingScene && !top._finished)) {
+    input.press("interact");
+    input.release("interact");
+    return;
+  }
+  const p = toCanvas(e);
+  if (p) input.tapAt(p.x, p.y);
+});
+stageEl.addEventListener("pointermove", (e) => {
+  if (e.pointerType !== "mouse") return;
+  const p = toCanvas(e);
+  input.hoverAt(p ? p.x : null, p ? p.y : null);
+});
+
+const fsBtn = document.getElementById("hud-fullscreen");
+const fsTarget = document.documentElement;
+if (!fsTarget.requestFullscreen) fsBtn.hidden = true;
+fsBtn.addEventListener("click", () => {
+  fsBtn.blur();
+  if (document.fullscreenElement) document.exitFullscreen?.();
+  else fsTarget.requestFullscreen?.({ navigationUI: "hide" }).catch(() => {});
+});
 
 initTrophies({ toast, sfx });
 setPenaltyListener((kind) => (kind === "caught" ? track.caught() : track.fail()));
@@ -140,10 +232,21 @@ const hud = new Hud(document.getElementById("hud"), {
   }),
 });
 
-// on-screen buttons feed the same input actions as the keyboard
+// on-screen buttons feed the same input actions as the keyboard; SPRINT latches on and off,
+// since the thumb that would hold it is on the D-pad
 for (const btn of document.querySelectorAll("#touch button")) {
   const action = btn.dataset.action;
-  const down = (e) => { e.preventDefault(); btn.classList.add("held"); input.press(action); };
+  if (btn.hasAttribute("data-toggle")) {
+    btn.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      setDevice("touch");
+      const on = !btn.classList.contains("held");
+      btn.classList.toggle("held", on);
+      if (on) input.press(action); else input.release(action);
+    });
+    continue;
+  }
+  const down = (e) => { e.preventDefault(); setDevice("touch"); btn.classList.add("held"); input.press(action); };
   const up = (e) => { e.preventDefault(); btn.classList.remove("held"); input.release(action); };
   btn.addEventListener("pointerdown", down);
   btn.addEventListener("pointerup", up);
@@ -164,6 +267,9 @@ const autoPause = () => {
 };
 window.addEventListener("blur", autoPause);
 document.addEventListener("visibilitychange", () => { if (document.hidden) autoPause(); });
+
+// Input drops every held action on blur; let the SPRINT latch show that.
+window.addEventListener("blur", () => { for (const b of document.querySelectorAll("#touch [data-toggle]")) b.classList.remove("held"); });
 
 const saveIfLive = () => {
   // any scene on top of the world (puzzle, menu, battle, hint) still belongs to a live run
@@ -257,8 +363,6 @@ window.addEventListener("unhandledrejection", (e) => {
   showFault(e.reason);
 });
 
-const NO_HUD = new Set([TitleScene, IntroScene, ElevatorScene, EndingScene]);
-
 const operatorProfile = { accent: "#4ae6ff", lookId: "operator" };
 
 const MAPS = { lobby: smartBuildingMap, research: researchFloorMap, core: coreMap };
@@ -302,7 +406,7 @@ const startWorld = ({ fresh = false, arrived = false, retry = false } = {}) => {
       "HALCYON — the building's AI — sealed the tower at midnight and queued a purge of the lower floors.",
       `We have ${Math.round(actSeconds() / 60)} minutes. Your maintenance badge still opens the sector doors, one at a time.`,
       "Somewhere in this tower are the three words of the uplink override code. Find them, reach HALCYON's core, shut it down.",
-      "Move with WASD or the arrows. E or space to talk and interact. F for your flashlight. Now go.",
+      controlsLine(),
     ], () => pa.say(paActStart(1)), operatorProfile);
   } else if (arrived) {
     toast.show(ACTS[act].name, "info");

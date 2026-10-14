@@ -1,4 +1,5 @@
 import { Camera } from "../engine/camera.js";
+import { glyph } from "../ui/prompts.js";
 import { Tilemap, TILE_SIZE, TILE } from "../world/tilemap.js";
 import { Player } from "../entities/player.js";
 import { Npc } from "../entities/npc.js";
@@ -938,7 +939,7 @@ export class WorldScene {
     renderer.strokeRect(bx, by, bw, 11, "#4ae6ff", 1);
     renderer.fillRect(cx - 1, by + 11, 3, 2, "#4ae6ff");
     renderer.fillRect(bx + 2, by + 2, 9, 7, "#4ae6ff");
-    renderer.text("E", bx + 6.5, by + 6, { color: "#000", size: 7, align: "center", baseline: "middle", weight: "bold" });
+    renderer.text(glyph("interact"), bx + 6.5, by + 6, { color: "#000", size: 7, align: "center", baseline: "middle", weight: "bold" });
     renderer.text(verb, bx + 14, by + 6, { color: "#cffcff", size: 7, baseline: "middle", weight: "bold" });
   }
 }
