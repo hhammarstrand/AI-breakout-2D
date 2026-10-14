@@ -1,5 +1,6 @@
 import { TILE } from "../tilemap.js";
 import { CCTV_RULES } from "../../story.js";
+import { grow, stamp } from "./builder.js";
 
 const F = TILE.FLOOR;
 const W = TILE.WALL;
@@ -150,7 +151,33 @@ function buildGrid() {
   return grid;
 }
 
-const grid = buildGrid();
+// B1 maintenance wing east of the lobby: an optional laser-gate room (src/world/floor-puzzles.js).
+// Gates swap on every step; the cracked sensors (*) skip a beat. Both are needed, in order.
+const LASERS = {
+  kind: "lasers",
+  id: "wp-lasers",
+  reward: "cell-lasers",
+  origin: { col: 47, row: 21 },
+  rows: [
+    "###############",
+    "#....#.....####",
+    "DS...M.....CG+#",
+    "#....#.*...####",
+    "##M#####C######",
+    "#....#.....####",
+    "#....M.....####",
+    "#*...#.....####",
+    "###############",
+  ],
+  hints: [
+    "The gates swap every time a floor sensor feels a step. Walk into a gate while it's lit: it switches off as you move in.",
+    "Walking around never changes which gates are lit when you come back to a spot. Only a cracked panel skips a beat — and after a skip, the gate behind you stays shut.",
+    "Go south through the first gate and skip a beat on the cracked panel in that room's corner. Head east, come up into the north-east room, and skip again on its cracked panel before you try the override gate.",
+  ],
+};
+
+const grid = stamp(grow(buildGrid(), 62), LASERS, F);
+grid[22][46] = SG;
 
 // NPC `lines` is indexed by sectors cleared: the last entry at or below the current
 // progress is used, so characters react as the night goes on.
@@ -186,9 +213,13 @@ export const smartBuildingMap = {
     { id: "log-intern", kind: "log", col: 2, row: 23 },
     { id: "log-lind", kind: "log", col: 22, row: 7 },
     { id: "cell-lobby", kind: "item", item: "cell", col: 46, row: 1 },
+    { id: "cell-lasers", kind: "item", item: "cell", col: 60, row: 23 },
   ],
+  puzzles: [LASERS],
   echoZones: [
     { key: "breach", c0: 37, c1: 46, r0: 0, r1: 8, text: "Careful. Live wires all over this wing." },
+    { key: "b1", c0: 42, c1: 46, r0: 21, r1: 25, text: "Hear that ticking? There's a maintenance wing through the east door." },
+    { key: "lasers", c0: 48, c1: 52, r0: 22, r1: 24, text: "Laser gates. They tick with your footsteps. Watch them while you walk." },
   ],
   spawn: { col: 23, row: 24 },
   npcs: [
@@ -343,6 +374,12 @@ export const smartBuildingMap = {
       "A crayon drawing is taped to the monitor: the tower, a big sun, a stick figure in a lab coat.",
       "Along the bottom, in wobbly capitals: 'MAMMA AT WORK — BY TOVE, 6'.",
       "The login screen is up. Password hint: 'my favourite person'.",
+    ] },
+    "22,46": { speaker: "Sign // B1", lines: [
+      "B1 MAINTENANCE — LASER GRID",
+      "Gates are slaved to the floor sensors. Every step a sensor feels swaps MAGENTA and CYAN.",
+      "Spare backup cell stored past the override pad.",
+      "(Taped below: 'Two sensor panels cracked. Ticket #0042 still open.')",
     ] },
   },
 };

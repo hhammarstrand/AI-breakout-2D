@@ -6,6 +6,7 @@ const BASE = process.env.BASE ?? "http://localhost:8123/";
 const SHOTS = process.env.SHOTS ?? "shots";
 fs.mkdirSync(SHOTS, { recursive: true });
 const { chromium } = require(process.env.PW ?? "playwright");
+const { floorHelpers } = await import("./lib.mjs");
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1100, height: 760 } });
 const LANG = process.env.LANG_UNDER_TEST ?? "en";
@@ -50,6 +51,17 @@ const crackSafe = async () => {
   await closeDialog();
 };
 
+// optional in-world floor puzzles: walked with real key input (tests/lib.mjs floorHelpers)
+const floorPuzzle = async (id, setup, run) => {
+  await floorHelpers(page);
+  await ev(setup);
+  await ev(run);
+  await wait(300);
+  const ok = await ev((id) => window.__blackout.gameState.collected.includes(id), id);
+  console.log("floor puzzle", id, ok ? "solved" : "FAIL");
+  if (!ok) process.exitCode = 1;
+};
+
 await wait(2700); await press("Enter"); await wait(200); await press("Enter"); await wait(300); await press("Escape"); await wait(400); await wait(500); await closeDialog();
 // --- Act 1 quick clear (solutions via state) ---
 await launch(1);
@@ -84,6 +96,8 @@ for (const sol of ["RRDDRWRDRRU", "RRRRWRRDDDDLLLWLLLUU", "RRLRRRRRLLLLRDDLLL", 
 await wait(400); await closeDialog();
 await crackSafe();
 console.log("act1 done", await state(), await stack());
+await floorPuzzle("wp-lasers", () => window.__blackout.game.scenes[0].player.teleport(46, 23),
+  () => window.__fp.steps("RRDRDDDDLURRRRRURRUULURRRRR"));
 await shot("01-lobby-lift");
 // --- lift ---
 await ev(() => { const w = window.__blackout.game.scenes[0]; w.sentinels.length = 0; const p = w.player; p.x = 41 * 16 + 2; p.y = 1 * 16 + 1; p.facing = "up"; });
@@ -99,6 +113,13 @@ await wait(300); await shot("04-research");
 // talk to Kofi
 await ev(() => { const w = window.__blackout.game.scenes[0]; w.sentinels.forEach(s => s.cooldown = 9999); const p = w.player; p.x = 5 * 16 + 2; p.y = 22 * 16 + 1; p.facing = "left"; });
 await wait(300); await press("e"); await wait(900); await shot("05-kofi"); await closeDialog();
+await floorPuzzle("wp-coldstore", () => window.__blackout.game.scenes[0].player.teleport(38, 17), async () => {
+  const D = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+  for (const [c, r, d] of [[42, 18, "right"], [43, 18, "down"], [44, 18, "right"], [45, 18, "down"], [42, 19, "right"], [45, 19, "down"], [43, 22, "left"]]) {
+    await window.__fp.walkTo(c - D[d][0], r - D[d][1]);
+    await window.__fp.push(d);
+  }
+});
 // R1 power
 await launch(5); await shot("06-r1");
 for (let b = 0; b < 3; b++) {
@@ -142,6 +163,8 @@ await wait(200); await press("e"); await wait(2500); await press("Space"); await
 console.log("act3", await stack(), await ev(() => Math.round(window.__blackout.gameState.secondsLeft)));
 await ev(() => { const w = window.__blackout.game.scenes[0]; w._iris = null; });
 await wait(500); await shot("11-core");
+await floorPuzzle("wp-lattice", () => window.__blackout.game.scenes[0].player.teleport(30, 18),
+  () => window.__fp.steps("RRRDDRURULULURRRRDLDRDLDR"));
 // C1 firewall: start, survive a bit, then fast-forward
 await launch(9); await press("Space"); await wait(2500); await shot("12-firewall");
 await ev(() => { window.__blackout.game.top.elapsed = 54.9; window.__blackout.game.top.hp = 3; });

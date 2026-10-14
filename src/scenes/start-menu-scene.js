@@ -208,7 +208,7 @@ export class StartMenuScene {
         if (t === TILE.WALL) col = "#3a4a5a";
         else if (t >= TILE.DOOR_L1 && t <= TILE.DOOR_L4) col = "#2a8ac8";
         else if (t === TILE.SAFE) col = this.world.seen.has("safe") ? "#ffaa3a" : "#8a9aaa";
-        else if (tm.isSolidAt(c, r)) col = "#8a9aaa";
+        else if (tm.isSolidAt(c, r) || this.world.puzzleBlocked?.(c, r)) col = "#8a9aaa";
         renderer.fillRect(ox + c * s, oy + r * s, s, s, col);
       }
     }

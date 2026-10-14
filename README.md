@@ -73,6 +73,7 @@ Any other static server works too (`npx serve`, `caddy file-server`, etc.).
 | Run                               | `Shift`             |
 | Menu (bag, logs, map, options)    | `Tab` / `Q` / `Enter` / `Esc` |
 | Interact / cycle tag / wait (L3, AURORA) | `Space` / `E` |
+| Reset a floor puzzle (hold)       | `E`                 |
 | Submit / run (inside a sector)    | `Enter`             |
 | Field notes (L1: the rules you've been told) | `Tab`  |
 | Undo (L3/AURORA command, R3 move); hold to clear the L3 queue | `Backspace` |
@@ -120,6 +121,22 @@ campaign test in Swedish.
   HALCYON first spoke, worked out from its boot log and a memory-log offset. Each safe holds a
   backup cell (+90 s) and an ECHO memory, a data log found nowhere else. A wrong code costs 5 s;
   ECHO's hints go from where to look, to how to combine, to nearly the answer.
+- **Floor puzzles** — each floor hides one optional, Pokémon-gym-style room built into the map
+  itself, guarding a spare backup cell. A sign at the door states the rules; the room is shielded,
+  so sentinels never see in. Solved rooms stay solved in the save (`wp-*` ids).
+  - *Lobby, B1 laser grid* (east door off the south corridor): magenta and cyan gates swap on
+    every step a floor sensor feels. Walk into a gate while it is lit — it goes dark as you step
+    in. Walking around never changes the beat you return with, so the two cracked panels (which
+    skip a beat) are the only way through, in the right order. A zap costs time and sends you back
+    to the start pad; leaving the room resets the beat.
+  - *Research, cold store* (east door off the server room): coolant iced the floor, so a pushed
+    canister slides until something stops it — vents don't. Cap all three vents to unseal the
+    inner store. The yellow pad, or holding `E` in the room, recalls the canisters.
+  - *Core, memory lattice* (east of the pillar hall): one stroke from the entry socket over every
+    panel exactly once, ending on the vault socket. Spent panels won't take a second step; corner
+    and pillar-pinched panels force most of the trace. Hold `E` or step off to clear it.
+  Rules live in `src/world/puzzle-rules.js` (shared with the solver); the live rooms in
+  `src/world/floor-puzzles.js`.
 - **Hack battles** — when a sentinel spots you, a "!" pops over your head and a turn-based
   battle starts. ECHO has PING, SPOOF, OVERLOAD and PATCH; the sentinel telegraphs its next move,
   so SPOOF its PURGE BOLT and PATCH when low. Win and it crashes for 30 s; lose and you're tagged

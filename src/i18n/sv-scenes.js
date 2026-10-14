@@ -296,6 +296,22 @@ export const SV_SCENES = {
   "QUIT TO TITLE": "AVSLUTA TILL TITELN",
   "PURGE COMPLETE": "RENSNINGEN KLAR",
   "HALCYON sealed the lower floors. Nobody walked out.": "HALCYON förseglade de nedre våningarna. Ingen gick därifrån.",
+  // floor puzzles in the world
+  "That panel's cracked. The gates didn't feel that step.": "Den plattan är sprucken. Spärrarna kände inte det steget.",
+  "⚡ ZAPPED": "⚡ STÖT",
+  "It switched on as you stepped in. Walk into a gate while it's lit — it flips off under you.": "Den slogs på när du klev in. Gå in i en spärr medan den lyser — den slocknar under dig.",
+  "LASER GRID OFFLINE": "LASERNÄTET AVSTÄNGT",
+  "Grid's down. That spare cell is ours.": "Nätet är nere. Den där reservcellen är vår.",
+  "See? It just keeps going. Something has to be in its way.": "Ser du? Den bara fortsätter. Något måste stå i vägen.",
+  "COLD STORE UNSEALED": "KYLFÖRRÅDET ÖPPNAT",
+  "All three vents capped. The inner store's open.": "Alla tre ventilerna täckta. Det inre förrådet är öppet.",
+  "↺ CANISTERS RECALLED": "↺ BEHÅLLARNA ÅTERKALLADE",
+  "⚡ LATTICE OVERLOAD": "⚡ GITTRET ÖVERBELASTAT",
+  "The vault socket only takes a finished trace. Every panel first.": "Valvuttaget tar bara emot ett färdigt spår. Alla plattor först.",
+  "Spent panels won't take another step. Stuck? Hold E to clear the trace.": "Förbrukade plattor tar inga fler steg. Fast? Håll E för att radera spåret.",
+  "↺ TRACE CLEARED": "↺ SPÅRET RADERAT",
+  "VAULT 0 OPEN": "VALV 0 ÖPPET",
+  "One stroke, every panel. The vault's open.": "Ett drag, varje platta. Valvet är öppet.",
 };
 
 const n = "(\\d+)";

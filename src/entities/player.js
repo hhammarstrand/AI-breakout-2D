@@ -30,6 +30,7 @@ export class Player {
     this.y = row * TILE_SIZE + (TILE_SIZE - H) / 2;
     this.target = null;
     this.moving = false;
+    this.started = null;
   }
 
   get col() { return Math.round((this.x - (TILE_SIZE - W) / 2) / TILE_SIZE); }
@@ -49,6 +50,9 @@ export class Player {
   // isBlocked(col, row) -> true when the tile can't be entered (walls, props, people)
   update(dt, input, isBlocked) {
     this.bumped = false;
+    // step events for floor puzzles: `started` when a step begins, `arrived` when it lands
+    this.started = null;
+    this.arrived = null;
     const dir = this._heldDir(input);
     const speed = input.isDown("run") ? RUN_SPEED : WALK_SPEED;
 
@@ -65,6 +69,7 @@ export class Player {
       this.x = this.target.x;
       this.y = this.target.y;
       this.target = null;
+      this.arrived = { col: this.col, row: this.row };
       // keep walking without a pause if a direction is still held
       if (dir) this._tryStep(dir, isBlocked, true);
       this.moving = !!this.target;
@@ -102,6 +107,7 @@ export class Player {
     }
     this.idleTime = 0;
     this.target = { x: nc * TILE_SIZE + (TILE_SIZE - W) / 2, y: nr * TILE_SIZE + (TILE_SIZE - H) / 2 };
+    this.started = { col: nc, row: nr, from: { col: this.col, row: this.row } };
   }
 
   facingTilePx() {

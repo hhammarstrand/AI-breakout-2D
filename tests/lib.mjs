@@ -64,3 +64,64 @@ export async function solveUplink({ ev, press, wait }, choice = 0) {
   if (choice) await press("ArrowDown");
   await press("Enter"); await wait(3000);
 }
+
+// Real-input walking for the in-world floor puzzles: window.__fp.step(dir) takes exactly one grid
+// step (or bumps), push(dir) leans on a canister until it slides, walkTo(c, r) paths around
+// walls, people and canisters. Every step goes through the player's own input handling.
+export async function floorHelpers(page) {
+  await page.evaluate(() => {
+    const g = window.__blackout.game;
+    const frame = () => new Promise((r) => requestAnimationFrame(() => r()));
+    const until = async (fn, ms = 2000) => { const t0 = performance.now(); while (!fn()) { if (performance.now() - t0 > ms) return false; await frame(); } return true; };
+    const D = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+    window.__fp = {
+      until,
+      async step(d) {
+        const w = g.scenes[0], p = w.player;
+        await until(() => !p.target);
+        p._face(d); p._turnHold = 0;
+        g.input.press(d);
+        await until(() => p.target || p.bumped, 600);
+        g.input.release(d);
+        await until(() => !p.target);
+        await frame(); await frame();
+        return [p.col, p.row];
+      },
+      async steps(str) {
+        const map = { U: "up", D: "down", L: "left", R: "right" };
+        for (const ch of str) await this.step(map[ch]);
+      },
+      async push(d) {
+        const w = g.scenes[0], p = w.player, bay = w.puzzles.find((fp) => fp.cans);
+        const snap = () => bay.cans.map((k) => `${k.c},${k.r}`).join(" ");
+        const before = snap();
+        await until(() => !p.target);
+        p._face(d); p._turnHold = 0;
+        g.input.press(d);
+        const moved = await until(() => snap() !== before, 1500);
+        g.input.release(d);
+        await until(() => !p.target);
+        await until(() => !bay._pending, 2000);
+        return moved;
+      },
+      path(c, r) {
+        const w = g.scenes[0], p = w.player;
+        const start = `${p.col},${p.row}`, goal = `${c},${r}`;
+        const prev = new Map([[start, null]]); const q = [[p.col, p.row]];
+        while (q.length) {
+          const [x, y] = q.shift();
+          if (`${x},${y}` === goal) break;
+          for (const [d, [dx, dy]] of Object.entries(D)) {
+            const k = `${x + dx},${y + dy}`;
+            if (prev.has(k) || w._blocked(x + dx, y + dy)) continue;
+            prev.set(k, [`${x},${y}`, d]); q.push([x + dx, y + dy]);
+          }
+        }
+        const out = []; let cur = goal;
+        while (prev.get(cur)) { const [pk, d] = prev.get(cur); out.unshift(d); cur = pk; }
+        return out;
+      },
+      async walkTo(c, r) { for (const d of this.path(c, r)) await this.step(d); const p = g.scenes[0].player; return p.col === c && p.row === r; },
+    };
+  });
+}
