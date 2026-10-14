@@ -31,7 +31,9 @@ import {
   saveGame,
   setPartSource,
   hear,
+  actUnspotted,
 } from "../state.js";
+import { archetypeFor, RUN_COST } from "./battle-rules.js";
 import { Sector1Scene } from "./sector1-scene.js";
 import { Sector2Scene } from "./sector2-scene.js";
 import { Sector3Scene } from "./sector3-scene.js";
@@ -258,7 +260,7 @@ export class WorldScene {
 
   _takeLift(stage, info) {
     track.cleared(stage);
-    if (gameState.checkpoint && gameState.timesCaught === gameState.checkpoint.timesCaught) award("ghost");
+    if (actUnspotted()) award("ghost");
     completeSector(stage);
     startAct(); // the next act's clock and checkpoint are saved before the ride even starts
     this.sfx.play("door");
@@ -634,6 +636,9 @@ export class WorldScene {
     this.sfx.play("detect");
     this.sfx.play("alarm");
     this._encounter = { t: 0.7, sentinel };
+    // Ghost and Untouchable mean never spotted, not just never beaten
+    gameState.timesSpotted++;
+    gameState.everSpotted++;
     // a reload from here until the battle is won counts as getting caught
     gameState.pendingCatch = true;
     saveGame();
@@ -641,16 +646,26 @@ export class WorldScene {
 
   _startBattle(sentinel) {
     this.game.push(new BattleScene({
-      sentinel, sfx: this.sfx, fx: this.fx,
-      onResult: (won) => {
-        track.battle(won);
-        if (won) {
+      sentinel, act: this.map.act, hud: this.hud, sfx: this.sfx, fx: this.fx,
+      onResult: (result) => {
+        track.battle(result);
+        if (result === "fled") {
+          // broke away: no catch, but the scramble costs time and the sentinel only reels briefly
+          gameState.pendingCatch = false;
+          gameState.secondsLeft = Math.max(1, gameState.secondsLeft - scaledPenalty(RUN_COST));
+          saveGame();
+          sentinel.cooldown = 6;
+          sentinel.meter = 0;
+          this.toast.show(`↯ GOT AWAY — -${scaledPenalty(RUN_COST)}s`, "warn");
+          this._echoCooldown = 0;
+          this._echo("Go, go! It's rebooting its tracker.", true);
+        } else if (result === "won") {
           gameState.pendingCatch = false;
           saveGame();
           award("hacker");
           sentinel.cooldown = 30;
           sentinel.meter = 0;
-          this.hud.addScore(10);
+          this.hud.addScore(archetypeFor(sentinel.kind, this.map.act).score);
           this.toast.show(`⚡ ${sentinel.name} CRASHED — 30s`, "good");
           this.pa.say("You broke one of my sentinels. It will remember you when it reboots.");
           this._echoCooldown = 0;

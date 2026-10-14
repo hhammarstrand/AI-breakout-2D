@@ -146,7 +146,7 @@ export class EndingScene {
       const stats = [
         `TIME TO SPARE   ${mm}:${ss}`,
         `SCORE           ${gameState.score}`,
-        `TIMES SPOTTED   ${gameState.timesCaught}`,
+        `SPOTTED/CAUGHT  ${gameState.everSpotted}/${gameState.everCaught}`,
         `ENDINGS FOUND   ${gameState.endingsSeen.length}/2`,
         `TROPHIES        ${gameState.achievements.length}/10`,
       ];

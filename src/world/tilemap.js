@@ -37,6 +37,7 @@ const SOLID = new Set([
   TILE.DOOR_L1, TILE.DOOR_L2, TILE.DOOR_L3, TILE.DOOR_L4,
   TILE.DESK, TILE.TERMINAL, TILE.RACK, TILE.PLANT, TILE.DEBRIS, TILE.LOCKER,
   TILE.GLASS, TILE.TANK, TILE.BENCH, TILE.CORE, TILE.SAFE,
+  TILE.SIGN, // read from beside it, like a terminal; standing on one hid it and E did nothing
 ]);
 
 const INTERACTIVE = new Set([TILE.TERMINAL, TILE.SIGN, TILE.SAFE]);

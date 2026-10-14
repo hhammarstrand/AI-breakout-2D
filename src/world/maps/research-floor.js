@@ -180,9 +180,9 @@ export const researchFloorMap = {
     },
   ],
   sentinels: [
-    { name: "SENTINEL-C", path: [{ c: 2, r: 10, wait: 2 }, { c: 37, r: 10, wait: 2 }] },
-    { name: "SENTINEL-D", path: [{ c: 12, r: 12, wait: 1 }, { c: 27, r: 12, wait: 1 }, { c: 27, r: 18, wait: 1 }, { c: 12, r: 18, wait: 1 }] },
-    { name: "TURRET-E", angle: Math.PI, path: [{ c: 34, r: 19, wait: 6 }, { c: 34, r: 19, wait: 6 }] },
+    { name: "SENTINEL-C", kind: "hunter", path: [{ c: 2, r: 10, wait: 2 }, { c: 37, r: 10, wait: 2 }] },
+    { name: "SENTINEL-D", kind: "hunter", path: [{ c: 12, r: 12, wait: 1 }, { c: 27, r: 12, wait: 1 }, { c: 27, r: 18, wait: 1 }, { c: 12, r: 18, wait: 1 }] },
+    { name: "TURRET-E", kind: "hunter", angle: Math.PI, path: [{ c: 34, r: 19, wait: 6 }, { c: 34, r: 19, wait: 6 }] },
   ],
   tileMessages: {
     "11,5": { speaker: "Sign // R1", lines: ["R1 — POWER DISTRIBUTION", "Emergency grid only. Reroute conduits to restore floor power."] },

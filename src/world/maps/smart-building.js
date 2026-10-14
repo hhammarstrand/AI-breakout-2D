@@ -100,11 +100,12 @@ function buildGrid() {
     }
   }
 
-  // signs near each door, in lobby
-  set(11, 6, SG);
-  set(11, 18, SG);
-  set(11, 30, SG);
-  set(11, 41, SG);
+  // signs below each door, two rows clear of SENTINEL-A's corridor patrol (row 10) and
+  // SENTINEL-B's (row 16), so reading one in the dark isn't a forced encounter
+  set(13, 6, SG);
+  set(13, 18, SG);
+  set(13, 30, SG);
+  set(13, 41, SG);
 
   // central reception ring — pillars + plants
   set(13, 12, LK); set(13, 13, LK); set(13, 14, LK);
@@ -321,25 +322,25 @@ export const smartBuildingMap = {
     },
   ],
   sentinels: [
-    { name: "SENTINEL-A", offlineAt: 3, path: [{ c: 2, r: 10, wait: 2 }, { c: 45, r: 10, wait: 2 }] },
-    { name: "SENTINEL-B", path: [{ c: 44, r: 16, wait: 2.5 }, { c: 3, r: 16, wait: 2.5 }] },
+    { name: "SENTINEL-A", kind: "watcher", offlineAt: 3, path: [{ c: 2, r: 10, wait: 2 }, { c: 45, r: 10, wait: 2 }] },
+    { name: "SENTINEL-B", kind: "watcher", path: [{ c: 44, r: 16, wait: 2.5 }, { c: 3, r: 16, wait: 2.5 }] },
   ],
   doorMessages: {},
   tileMessages: {
-    "11,6":  { speaker: "Sign // L1", note: "sign", lines: [
+    "13,6":  { speaker: "Sign // L1", note: "sign", lines: [
       "SECTOR 1 — SURVEILLANCE",
       ...CCTV_RULES.sign,
       "(Scrawled underneath: 'the intern watched them move. the janitor knows his bots. the analyst knows the heat.')",
     ] },
-    "11,18": { speaker: "Sign // L2", lines: [
+    "13,18": { speaker: "Sign // L2", lines: [
       "SECTOR 2 — RESEARCH LAB",
       "All HALCYON records are stored encrypted. Authorised staff only.",
     ] },
-    "11,30": { speaker: "Sign // L3", lines: [
+    "13,30": { speaker: "Sign // L3", lines: [
       "SECTOR 3 — DOOR CONTROL",
       "Maintenance agents only. Human entry prohibited past the laser grid.",
     ] },
-    "11,41": { speaker: "Sign // Lift", lines: [
+    "13,41": { speaker: "Sign // Lift", lines: [
       "SERVICE LIFT — RESEARCH FLOOR / CORE",
       "Lift access is granted by door control (L3).",
     ] },

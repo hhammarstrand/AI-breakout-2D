@@ -1,7 +1,12 @@
 import { TILE_SIZE } from "../world/tilemap.js";
 import { lineOfSight } from "../engine/lighting.js";
 
-const SPEED = 30;
+// per class (see battle-rules.js): patrol speed and paint, so each reads apart in the dark
+const KINDS = {
+  watcher: { speed: 30, body: "#4a2020", top: "#6a3030", skirt: "#2a1414", stripe: "#ffaa1a" },
+  hunter: { speed: 36, body: "#2a1a4a", top: "#4a2e7a", skirt: "#160c2a", stripe: "#4ae6ff" },
+  warden: { speed: 24, body: "#3a3a46", top: "#5a5a6a", skirt: "#1a1a22", stripe: "#ff3a4a" },
+};
 const TURN_RATE = 3;
 const SPREAD = 0.45;
 const RANGE_LIT = 112;   // player's flashlight on: visible from further away
@@ -13,7 +18,9 @@ const COOLDOWN = 3.5;
 // a full meter means the player is caught.
 export class Sentinel {
   constructor(cfg) {
-    const { path, name = "SENTINEL" } = cfg;
+    const { path, name = "SENTINEL", kind = "watcher" } = cfg;
+    this.kind = KINDS[kind] ? kind : "watcher";
+    this.look = KINDS[this.kind];
     this.path = path.map((p) => ({ x: p.c * TILE_SIZE + TILE_SIZE / 2, y: p.r * TILE_SIZE + TILE_SIZE / 2, wait: p.wait ?? 1.5 }));
     this.name = name;
     this.x = this.path[0].x;
@@ -84,7 +91,7 @@ export class Sentinel {
     const heading = Math.atan2(wy, wx);
     this._turnToward(heading, dt);
     if (Math.abs(wrap(heading - this.angle)) < 0.4) {
-      const step = Math.min(d, SPEED * dt);
+      const step = Math.min(d, this.look.speed * dt);
       this.x += (wx / d) * step;
       this.y += (wy / d) * step;
     }
@@ -103,18 +110,21 @@ export class Sentinel {
     const y = Math.round(this.y - camera.y + hover);
     ctx.fillStyle = "rgba(0,0,0,0.5)";
     ctx.fillRect(x - 6, y + 8 - hover, 12, 2);
-    // body: squat dome on a hover skirt
-    ctx.fillStyle = "#2a1414";
+    // body: squat dome on a hover skirt; hunters grow antennae, wardens shoulder plates
+    const L = this.look;
+    ctx.fillStyle = L.skirt;
     ctx.fillRect(x - 7, y + 2, 14, 4);
-    ctx.fillStyle = "#4a2020";
+    ctx.fillStyle = L.body;
     ctx.fillRect(x - 6, y - 5, 12, 8);
-    ctx.fillStyle = "#6a3030";
+    ctx.fillStyle = L.top;
     ctx.fillRect(x - 5, y - 6, 10, 2);
+    if (this.kind === "warden") { ctx.fillRect(x - 8, y - 5, 2, 4); ctx.fillRect(x + 6, y - 5, 2, 4); }
     ctx.fillStyle = "#1a0a0a";
     ctx.fillRect(x - 6, y + 5, 12, 1);
     // hazard stripes
-    ctx.fillStyle = "#ffaa1a";
+    ctx.fillStyle = L.stripe;
     for (let i = -6; i < 7; i += 4) ctx.fillRect(x + i, y + 3, 2, 1);
+    if (this.kind === "hunter") { ctx.fillRect(x - 5, y - 9, 1, 3); ctx.fillRect(x + 4, y - 9, 1, 3); }
     // eye tracks the facing angle
     const ex = x + Math.round(Math.cos(this.angle) * 3);
     const ey = y - 2 + Math.round(Math.sin(this.angle) * 1.5);

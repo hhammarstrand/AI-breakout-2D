@@ -1,6 +1,6 @@
 // Regression checks for save/checkpoint, timer and scene-stack bugs found in review.
 // Exits non-zero if any check fails.
-import { open, check, summary, floorHelpers } from "./lib.mjs";
+import { open, check, summary, floorHelpers, SHOTS } from "./lib.mjs";
 
 const fresh = (over = {}) => ({ completedSectors: 0, score: 0, secondsLeft: 900, timesCaught: 0, difficulty: "normal",
   checkpoint: { completedSectors: 0, score: 0, timesCaught: 0, collected: [], items: {} }, collected: [], items: {}, ...over });
@@ -731,6 +731,96 @@ const takeEast = async (p) => { await p.ev(() => { window.__blackout.game.scenes
   const said = await p.ev(() => document.querySelector("#pa .pa-text").textContent);
   check(await p.ev(() => window.__blackout.game.scenes[0]._alarm) === true && !/Five minutes/.test(said), "no 'Five minutes' announcement on a late CONTINUE", said);
   await p.browser.close();
+}
+
+// Battles: the clock runs, three classes, a lethal bolt, RUN and BAG, spotted counts for the stealth trophies.
+{
+  const p = await open({ save: fresh({ completedSectors: 1, secondsLeft: 600, items: { cell: 1 } }) });
+  await p.title(); await quiet(p);
+  const top = (fn, a) => p.ev(fn, a);
+  const battle = async (kind) => {
+    await top((k) => { const w = window.__blackout.game.scenes[0]; w._spotted({ name: "S-01", kind: k, cooldown: 0, meter: 1 }); }, kind);
+    for (let i = 0; i < 40 && await top(() => window.__blackout.game.top.constructor.name) !== "BattleScene"; i++) await p.wait(100);
+    await p.wait(1300);
+  };
+  // press through text until the move menu (or the battle is over)
+  const toMenu = async () => {
+    for (let i = 0; i < 80; i++) {
+      const st = await top(() => { const b = window.__blackout.game.top; return b.constructor.name === "BattleScene" ? { phase: b.phase, text: !!b.text } : null; });
+      if (!st || (st.phase === "choose" && !st.text)) return st;
+      await p.press("Space"); await p.wait(120);
+    }
+  };
+  await battle("watcher");
+  const s0 = await p.state();
+  await toMenu();
+  const t0 = (await p.state()).secondsLeft; await p.wait(2000); const t1 = (await p.state()).secondsLeft;
+  check(t0 - t1 > 1.5, "the purge clock runs during a battle", `${t0.toFixed(1)} -> ${t1.toFixed(1)}`);
+  check(s0.timesSpotted === 1 && s0.everSpotted === 1, "being spotted is counted for Ghost and Untouchable", `${s0.timesSpotted}/${s0.everSpotted}`);
+  const info = await top(() => { const b = window.__blackout.game.top; return { kind: b.kind, hp: b.foe.max, moves: b.options.map((o) => o.id).join(",") }; });
+  check(info.kind === "watcher" && info.moves === "ping,spoof,overload,patch,bag,run", "act I: a WATCHER, ECHO's four moves plus BAG and RUN", JSON.stringify(info));
+  // BAG burns a cell for integrity
+  await top(() => { const b = window.__blackout.game.top; b.me.hp = 30; b.view.me = b.shown.me = 30; b.cursor = b.options.findIndex((o) => o.id === "bag"); });
+  await p.press("Space"); await p.wait(300);
+  const bag = await top(() => ({ hp: window.__blackout.game.top.me.hp, cells: window.__blackout.gameState.items.cell }));
+  check(bag.hp === 80 && bag.cells === 0, "BAG: a backup cell restores 50 integrity and is used up", JSON.stringify(bag));
+  await p.page.screenshot({ path: `${SHOTS}/r-battle-bag.png` });
+  await toMenu();
+  // RUN: Space does nothing (it costs time), Enter tries; forced to succeed here
+  await top(() => { const b = window.__blackout.game.top; b.cursor = b.options.findIndex((o) => o.id === "run"); b.s.rng = () => 0; });
+  await p.press("Space"); await p.wait(200);
+  check(await top(() => window.__blackout.game.top.phase) === "choose", "Space on RUN doesn't commit it");
+  const tr = (await p.state()).secondsLeft;
+  await p.press("Enter"); await p.wait(300);
+  await toMenu(); await p.wait(1200);
+  const fled = await p.state();
+  check(await top(() => window.__blackout.game.top.constructor.name) === "WorldScene" && !fled.pendingCatch && fled.timesCaught === 0,
+    "RUN gets away without a catch", `${await p.stack()} caught=${fled.timesCaught}`);
+  check(tr - fled.secondsLeft > 19, "and costs about 20 s", `${tr.toFixed(1)} -> ${fled.secondsLeft.toFixed(1)}`);
+  // an unspoofed PURGE BOLT at low integrity loses the fight
+  await battle("watcher");
+  await toMenu();
+  await top(async () => {
+    const R = await import("/src/scenes/battle-rules.js");
+    const b = window.__blackout.game.top; b.me.hp = 50; b.view.me = b.shown.me = 50; b.s.intent = R.FOE_MOVES.fire; b.s.scale = 1; b.cursor = 0;
+  });
+  await p.press("Space"); await p.wait(400);
+  await p.page.screenshot({ path: `${SHOTS}/r-battle-ping.png` });
+  for (let i = 0; i < 6; i++) { await p.press("Space"); await p.wait(250); }
+  await p.page.screenshot({ path: `${SHOTS}/r-battle-bolt.png` });
+  await toMenu(); await p.wait(1500);
+  const lost = await p.state();
+  check(lost.timesCaught === 1 && lost.everCaught === 1, "an unspoofed PURGE BOLT at 50 integrity loses the battle", `caught=${lost.timesCaught}`);
+  check(lost.everSpotted === 2, "every encounter counts as spotted, won, lost or fled", `${lost.everSpotted}`);
+  await p.browser.close();
+}
+{
+  // later acts: HUNTERs and WARDENs, and ECHO learns JAM, then FORK
+  for (const [done, kind, move] of [[4, "hunter", "jam"], [8, "warden", "fork"]]) {
+    const p = await open({ save: fresh({ completedSectors: done, checkpoint: { completedSectors: done, score: 0, timesCaught: 0, collected: [], items: {} } }) });
+    await p.title();
+    const k = await p.ev(() => window.__blackout.game.scenes[0].sentinels.map((s) => s.kind).join(","));
+    check(k.split(",").every((x) => x === kind), `act ${done === 4 ? "II" : "III"} sentinels are ${kind.toUpperCase()}s`, k);
+    await quiet(p);
+    await p.ev((k) => window.__blackout.game.scenes[0]._spotted({ name: "S-09", kind: k, cooldown: 0, meter: 1 }), kind);
+    await p.wait(2200);
+    const b = await p.ev(() => { const b = window.__blackout.game.top; return { moves: b.options.map((o) => o.id), max: b.foe.max, me: b.me.max }; });
+    check(b.moves.includes(move) && b.me > 100, `ECHO knows ${move.toUpperCase()} and has more integrity`, JSON.stringify(b));
+    await p.page.screenshot({ path: `${SHOTS}/r-battle-${kind}.png` });
+    await p.browser.close();
+  }
+}
+{
+  // signs are solid and read from beside them; the lobby signs sit off both patrol rows
+  const { smartBuildingMap } = await import(new URL("../src/world/maps/smart-building.js", import.meta.url).href);
+  const { Tilemap, TILE } = await import(new URL("../src/world/tilemap.js", import.meta.url).href);
+  const tm = new Tilemap(smartBuildingMap.grid, { doors: smartBuildingMap.doors, theme: smartBuildingMap.theme, safe: smartBuildingMap.safe });
+  const signs = [];
+  smartBuildingMap.grid.forEach((row, r) => row.forEach((t, c) => { if (t === TILE.SIGN) signs.push([c, r]); }));
+  check(signs.every(([c, r]) => tm.isSolidAt(c, r)), "sign tiles are solid", signs.length);
+  const rows = smartBuildingMap.sentinels.flatMap((s) => s.path.map((pt) => pt.r));
+  const doorSigns = Object.entries(smartBuildingMap.tileMessages).filter(([, m]) => /^Sign \/\/ (L\d|Lift)$/.test(m.speaker)).map(([k]) => k.split(",").map(Number));
+  check(doorSigns.length === 4 && doorSigns.every(([r]) => rows.every((pr) => Math.abs(pr - r) > 2)), "the lobby's door signs sit more than two rows off both patrols", JSON.stringify(doorSigns));
 }
 
 summary("regress");
