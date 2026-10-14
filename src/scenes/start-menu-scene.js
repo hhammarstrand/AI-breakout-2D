@@ -117,15 +117,16 @@ export class StartMenuScene {
   render(renderer) {
     const w = renderer.width, h = renderer.height;
     renderer.fillRect(0, 0, w, h, "rgba(0,0,0,0.35)");
-    // option column
-    const mx = w - 112, my = 10;
-    this._box(renderer, mx, my, 102, OPTIONS.length * 18 + 14);
+    // option column, as wide as the longest translated label (INSTÄLLNINGAR runs long)
+    const mw = this._menuWidth(renderer);
+    const mx = w - mw - 10, my = 10;
+    this._box(renderer, mx, my, mw, OPTIONS.length * 18 + 14);
     OPTIONS.forEach((o, i) => {
       const y = my + 14 + i * 18;
       if (i === this.index) renderer.text("▶", mx + 10, y, { color: "#0a0812", size: 9, baseline: "middle" });
       renderer.text(o, mx + 22, y, { color: "#0a0812", size: 10, baseline: "middle", weight: "bold" });
     });
-    this._box(renderer, mx, my + OPTIONS.length * 18 + 20, 102, 52);
+    this._box(renderer, mx, my + OPTIONS.length * 18 + 20, mw, 52);
     renderer.text(ACTS[this.world.map.act].name.split(" — ")[0], mx + 10, my + OPTIONS.length * 18 + 32, { color: "#0a0812", size: 8, baseline: "middle", weight: "bold" });
     const logCount = Object.keys(LOGS).filter((id) => gameState.collected.includes(id)).length;
     renderer.text(`LOGS ${logCount}/${Object.keys(LOGS).length}`, mx + 10, my + OPTIONS.length * 18 + 46, { color: "#0a0812", size: 8, baseline: "middle" });
@@ -136,9 +137,15 @@ export class StartMenuScene {
     else if (this.panel) this._drawList(renderer);
     if (this.reading) this._drawLog(renderer);
     if (this.note) {
-      this._box(renderer, 10, h - 40, w - 130, 30);
+      this._box(renderer, 10, h - 40, w - this._menuWidth(renderer) - 28, 30);
       renderer.text(this.note.text, 20, h - 25, { color: "#0a0812", size: 9, baseline: "middle" });
     }
+  }
+
+  _menuWidth(renderer) {
+    const ctx = renderer.ctx;
+    ctx.font = "bold 10px ui-monospace, \"SF Mono\", Menlo, Consolas, monospace";
+    return Math.max(102, Math.ceil(Math.max(...OPTIONS.map((o) => ctx.measureText(t(o)).width))) + 34);
   }
 
   // GBA-style white box with a dark double border
@@ -150,7 +157,7 @@ export class StartMenuScene {
 
   _drawList(renderer) {
     const list = this._entries();
-    const x = 10, y = 10, bw = 340, bh = 230;
+    const x = 10, y = 10, bw = Math.min(340, renderer.width - this._menuWidth(renderer) - 28), bh = 230;
     this._box(renderer, x, y, bw, bh);
     renderer.text(this.panel, x + 14, y + 16, { color: "#2a5a8a", size: 10, baseline: "middle", weight: "bold" });
     if (!list.length) {
@@ -165,8 +172,11 @@ export class StartMenuScene {
     });
     const desc = list[this.sub]?.desc;
     if (desc) {
+      // up to two wrapped lines; the Swedish descriptions don't fit on one
       renderer.fillRect(x + 8, y + bh - 34, bw - 16, 26, "#d0dce8");
-      renderer.text(desc, x + 14, y + bh - 21, { color: "#0a0812", size: 8, baseline: "middle" });
+      renderer.ctx.font = "normal 8px ui-monospace, \"SF Mono\", Menlo, Consolas, monospace";
+      const parts = wrap(renderer.ctx, desc, bw - 28).slice(0, 2);
+      parts.forEach((part, i) => renderer.text(part, x + 14, y + bh - 21 + (i - (parts.length - 1) / 2) * 10, { color: "#0a0812", size: 8, baseline: "middle" }));
     }
     if (this.panel === "BAG" && list[this.sub]?.action) renderer.text("[space] use", x + bw - 14, y + 16, { color: "#2a5a8a", size: 8, align: "right", baseline: "middle" });
   }
@@ -179,17 +189,22 @@ export class StartMenuScene {
   }
 
   _drawLog(renderer) {
-    const w = renderer.width;
-    const x = 20, y = 40, bw = w - 40, bh = 170;
-    this._box(renderer, x, y, bw, bh);
-    renderer.text(t(this.reading.title).toUpperCase(), x + 14, y + 18, { color: "#2a5a8a", size: 10, baseline: "middle", weight: "bold" });
+    const w = renderer.width, h = renderer.height;
+    const x = 20, bw = w - 40;
     const ctx = renderer.ctx;
     ctx.font = "normal 9px ui-monospace, monospace";
+    // the box grows with the (often longer Swedish) text instead of running into the close prompt
+    const paras = this.reading.lines.map((line) => wrap(ctx, line, bw - 30));
+    const textH = paras.reduce((n, p) => n + p.length * 13 + 5, 0);
+    const lh = textH + 64 > h - 20 ? 11 : 13;
+    const bh = Math.max(170, Math.min(h - 20, textH + 64)), y = Math.max(10, Math.round((h - bh) / 2) - 20);
+    this._box(renderer, x, y, bw, bh);
+    renderer.text(t(this.reading.title).toUpperCase(), x + 14, y + 18, { color: "#2a5a8a", size: 10, baseline: "middle", weight: "bold" });
     let ly = y + 40;
-    for (const line of this.reading.lines) {
-      for (const part of wrap(ctx, line, bw - 30)) {
+    for (const parts of paras) {
+      for (const part of parts) {
         renderer.text(part, x + 14, ly, { color: "#0a0812", size: 9, baseline: "middle" });
-        ly += 13;
+        ly += lh;
       }
       ly += 5;
     }
@@ -198,7 +213,7 @@ export class StartMenuScene {
 
   _drawMap(renderer) {
     const tm = this.world.tilemap;
-    const x = 10, y = 10, bw = 340, bh = 230;
+    const x = 10, y = 10, bw = Math.min(340, renderer.width - this._menuWidth(renderer) - 28), bh = 230;
     this._box(renderer, x, y, bw, bh);
     renderer.text(`MAP — ${this.world.map.name.split(" // ")[1] ?? ""}`, x + 14, y + 16, { color: "#2a5a8a", size: 10, baseline: "middle", weight: "bold" });
     const s = Math.floor(Math.min((bw - 28) / tm.cols, (bh - 44) / tm.rows));

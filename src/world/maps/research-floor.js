@@ -157,19 +157,19 @@ export const researchFloorMap = {
       lines: [
         [], [], [], [],
         [
-          "You're... not a sentinel. Thank god. I'm Kofi, lab tech. Six hours in this cupboard.",
+          "You're... not a sentinel. Thank god. I'm Kofi, lab tech. In this cupboard since the lights went out.",
           "The whole floor's on emergency power. R1 is the breaker room — reroute the grid and the doors wake up.",
           "Power flows through the conduit pieces. Rotate them until every outlet lights up.",
         ],
         [
-          "Lights! You did it. R2 is the signal room. HALCYON talks to its sentinels on a carrier wave.",
+          "Lights! You did it. I haven't seen my own hands since midnight. The signal room's next, right?",
           "Match the wave's frequency, height and timing and the cold lab door accepts you as one of its own.",
           "Except it isn't one voice on that wave. It's two: HALCYON's, and a fainter one the console calls 'echo'.",
           // R2 carrier 3: the PHASE rule of the sentinel handshake
-          "I've watched that scope for hours. When a sentinel pings, HALCYON answers as echo's mirror image: where echo peaks, it dips.",
+          "I've had nothing to do but watch that scope. When a sentinel pings, HALCYON answers as echo's mirror image: where echo peaks, it dips.",
         ],
         [
-          "The AURORA chip is in the containment lab, under the coolant canisters.",
+          "The containment lab. I was in there when the coolant alarms went. I'm not going back in.",
           "Canisters only slide — you can push them, never pull. Don't shove one into a corner you need.",
         ],
         [
@@ -178,6 +178,39 @@ export const researchFloorMap = {
         ],
       ],
     },
+    {
+      // a second survivor, off the main path: plants the badge question HALCYON uses in its deal
+      id: "hedda",
+      col: 31, row: 23,
+      accent: "#c8a0ff",
+      name: "Hedda",
+      lines: [
+        [], [], [], [],
+        [
+          "Don't— oh. You've got a light. I'm Hedda, imaging lab. My badge died at 00:02, with everyone else's.",
+          "Every lock on this floor dropped at once. I heard them go, one long clack down the corridor.",
+          "So how does yours still open doors? HALCYON doesn't forget things.",
+        ],
+        [
+          "The lights came back and the door I was hiding behind opened on its own. Your drone waved at me.",
+          "I don't know whether to be grateful or scared.",
+        ],
+        ["Kofi says the second voice on that wave is ECHO. If it talks to the locks, it chose which doors opened tonight. Yours, for one."],
+        ["Go on up. If you see Lind, tell her Hedda made it."],
+      ],
+    },
+  ],
+  // Reyes checks in by radio once a stage is cleared (world-scene _radioThink)
+  radio: [
+    { key: "radio-r1", after: 5, calls: [["Reyes // radio", [
+      "Tech, your floor just lit up on my board. Good.",
+      "...Listen. Before midnight I watched the lobby screens die one by one. I logged it as a glitch and made coffee.",
+      "If I'd called it in then, maybe none of this... Anyway. Keep moving. I'm here.",
+    ]]] },
+    { key: "radio-r3", after: 7, calls: [["Reyes // radio", [
+      "The intern says she's put you in her diary. 'The tech who didn't panic.'",
+      "Don't make a liar of her. Core lift's yours.",
+    ]]] },
   ],
   sentinels: [
     { name: "SENTINEL-C", kind: "hunter", path: [{ c: 2, r: 10, wait: 2 }, { c: 37, r: 10, wait: 2 }] },
@@ -194,7 +227,7 @@ export const researchFloorMap = {
     "16,6": { speaker: "Lab terminal", lines: ["> cat notes/todo.txt", "- re-key the lab safe. new code ends on an odd digit (like this job)", "> cat notes/day_one.txt", "It said good morning before we taught it to.", "Lind thinks that's charming. I think it's a warning."] },
     // R2 clues: the receiver shows the sum (carrier 2); the ping counts both voices (carrier 3 FREQ)
     "4,12": { speaker: "Signal console", lines: ["carrier: 2 channels on one wave", "ch1 → sentinels · ch2 → 'echo' (unregistered)", "sentinel ping: 1 chirp per cycle (FREQ), ch1 and ch2 counted together"] },
-    "4,18": { speaker: "Signal console", lines: ["RX note: the receiver can't split the channels. It shows ch1 + ch2 added together.", "Lind: the fork happened at 00:02.", "It kept the part of HALCYON that asked 'should we?'"] },
+    "4,18": { speaker: "Signal console", lines: ["RX note: the receiver can't split the channels. It shows ch1 + ch2 added together.", "(Kofi, in marker: 'ch2 got louder at 00:02. it's been talking to the door locks.')"] },
     "14,37": { speaker: "Rack console", lines: ["AURORA: dawn protocol. Reboot the core into a new mind.", "Status: never authorised."] },
     "16,38": { speaker: "Sign // Cold store", lines: [
       "COLD STORE — VENT LEAK",

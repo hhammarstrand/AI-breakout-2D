@@ -1,5 +1,6 @@
 import { gameState } from "../state.js";
 import { ACTS } from "../story.js";
+import { t } from "../i18n/index.js";
 import { music } from "../audio/music.js";
 import { Menu } from "./menu.js";
 
@@ -44,12 +45,13 @@ export class GameOverScene {
     renderer.text(`HALCYON sealed ${ACTS[r.act].purge}. Nobody walked out.`, w / 2, 94, {
       color: "#ffaaaa", size: 9, align: "center", baseline: "middle",
     });
-    renderer.text(`STAGES CLEARED   ${this.stats.cleared}/${gameState.totalSectors}`, w / 2, 116, {
-      color: "#cffcff", size: 10, align: "center", baseline: "middle",
-    });
-    renderer.text(`FINAL SCORE      ${this.stats.score}`, w / 2, 130, {
-      color: "#cffcff", size: 10, align: "center", baseline: "middle",
-    });
+    // labels are padded after translation, so the values line up in either language
+    const rows = [["STAGES CLEARED", `${this.stats.cleared}/${gameState.totalSectors}`], ["FINAL SCORE", `${this.stats.score}`]];
+    const pad = Math.max(...rows.map(([l]) => t(l).length)) + 3;
+    const lines = rows.map(([l, v]) => t(l).padEnd(pad) + v);
+    renderer.ctx.font = "normal 10px ui-monospace, \"SF Mono\", Menlo, Consolas, monospace";
+    const lx = w / 2 - Math.max(...lines.map((s) => renderer.ctx.measureText(s).width)) / 2;
+    lines.forEach((s, i) => renderer.text(s, lx, 116 + i * 14, { color: "#cffcff", size: 10, baseline: "middle" }));
     // what the retry keeps, so a timeout never reads like losing the whole act
     const kept = r.kept.length
       ? `Kept: ${r.kept.join(", ")} stay cleared, with the logs, items and cells you found.`

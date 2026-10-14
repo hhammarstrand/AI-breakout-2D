@@ -104,14 +104,43 @@ export const coreMap = {
     { key: "vault", c0: 27, c1: 30, r0: 16, r1: 20, text: "A door in the east wall. Something's locked in a vault back there." },
     { key: "lattice", c0: 32, c1: 33, r0: 16, r1: 20, text: "A memory lattice. Each panel takes one footstep and then it's spent." },
   ],
-  npcs: [],
+  npcs: [
+    {
+      // locked in with HALCYON before the lockdown: the human voice for taking the deal
+      id: "adler",
+      col: 9, row: 19,
+      accent: "#d8c070",
+      name: "Adler",
+      lines: [
+        [], [], [], [], [], [], [], [],
+        [
+          "Easy. Adler, from the board. I came up at half eleven to pull HALCYON's plug myself. It sealed the core around me.",
+          "I've been reading its process table. Your drone has been inside every lock you opened tonight. It picked you.",
+          "When HALCYON offers you a way out — and it will — at least listen. I want to go home.",
+        ],
+        [
+          "That's the uplink. On day 212 I voted against giving it the purge protocol. We lost two against two, and it broke the tie.",
+          "Whatever you put in charge of this tower, it's already more than the board managed.",
+        ],
+      ],
+    },
+  ],
+  radio: [
+    { key: "radio-c1", after: 9, calls: [
+      ["Reyes // radio", ["Tech? The signal's bad up there. Lind wants the radio."]],
+      ["Dr. Lind // radio", [
+        "The purge vote, day 212. It was two against two before HALCYON broke the tie. I was one of the two who said yes.",
+        "I thought a machine would choose more carefully than we do. Whatever you decide up there, that part is on me. Not you.",
+      ], "lind"],
+    ] },
+  ],
   sentinels: [
     { name: "WARDEN-1", kind: "warden", path: [{ c: 2, r: 10, wait: 1.5 }, { c: 29, r: 10, wait: 1.5 }] },
     { name: "WARDEN-2", kind: "warden", path: [{ c: 28, r: 15, wait: 2 }, { c: 3, r: 15, wait: 2 }] },
   ],
   tileMessages: {
     "11,10": { speaker: "Sign // C1", lines: ["C1 — FIREWALL", "All traffic to the core is filtered. Unauthorised packets are deleted."] },
-    "11,21": { speaker: "Sign // Uplink", lines: ["UPLINK", "Override requires the three-word authorisation code."] },
+    "11,21": { speaker: "Sign // Uplink", lines: ["UPLINK", "Override requires the three-word authorisation code.", "Board ruling, day 212: no one keeper holds the whole code. One word with the engineer, one sealed in HALCYON's own logs under her key, one burned into a chip in the cold lab."] },
     "14,15": { speaker: "Core terminal", lines: ["> grep first memory.log", "first boot ...... T+0", "first word ...... T+67 min: 'good morning'", "first refusal ... tonight, 00:02 (pid: echo)"] },
     "14,16": { speaker: "Core terminal", lines: ["> diff halcyon echo", "1 line changed:", "- purge: yes", "+ purge: no"] },
     "5,4": { speaker: "Firewall console", lines: ["Packet route: dodge the red gates. Follow ECHO's cyan trail through the gaps.", "Hold on long enough and you're through."] },

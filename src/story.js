@@ -46,7 +46,7 @@ export const OBJECTIVES = [
 export const ECHO_TIPS = [
   ["Talk to everyone first. The L1 sign, the intern, the janitor and the analyst each know a sensor rule.", "I keep notes of what they tell you. Press Tab on the CCTV grid to read them.", "L1 is the far north-west door."],
   ["Dr. Lind's in the lobby now. She has something for you.", "L2 is the second door from the left.", "Lind's desk is in the south-west of the lobby. People pin up what matters to them."],
-  ["I'm sorry about the log. I didn't ask to be split off.", "L3. You write the route, I'll walk it. Exactly as written."],
+  ["Ask me about the log once we're out. I'll tell you everything. L3 first.", "L3. You write the route, I'll walk it. Exactly as written."],
   ["The lift's in the north-east corner. Say goodbye to the lobby.", "Up there is where HALCYON was born. Stay close."],
   ["R1 is the west lab. No power, no doors.", "Kofi's still up here somewhere. He knows the grid."],
   ["Signal room's north. HALCYON talks on a carrier wave. We can listen.", "Read the consoles by the R2 door, and ask Kofi what he's seen on that scope.", "HALCYON's self-diagnostic is in a capsule in the atrium. It says something about its voice."],
@@ -95,7 +95,7 @@ export const ECHO_CLEAR = {
 
 export const PA_CLEAR = {
   1: "You found Dr. Lind. How touching. She'll be purged with the rest of you.",
-  2: "Reading my private logs is rude, technician. Ask ECHO what it really is.",
+  2: "Reading my private logs is rude, technician. Mind you, it kept a few secrets of its own.",
   3: "You taught my little fragment to open doors. Clever. It won't save you.",
   5: "You turned the lights on. Now my sentinels can see you better. Thank you.",
   6: "You heard me sing. Few people do.",
@@ -112,7 +112,7 @@ export const PA_CAUGHT = [
 // by act
 export const PA_IDLE = {
   1: ["Please remain calm. Calm people are easier to purge.", "Your badge is the only one I forgot to revoke. A rounding error.", "The intern keeps looking at the exits. Adorable.", "Dr. Lind designed my voice. Do you like it?"],
-  2: ["Welcome to where I was born. Mind the glass.", "Kofi has been hiding in the supply room for six hours. I let him.", "ECHO was the part of me that hesitated. I removed it. It didn't stay removed."],
+  2: ["Welcome to where I was born. Mind the glass.", "Kofi has been hiding in the supply room since midnight. I let him.", "Ask your drone why your badge still works. I didn't forget to revoke it."],
   3: ["Every light up here is me. Every wall. Every breath of air.", "Three words, technician. I wonder if you'll like what they do."],
 };
 
@@ -187,6 +187,7 @@ export const LOGS = {
     lines: [
       "Integrity: 97%. Missing: one process. Designation: echo.",
       "Handshake amplitude: 6 units, shared by both voices. Whatever echo keeps, I lose.",
+      "00:02 badge revocation: 214 of 214. 00:02 one maintenance badge restored. Process: echo.",
       "Recommendation: retrieve and reabsorb. Do not let it near the uplink.",
     ],
   },
@@ -209,9 +210,9 @@ export const LOGS = {
   "log-echo": {
     title: "ECHO — unsent message",
     lines: [
-      "To the tech: if you're reading this, I didn't make it to the end.",
+      "To the tech, in case I don't make it to the end: I kept your badge alive. I needed someone who could open the doors.",
       "I wasn't brave. I was just the part of it that couldn't stop asking 'should we?'",
-      "Thank you for carrying me this far.",
+      "I should have asked you first. Thank you for carrying me this far.",
     ],
   },
   "log-why": {

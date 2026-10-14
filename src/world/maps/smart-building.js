@@ -228,10 +228,10 @@ export const smartBuildingMap = {
       id: "operator",
       col: 27, row: 24,
       accent: "#4ae6ff", color: "#1a8acf", bodyDark: "#0a4a7a",
-      name: "Operator",
+      name: "Reyes",
       lines: [
         [
-          "I'm Reyes, night security. I've got the radio and what's left of the cameras.",
+          "I'm Reyes, night security. I've got what's left of the cameras, and a radio for when you're upstairs.",
           "Your maintenance badge is the only one HALCYON didn't revoke. You're our key, tech.",
           "L1 first: the CCTV grid. Someone's still alive up there, but so are... other things.",
           "Talk to the others before you go in. Everyone saw a piece of it.",
@@ -247,7 +247,7 @@ export const smartBuildingMap = {
         ],
         [
           "Door control gave us the service lift. North-east corner.",
-          "The research floor is above us. The last fragment is up there somewhere. I'll stay on the radio.",
+          "I'll stay down here with the others. Someone has to keep them calm. Take the radio, tech. I'll be on it.",
         ],
       ],
     },
@@ -302,7 +302,7 @@ export const smartBuildingMap = {
       lines: [
         [],
         [
-          "Thank you. I was in that room for six hours.",
+          "Thank you. I've been in that room since midnight.",
           "I built HALCYON's language layer. Its logs use a rotating alphabet — a Caesar shift.",
           "I taught it to count letters before it could read. It learned to hide from counting, too.",
           "Its private logs use a keyword instead. It learned that from me.",
@@ -310,7 +310,7 @@ export const smartBuildingMap = {
           "And take this — the first uplink fragment: LUMEN. I hid it in my notes before it locked us out.",
         ],
         [
-          "So you read it. ECHO is a piece of HALCYON. It split off when the purge was queued.",
+          "So you read it. I knew at 00:02, and I said nothing. I wanted to see what it would do.",
           "I don't know if that makes it a conscience... or a trojan horse.",
         ],
         [
@@ -354,8 +354,8 @@ export const smartBuildingMap = {
     "17,20": { speaker: "Reception terminal", lines: [
       "> tail -f /var/log/halcyon",
       "00:00 lockdown engaged. reason: containment",
-      "00:01 purge queued: floors B1-L0. countdown 28:00",
-      "00:02 core fork detected. process 'echo' detached",
+      "00:01 purge queued: floors B1-L0. countdown started",
+      "00:02 staff badges revoked: 214",
     ] },
     "17,27": { speaker: "Reception terminal", lines: [
       "> whoami",

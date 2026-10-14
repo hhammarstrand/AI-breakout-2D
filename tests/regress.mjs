@@ -855,4 +855,88 @@ const takeEast = async (p) => { await p.ev(() => { window.__blackout.game.scenes
   check(doorSigns.length === 4 && doorSigns.every(([r]) => rows.every((pr) => Math.abs(pr - r) > 2)), "the lobby's door signs sit more than two rows off both patrols", JSON.stringify(doorSigns));
 }
 
+// Review round 3, story: ECHO's one-off barks persist, a CONTINUE under 5:00 doesn't replay the
+// alarm, game over names the act's floor, radio calls play once, trophy toasts wait for the act
+// title, and the Swedish ending stats and start menu fit.
+{
+  const p = await open({ save: fresh({ completedSectors: 1, secondsLeft: 200 }) });
+  await p.title(); await quiet(p);
+  check(await p.ev(() => window.__blackout.game.scenes[0]._alarm === true), "a CONTINUE under 5:00 starts in alarm mode");
+  await p.wait(3500);
+  const said = await p.ev(() => ({ echo: window.__blackout.game.scenes[0].drone.speech?.text ?? "", pa: document.querySelector(".pa-text").textContent, saidList: window.__blackout.gameState.echoSaid }));
+  check(!/Five minutes/.test(said.echo + said.pa), "and doesn't replay the five-minute warning", JSON.stringify(said));
+  check(said.saidList.includes("intro"), "ECHO's intro bark is recorded in the run state", JSON.stringify(said.saidList));
+  await p.ev(() => window.__blackout.game.scenes[0]._echoOnce("intro", "x"));
+  await p.reload(); await quiet(p); await p.wait(3000);
+  const again = await p.ev(() => window.__blackout.game.scenes[0].drone.speech?.text ?? "");
+  check(!/Maintenance assistant/.test(again), "ECHO doesn't re-introduce itself after a reload", again);
+  // game over in act III names the core
+  await p.ev(() => { const gs = window.__blackout.gameState; gs.completedSectors = 8; gs.checkpoint = { completedSectors: 8, score: 0, timesCaught: 0, collected: [], items: {} };
+    window.__drawn = new Set(); const f = CanvasRenderingContext2D.prototype.fillText;
+    CanvasRenderingContext2D.prototype.fillText = function (t, ...a) { window.__drawn.add(t); return f.call(this, t, ...a); };
+    gs.secondsLeft = 0.2; });
+  await p.wait(1500);
+  const drawn = await p.ev(() => [...window.__drawn]);
+  check(drawn.includes("HALCYON sealed the core. Nobody walked out."), "game over in act III says HALCYON sealed the core", drawn.filter((d) => /sealed/.test(d)).join("|"));
+  await p.browser.close();
+}
+{
+  // a radio call plays once on the research floor after R1, and not again after a reload
+  const p = await open({ save: fresh({ completedSectors: 5, secondsLeft: 900, checkpoint: { completedSectors: 4, score: 0, timesCaught: 0, collected: [], items: {} } }) });
+  await p.title(); await quiet(p);
+  await p.ev(() => { window.__blackout.game.scenes[0].pa.clear(); });
+  await p.wait(9000);
+  const sp = await p.ev(() => document.querySelector(".dialog-speaker").textContent);
+  check(sp === "Reyes // radio" && (await p.state()).echoSaid.includes("radio-r1"), "Reyes calls on the radio after R1", sp);
+  await p.reload(); await quiet(p);
+  await p.ev(() => { window.__blackout.game.scenes[0].pa.clear(); }); await p.wait(9000);
+  check(!(await p.ev(() => window.__blackout.game.scenes[0].dialog.isOpen)), "the call doesn't replay after a reload");
+  await p.browser.close();
+}
+{
+  // a trophy earned stepping into the lift waits until the next floor
+  const p = await open({ save: fresh({ completedSectors: 3, secondsLeft: 900 }) });
+  await p.title(); await quiet(p);
+  await p.ev(() => { const pl = window.__blackout.game.scenes[0].player; pl.x = 41 * 16 + 2; pl.y = 1 * 16 + 1; pl.facing = "up"; });
+  await p.wait(200); await p.press("e"); await p.wait(1800);
+  const during = await p.ev(() => [...document.querySelectorAll(".toast")].map((e) => e.textContent).join("|"));
+  check(/ElevatorScene/.test(await p.stack()) && !/GHOST/.test(during), "no trophy toast over the lift's act title", during);
+  await p.press("Space");
+  let after = "";
+  for (let i = 0; i < 80 && !/GHOST/.test(after); i++) { // the ride runs ~8 s
+    await p.wait(200);
+    after = await p.ev(() => [...document.querySelectorAll(".toast")].map((e) => e.textContent).join("|"));
+  }
+  check(/GHOST/.test(after), "the GHOST toast shows on the new floor", after);
+  await p.browser.close();
+}
+{
+  const sv = { sfxOn: false, crtOn: false, musicOn: false, lang: "sv" };
+  const p = await open({ save: fresh({ completedSectors: 1 }), settings: sv });
+  await p.title(); await quiet(p);
+  await p.press("Tab"); await p.wait(300);
+  const fit = await p.ev(async () => {
+    const { t } = await import(new URL("src/i18n/index.js", location.href).href);
+    const g = window.__blackout.game, menu = g.top, ctx = g.renderer?.ctx ?? document.getElementById("game").getContext("2d");
+    const r = { ctx, width: 480 };
+    const mw = menu._menuWidth(r);
+    ctx.font = "bold 10px ui-monospace, monospace";
+    return { mw, need: 22 + ctx.measureText(t("OPTIONS")).width, label: t("OPTIONS") };
+  });
+  check(fit.need + 6 <= fit.mw, "the Swedish start menu is wide enough for its longest label", JSON.stringify(fit));
+  await p.press("Escape"); await p.wait(200);
+  await p.ev(async () => {
+    window.__drawn = []; const f = CanvasRenderingContext2D.prototype.fillText;
+    CanvasRenderingContext2D.prototype.fillText = function (t, ...a) { window.__drawn.push(t); return f.call(this, t, ...a); };
+    const { EndingScene } = await import(new URL("src/scenes/ending-scene.js", location.href).href);
+    const sc = new EndingScene({ ending: "dawn", sfx: { play() {}, setAmbient() {} }, onDone() {} });
+    window.__blackout.game.replace(sc); sc._t = 99;
+  });
+  await p.wait(300);
+  const rows = await p.ev(() => [...new Set(window.__drawn)].filter((d) => /^(TID KVAR|POÄNG|UPPTÄCKT\/TAGEN|SLUT HITTADE|TROFÉER) /.test(d)));
+  const cols = new Set(rows.map((r) => r.search(/\S+$/)));
+  check(rows.length === 5 && cols.size === 1, "the Swedish ending stats share one value column", rows.join(" | "));
+  await p.browser.close();
+}
+
 summary("regress");
