@@ -1,5 +1,5 @@
 import { TILE } from "../tilemap.js";
-import { makeGrid } from "./builder.js";
+import { makeGrid, grow, stamp } from "./builder.js";
 
 const COLS = 40;
 const ROWS = 26;
@@ -76,8 +76,35 @@ function build() {
   // arrival lift
   set(24, 19, SG); set(24, 21, SG);
   paint(22, 18, 24, 22, M, HZ);
+  set(16, 38, SG);
   return grid;
 }
+
+// Cold store east of the server room: an optional sliding-canister bay (src/world/floor-puzzles.js).
+// Spilled coolant iced the floor, so a pushed canister slides until something stops it.
+const COLD_STORE = {
+  kind: "slide",
+  id: "wp-coldstore",
+  reward: "cell-coldstore",
+  origin: { col: 39, row: 15 },
+  rows: [
+    "###########",
+    "##.....####",
+    "DR.....####",
+    "##.$.$.####",
+    "##.$...#__#",
+    "##.....V_+#",
+    "##.....#__#",
+    "##o...o####",
+    "##..T.o####",
+    "###########",
+  ],
+  hints: [
+    "A canister only stops when it hits something — a vent won't stop it. Find what could hold one still right on a vent.",
+    "The tank stops a canister one tile short of it, in line with the lone west vent. Of the two east vents, the bottom one has to be filled first.",
+    "Shove the top-left canister east into its neighbour, then down onto the tank and west onto the vent. Send the other two east and down — the one in the top row goes first.",
+  ],
+};
 
 export const researchFloorMap = {
   id: "research",
@@ -85,7 +112,7 @@ export const researchFloorMap = {
   theme: "research",
   music: "research",
   name: "Halcyon Tower // Research Floor",
-  grid: build(),
+  grid: stamp(grow(build(), 50), COLD_STORE, M),
   spawn: { col: 20, row: 22 },
   doors: {
     1: { label: "R1", stage: 5 },
@@ -99,10 +126,14 @@ export const researchFloorMap = {
     { id: "log-fork", kind: "log", col: 12, row: 6 },
     { id: "log-diag", kind: "log", col: 16, row: 15 },
     { id: "cell-research", kind: "item", item: "cell", col: 8, row: 7 },
+    { id: "cell-coldstore", kind: "item", item: "cell", col: 48, row: 20 },
   ],
+  puzzles: [COLD_STORE],
   echoZones: [
     { key: "atrium", c0: 14, c1: 25, r0: 13, r1: 20, text: "Those tanks... HALCYON grew its first neural tissue here." },
     { key: "supply", c0: 1, c1: 8, r0: 20, r1: 24, text: "Someone's been sleeping in here." },
+    { key: "coldair", c0: 35, c1: 38, r0: 15, r1: 19, text: "Cold air from that east door. Something's leaking in there." },
+    { key: "coldstore", c0: 40, c1: 45, r0: 16, r1: 19, text: "The floor's iced over. Push a canister and it won't stop on its own." },
   ],
   npcs: [
     {
@@ -148,5 +179,10 @@ export const researchFloorMap = {
     "4,12": { speaker: "Signal console", lines: ["carrier: 2 channels active", "ch1 → sentinels", "ch2 → 'echo' (unregistered)"] },
     "4,18": { speaker: "Signal console", lines: ["Lind: the fork happened at 00:02.", "It kept the part of HALCYON that asked 'should we?'"] },
     "14,37": { speaker: "Rack console", lines: ["AURORA: dawn protocol. Reboot the core into a new mind.", "Status: never authorised."] },
+    "16,38": { speaker: "Sign // Cold store", lines: [
+      "COLD STORE — VENT LEAK",
+      "Spilled coolant has iced the floor. Pushed canisters slide until they hit something.",
+      "Cap all three vents and the inner store unseals. Step on the yellow pad, or hold E, to recall the canisters.",
+    ] },
   },
 };

@@ -1,5 +1,5 @@
 import { TILE } from "../tilemap.js";
-import { makeGrid } from "./builder.js";
+import { makeGrid, grow, stamp } from "./builder.js";
 
 const COLS = 32;
 const ROWS = 22;
@@ -38,8 +38,32 @@ function build() {
   // arrival
   paint(18, 13, 20, 18, M, HZ);
   set(20, 13, SG);
+  set(17, 30, SG);
   return grid;
 }
+
+// Memory lattice east of the hall: an optional one-stroke floor puzzle (src/world/floor-puzzles.js).
+// Each panel carries one footstep; the trace has to light all of them and end on the vault socket.
+const LATTICE = {
+  kind: "lattice",
+  id: "wp-lattice",
+  reward: "cell-lattice",
+  origin: { col: 31, row: 15 },
+  rows: [
+    "##########",
+    "##.....###",
+    "##..P..###",
+    "D_S....###",
+    "##.....###",
+    "##..P.EV+#",
+    "##########",
+  ],
+  hints: [
+    "A corner panel has only two neighbours, so the trace must pass through both of them. The same goes for any panel squeezed between a pillar and a wall.",
+    "Mark those forced links first: they fill in most of the trace on their own. The vault socket ends the trace, so it uses only one neighbour — the panel left of it, pinned by the pillar.",
+    "From the entry socket go down to the bottom row, then zig-zag up to the top-left corner. Run the top row east and zig-zag down the east side into the vault socket.",
+  ],
+};
 
 export const coreMap = {
   id: "core",
@@ -47,7 +71,7 @@ export const coreMap = {
   theme: "core",
   music: "core",
   name: "Halcyon Tower // Core",
-  grid: build(),
+  grid: stamp(grow(build(), 41), LATTICE, M),
   spawn: { col: 15, row: 19 },
   doors: {
     1: { label: "C1", stage: 9 },
@@ -59,9 +83,13 @@ export const coreMap = {
     { id: "log-echo", kind: "log", col: 26, row: 4 },
     { id: "log-why", kind: "log", col: 28, row: 18 },
     { id: "cell-core", kind: "item", item: "cell", col: 1, row: 10 },
+    { id: "cell-lattice", kind: "item", item: "cell", col: 39, row: 20 },
   ],
+  puzzles: [LATTICE],
   echoZones: [
     { key: "pillars", c0: 3, c1: 28, r0: 12, r1: 17, text: "Every pillar is a piece of its mind. Mine too." },
+    { key: "vault", c0: 27, c1: 30, r0: 16, r1: 20, text: "A door in the east wall. Something's locked in a vault back there." },
+    { key: "lattice", c0: 32, c1: 33, r0: 16, r1: 20, text: "A memory lattice. Each panel takes one footstep and then it's spent." },
   ],
   npcs: [],
   sentinels: [
@@ -76,5 +104,10 @@ export const coreMap = {
     "5,4": { speaker: "Firewall console", lines: ["Packet route: dodge the red gates. Follow ECHO's cyan trail through the gaps.", "Hold on long enough and you're through."] },
     "5,12": { speaker: "Firewall console", lines: ["ECHO's signature is whitelisted. Yours is not. Ride in its wake."] },
     "20,13": { speaker: "Core lift", lines: ["CORE LEVEL", "No staff beyond this point."] },
+    "17,30": { speaker: "Sign // Lattice", lines: [
+      "MEMORY LATTICE — VAULT 0",
+      "Write one unbroken trace: start on the entry socket, light every panel exactly once, end on the vault socket.",
+      "A spent panel won't carry a second step. Hold E to clear the trace and start again.",
+    ] },
   },
 };

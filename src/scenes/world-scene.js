@@ -5,6 +5,7 @@ import { Npc } from "../entities/npc.js";
 import { Drone } from "../entities/drone.js";
 import { Sentinel } from "../entities/sentinel.js";
 import { Pickup } from "../entities/pickup.js";
+import { makeFloorPuzzles } from "../world/floor-puzzles.js";
 import { StartMenuScene } from "./start-menu-scene.js";
 import { CodeLockScene } from "./codelock-scene.js";
 import { BattleScene } from "./battle-scene.js";
@@ -67,6 +68,7 @@ const DOOR_COLORS = { done: "10,255,122", active: "74,230,255", sealed: "255,40,
 const INTERACT_RADIUS = TILE_SIZE * 0.9;
 const STEP_INTERVAL = 0.3;
 const SIGHT = 6; // tiles: how close a capsule or safe must be before it shows on the MAP
+const OFFSTAGE = { centerX: -1e5, centerY: -1e5 }; // what sentinels "see" while the player is in a puzzle room
 
 export class WorldScene {
   constructor({ map, mapId, resumeAt, dialog, hud, sfx, fx, toast, postfx, pa, onToggleSfx, onToggleCrt, onToggleMusic, onToggleLang, onQuit, onEnding, onLift, viewportWidth, viewportHeight }) {
@@ -96,6 +98,7 @@ export class WorldScene {
     this.pickups = (map.pickups ?? []).filter((p) => !hasCollected(p.id)).map((p) => new Pickup(p));
     this._bumpCooldown = 0;
     this.player = new Player(map.spawn.col, map.spawn.row);
+    this.puzzles = makeFloorPuzzles(map, this);
     this.npcs = [];
     this._spawnNpcs();
     // CONTINUE puts the player back where they saved, unless someone is standing there now
@@ -206,6 +209,11 @@ export class WorldScene {
 
     this.player.update(dt, input, (c, r) => this._blocked(c, r));
     this._look(this.player);
+    // floor puzzles hear about every step: where it landed, then where the next one heads
+    const pl = this.player;
+    if (pl.arrived) for (const fp of this.puzzles) fp.onArrive(pl.arrived.col, pl.arrived.row);
+    if (pl.started) for (const fp of this.puzzles) fp.onStart(pl.started.from, pl.started);
+    for (const fp of this.puzzles) fp.update(dt, input);
     this._bumpCooldown -= dt;
     if (this.player.bumped && this._bumpCooldown <= 0) { this.sfx.play("bump"); this._bumpCooldown = 0.25; }
     for (const p of this.pickups) p.update(dt);
@@ -320,8 +328,17 @@ export class WorldScene {
   _blocked(c, r) {
     return this.tilemap.isSolidAt(c, r) ||
       this.npcs.some((n) => n.col === c && n.row === r) ||
-      this.pickups.some((p) => p.col === c && p.row === r);
+      this.pickups.some((p) => p.col === c && p.row === r) ||
+      this.puzzles.some((fp) => fp.blocks(c, r));
   }
+
+  // the floor puzzle room the player is standing in, if any
+  _puzzleHere() {
+    const { col, row } = this.player;
+    return this.puzzles.find((fp) => fp.contains(col, row)) ?? null;
+  }
+
+  puzzleBlocked(c, r) { return this.puzzles.some((fp) => fp.blockedOnMap(c, r)); }
 
   _pickupAt(reach) {
     const c = Math.floor(reach.x / TILE_SIZE), r = Math.floor(reach.y / TILE_SIZE);
@@ -443,9 +460,10 @@ export class WorldScene {
     const ctx = renderer.ctx;
     const cam = this.camera;
     this.tilemap.draw(renderer, cam, this._time);
+    for (const fp of this.puzzles) fp.drawFloor(renderer, cam, this._time);
     this.particles.draw(ctx, cam, "under");
 
-    const sprites = [...this.pickups.map((p) => ({ y: p.row * TILE_SIZE, draw: (r, c) => p.draw(r, c) })), ...this.npcs, this.player, ...this.sentinels].sort((a, b) => a.y - b.y);
+    const sprites = [...this.pickups.map((p) => ({ y: p.row * TILE_SIZE, draw: (r, c) => p.draw(r, c) })), ...this.puzzles.flatMap((fp) => fp.sprites()), ...this.npcs, this.player, ...this.sentinels].sort((a, b) => a.y - b.y);
     for (const s of sprites) s.draw(renderer, cam);
     this.drone.draw(renderer, cam);
 
@@ -456,6 +474,7 @@ export class WorldScene {
       lights: [
         ...this.mapLights.lights,
         ...this.tempLights,
+        ...this.puzzles.flatMap((fp) => fp.lights()),
         { x: this.player.centerX, y: this.player.centerY, radius: this.flashOn ? 30 : 22, intensity: this.flashOn ? 0.6 : 0.4 },
         ...this.sentinels.map((s) => ({ x: s.x, y: s.y, radius: 20, intensity: 0.5, color: "255,40,40" })),
         { x: this.drone.lightX, y: this.drone.lightY, radius: 46, intensity: 0.45, color: "74,230,255" },
@@ -468,6 +487,7 @@ export class WorldScene {
         ...this.sentinels.map((s) => s.cone),
       ],
     });
+    for (const fp of this.puzzles) fp.drawGlow(renderer, cam, this._time);
     for (const s of this.sentinels) s.drawIndicator(renderer, cam);
     this._drawDanger(renderer);
 
@@ -578,9 +598,11 @@ export class WorldScene {
 
   _updateSentinels(dt) {
     let danger = 0;
+    // puzzle rooms are shielded: patrols never see in, so a puzzle can't be failed by a sentinel
+    const seen = this._puzzleHere() ? OFFSTAGE : this.player;
     for (const s of this.sentinels) {
       const before = s.meter;
-      const result = s.update(dt, this.player, this.tilemap, this.flashOn, difficulty().detect);
+      const result = s.update(dt, seen, this.tilemap, this.flashOn, difficulty().detect);
       if (before === 0 && s.meter > 0) this.sfx.play("detect");
       danger = Math.max(danger, s.meter);
       if (result === "caught") { this._spotted(s); break; }
@@ -707,12 +729,21 @@ export class WorldScene {
   }
 
   // H in the world: ECHO's tips for the current stage, revealed one at a time like puzzle hints.
+  // Inside an unsolved floor puzzle it gives that puzzle's hints instead, each list keeping its own
+  // progress and cooldown.
   get hints() {
     // not over a conversation, an encounter or a closing iris
     if (this.dialog.isOpen || this._encounter || this._iris?.dir === "close") return null;
-    const stage = gameState.completedSectors;
-    if (this._hintStage !== stage) { this._hintStage = stage; this._hintsShown = 0; }
-    return ECHO_TIPS[stage] ?? [];
+    const fp = this._puzzleHere();
+    const puzzle = fp && !fp.solved ? fp : null;
+    const topic = puzzle ? puzzle.id : `stage-${gameState.completedSectors}`;
+    if (this._hintTopic !== topic) {
+      this._hintMemo ??= {};
+      if (this._hintTopic) this._hintMemo[this._hintTopic] = [this._hintsShown, this._hintAt];
+      [this._hintsShown, this._hintAt] = this._hintMemo[topic] ?? [0, this._hintAt];
+      this._hintTopic = topic;
+    }
+    return puzzle ? puzzle.hints : ECHO_TIPS[gameState.completedSectors] ?? [];
   }
 
   // World changes after a sector is cleared: new people, fewer sentinels, a fragment.

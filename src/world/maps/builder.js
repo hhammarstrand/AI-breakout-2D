@@ -19,3 +19,20 @@ export function makeGrid(cols, rows, floor) {
   };
   return { grid, set, fill, border, paint };
 }
+
+// Widen a finished grid with solid wall so a wing can be stamped beside it.
+export function grow(grid, cols) {
+  for (const row of grid) while (row.length < cols) row.push(TILE.WALL);
+  return grid;
+}
+
+// Stamp a floor puzzle's template (see puzzle-rules.js) onto the grid: walls, solid props, and
+// `floor` everywhere the puzzle draws its own tiles.
+export function stamp(grid, cfg, floor) {
+  cfg.rows.forEach((line, y) => [...line].forEach((ch, x) => {
+    const r = cfg.origin.row + y, c = cfg.origin.col + x;
+    if (ch === " " || !grid[r] || c >= grid[r].length) return;
+    grid[r][c] = ch === "#" ? TILE.WALL : ch === "T" ? TILE.TANK : ch === "P" ? TILE.CORE : floor;
+  }));
+  return grid;
+}
