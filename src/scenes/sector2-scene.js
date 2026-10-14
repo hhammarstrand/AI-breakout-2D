@@ -91,7 +91,7 @@ export class Sector2Scene {
   // the big wheel always shows the selected key wheel
   get rotation() { return this.keys[this.sel]; }
 
-  onEnter() { document.body.classList.add("no-objective", "in-puzzle"); music.play("sector"); music.setIntensity(0); }
+  onEnter() { document.body.classList.add("no-objective", "in-puzzle"); music.play("cipher"); music.setIntensity(0); }
   onExit() { document.body.classList.remove("no-objective", "in-puzzle"); }
 
   _loadLog() {

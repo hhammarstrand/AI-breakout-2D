@@ -130,6 +130,7 @@ export class BattleScene {
     if (this.foe.hp <= 0) {
       this.phase = "won";
       this.sfx.play("success");
+      music.play("victory");
       this._say(...lines, `${this.sentinel.name} crashed!`, "It will be rebooting for a while. Slip past while you can.");
       return;
     }
@@ -156,6 +157,7 @@ export class BattleScene {
     }
     if (this.me.hp <= 0) {
       this.phase = "lost";
+      music.play("defeat");
       this._say(...lines, "ECHO's cover is blown!", "The sentinel tags you…");
       return;
     }

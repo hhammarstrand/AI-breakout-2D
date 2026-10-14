@@ -134,7 +134,7 @@ export class Sector3Scene {
     this._load();
   }
 
-  onEnter() { document.body.classList.add("no-objective", "in-puzzle"); music.play("sector"); music.setIntensity(0); }
+  onEnter() { document.body.classList.add("no-objective", "in-puzzle"); music.play("timing"); music.setIntensity(0); }
   onExit() { document.body.classList.remove("no-objective", "in-puzzle"); }
 
   get part() { return this.level; }

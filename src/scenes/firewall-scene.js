@@ -31,7 +31,7 @@ export class FirewallScene {
     this._reset();
   }
 
-  onEnter() { document.body.classList.add("no-objective", "in-puzzle"); music.play("finale"); music.setIntensity(0.6); }
+  onEnter() { document.body.classList.add("no-objective", "in-puzzle"); music.play("firewall"); music.setIntensity(0.6); }
   onExit() { document.body.classList.remove("no-objective", "in-puzzle"); }
 
   _reset() {
