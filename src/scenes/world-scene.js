@@ -29,6 +29,7 @@ import {
   difficulty,
   startAct,
   saveGame,
+  setPartSource,
   hear,
 } from "../state.js";
 import { Sector1Scene } from "./sector1-scene.js";
@@ -40,7 +41,7 @@ import { SignalScene } from "./signal-scene.js";
 import { CoolantScene } from "./coolant-scene.js";
 import { FirewallScene } from "./firewall-scene.js";
 import {
-  stageInfo, ECHO_TIPS, ECHO_CLEAR, PA_CLEAR, PA_CAUGHT, PA_IDLE, FRAGMENTS, LOGS, CELL_BONUS,
+  stageInfo, ECHO_TIPS, ECHO_CLEAR, PA_CLEAR, PA_CAUGHT, PA_IDLE, FRAGMENTS, LOGS, CELL_BONUS, CAUGHT_TIME_PENALTY, CAUGHT_SCORE_PENALTY,
 } from "../story.js";
 
 // stage id -> puzzle scene
@@ -61,8 +62,6 @@ const ALARM_SECONDS = 5 * 60;
 const IRIS_TIME = 0.45;
 const ECHO_GAP = 5;
 
-const CAUGHT_TIME_PENALTY = 60;
-const CAUGHT_SCORE_PENALTY = 5;
 
 const DOOR_COLORS = { done: "10,255,122", active: "74,230,255", sealed: "255,40,40" };
 
@@ -185,6 +184,8 @@ export class WorldScene {
         const done = this._iris.onDone;
         this._iris = null;
         if (done) done();
+        // the lift replaces this scene: the rest of this frame's input belongs to the next one
+        if (this.game.top !== this) return;
       }
       if (this._iris?.dir === "close") return;
     }
@@ -277,6 +278,7 @@ export class WorldScene {
       onResult: ({ success, aborted, report, ending }) => {
         if (this.game.top !== scene) return; // already handled (e.g. submit and abort in one frame)
         this.game.pop();
+        setPartSource(null);
         this.fx.glitch();
         this._iris = { dir: "open", t: 0 };
         if (success) track.cleared(sectorNum);
@@ -317,6 +319,7 @@ export class WorldScene {
     });
     const part = gameState.parts?.[sectorNum];
     if (part && scene.resume) scene.resume(part);
+    setPartSource(() => { if (scene.part > (gameState.parts[sectorNum] ?? 0)) gameState.parts[sectorNum] = scene.part; });
     this.game.push(scene);
   }
 
@@ -631,6 +634,9 @@ export class WorldScene {
     this.sfx.play("detect");
     this.sfx.play("alarm");
     this._encounter = { t: 0.7, sentinel };
+    // a reload from here until the battle is won counts as getting caught
+    gameState.pendingCatch = true;
+    saveGame();
   }
 
   _startBattle(sentinel) {
@@ -639,6 +645,8 @@ export class WorldScene {
       onResult: (won) => {
         track.battle(won);
         if (won) {
+          gameState.pendingCatch = false;
+          saveGame();
           award("hacker");
           sentinel.cooldown = 30;
           sentinel.meter = 0;
@@ -656,6 +664,9 @@ export class WorldScene {
 
   _caught(sentinel) {
     gameState.timesCaught++;
+    gameState.everCaught++;
+    gameState.pendingCatch = false;
+    gameState.pos = null; // back to the spawn point, even if the page reloads before the teleport
     this.pa.say(PA_CAUGHT[Math.min(gameState.timesCaught - 1, PA_CAUGHT.length - 1)]);
     penalize(CAUGHT_TIME_PENALTY, "caught");
     this.hud.addScore(-CAUGHT_SCORE_PENALTY);

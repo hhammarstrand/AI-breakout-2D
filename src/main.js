@@ -197,7 +197,7 @@ const startWorld = ({ fresh = false, arrived = false, retry = false } = {}) => {
 function showEnding(ending) {
   award(ending);
   if (gameState.checkpoint && gameState.timesCaught === gameState.checkpoint.timesCaught) award("ghost");
-  if (gameState.timesCaught === 0) award("untouchable");
+  if (gameState.everCaught === 0) award("untouchable"); // a retried act still counts its catches
   if (gameState.secondsLeft >= 600) award("speedrun");
   if (gameState.difficulty === "hard") award("veteran");
   recordEnding(ending);

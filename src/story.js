@@ -234,6 +234,8 @@ export const ITEMS = {
 };
 
 export const CELL_BONUS = 90;
+export const CAUGHT_TIME_PENALTY = 60;
+export const CAUGHT_SCORE_PENALTY = 5;
 
 // Trophies persist across runs (stored with the settings, not the save).
 export const ACHIEVEMENTS = {

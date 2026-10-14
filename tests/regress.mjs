@@ -548,4 +548,46 @@ const takeEast = async (p) => { await p.ev(() => { window.__blackout.game.scenes
   await p.browser.close();
 }
 
+// Review round 3: solved parts saved at once, catches survive retries and reloads, cells aren't clipped.
+{
+  const p = await open({ save: fresh({ completedSectors: 1 }) });
+  await p.title(); await quiet(p);
+  await p.ev(() => window.__blackout.game.scenes[0]._launchSector(2, "L2")); await p.wait(1200);
+  await p.ev(() => { window.__blackout.game.top.resume(2); });
+  await p.wait(5600); // the HUD autosave
+  check((await p.disk()).parts?.[2] === 2, "a solved log is on disk while the puzzle is still open", JSON.stringify((await p.disk()).parts));
+  await p.reload(); await quiet(p);
+  await p.ev(() => window.__blackout.game.scenes[0]._launchSector(2, "L2")); await p.wait(1200);
+  check(await p.ev(() => window.__blackout.game.top.part) === 2, "after a reload mid-puzzle L2 reopens on the log reached");
+  await p.browser.close();
+}
+{
+  const p = await open({ save: fresh({ completedSectors: 1, secondsLeft: 600 }) });
+  await p.title(); await quiet(p);
+  await p.ev(() => { const w = window.__blackout.game.scenes[0]; w.player.teleport(20, 20); });
+  await p.wait(300);
+  await p.ev(() => { const w = window.__blackout.game.scenes[0]; w._spotted({ name: "S-01", cooldown: 0, meter: 1 }); });
+  await p.wait(200);
+  check((await p.disk()).pendingCatch === true, "being spotted is on disk before the battle starts");
+  const t0 = (await p.state()).secondsLeft;
+  await p.reload();
+  const s = await p.state();
+  const pos = await p.ev(() => { const w = window.__blackout.game.scenes[0]; return [w.player.col, w.player.row, w.map.spawn.col, w.map.spawn.row]; });
+  check(s.timesCaught === 1 && t0 - s.secondsLeft > 50, "reloading during an encounter still costs the catch", `caught=${s.timesCaught} ${Math.round(t0)} -> ${Math.round(s.secondsLeft)}`);
+  check(pos[0] === pos[2] && pos[1] === pos[3], "and sends the player back to the spawn point", pos.join(","));
+  await quiet(p);
+  await p.ev(() => { window.__blackout.gameState.secondsLeft = 0.2; }); await p.wait(1500);
+  await p.press("Enter"); await p.wait(1200); // RETRY
+  const r = await p.state();
+  check(r.timesCaught === 0 && r.everCaught === 1, "a retry rolls back the act's catches but not the run's", `act=${r.timesCaught} run=${r.everCaught}`);
+  await p.browser.close();
+}
+{
+  const p = await open({ save: fresh({ completedSectors: 7, secondsLeft: 1500,
+    checkpoint: { completedSectors: 7, score: 0, timesCaught: 0, collected: [], items: {} } }) });
+  await p.title();
+  check((await p.state()).secondsLeft > 1480, "six used cells on the clock survive a reload", `t=${Math.round((await p.state()).secondsLeft)}`);
+  await p.browser.close();
+}
+
 summary("regress");

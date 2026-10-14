@@ -1,4 +1,4 @@
-import { STAGES, ACTS, FRAGMENTS as FRAGMENT_DEFS, CELL_BONUS } from "./story.js";
+import { STAGES, ACTS, FRAGMENTS as FRAGMENT_DEFS, CELL_BONUS, CAUGHT_TIME_PENALTY, CAUGHT_SCORE_PENALTY } from "./story.js";
 
 const TOTAL_SECTORS = STAGES.length;
 
@@ -13,6 +13,8 @@ export const gameState = {
   score: 0,
   secondsLeft: ACTS[1].seconds,
   timesCaught: 0,
+  everCaught: 0, // whole run, never rolled back by a checkpoint
+  pendingCatch: false, // spotted, battle not won yet
   checkpoint: null,
   collected: [],
   items: {},
@@ -57,6 +59,9 @@ export const DIFFICULTY = {
   normal: { label: "NORMAL", time: 1, detect: 1, penalty: 1 },
   hard: { label: "HARD", time: 0.75, detect: 1.4, penalty: 1.5 },
 };
+
+// two pickups and a safe per floor, plus the three floor-puzzle rooms; cells carry across acts
+const MAX_CELLS = 12;
 
 export function difficulty() { return DIFFICULTY[gameState.difficulty] ?? DIFFICULTY.normal; }
 
@@ -104,6 +109,8 @@ export function restoreCheckpoint() {
   gameState.secondsLeft = actSeconds();
   gameState.pos = null;
   gameState.parts = {};
+  gameState.pendingCatch = false;
+  partSource = null;
   saveGame();
   return true;
 }
@@ -114,6 +121,8 @@ export function resetGame() {
   gameState.completedSectors = 0;
   gameState.score = 0;
   gameState.timesCaught = 0;
+  gameState.everCaught = 0;
+  gameState.pendingCatch = false;
   gameState.checkpoint = null;
   gameState.difficulty = "normal";
   gameState.collected = [];
@@ -136,6 +145,7 @@ export function loadGame() {
   gameState.completedSectors = clampInt(save.completedSectors, 0, TOTAL_SECTORS);
   gameState.score = Number(save.score) || 0;
   gameState.timesCaught = Number(save.timesCaught) || 0;
+  gameState.everCaught = Math.max(Number(save.everCaught) || 0, gameState.timesCaught);
   gameState.checkpoint = save.checkpoint ?? null;
   gameState.difficulty = DIFFICULTY[save.difficulty] ? save.difficulty : "normal";
   gameState.collected = Array.isArray(save.collected) ? save.collected : [];
@@ -144,21 +154,37 @@ export function loadGame() {
   gameState.pos = save.pos && typeof save.pos === "object" ? save.pos : null;
   gameState.parts = save.parts && typeof save.parts === "object" ? save.parts : {};
   gameState.heard = Array.isArray(save.heard) ? save.heard : [];
-  // backup cells can push the clock past the act's full time, never past all three of them
+  // backup cells can push the clock past the act's full time, never past every cell in the game
   const secs = Number(save.secondsLeft);
-  gameState.secondsLeft = Number.isFinite(secs) ? Math.max(0, Math.min(actSeconds() + 3 * CELL_BONUS, secs)) : actSeconds();
+  gameState.secondsLeft = Number.isFinite(secs) ? Math.max(0, Math.min(actSeconds() + MAX_CELLS * CELL_BONUS, secs)) : actSeconds();
+  // reloading during an encounter or a battle doesn't dodge the catch
+  gameState.pendingCatch = false;
+  if (save.pendingCatch && gameState.secondsLeft > 0) {
+    gameState.timesCaught++;
+    gameState.everCaught++;
+    gameState.score -= CAUGHT_SCORE_PENALTY;
+    gameState.secondsLeft = Math.max(1, gameState.secondsLeft - Math.round(CAUGHT_TIME_PENALTY * difficulty().penalty));
+    gameState.pos = null;
+  }
   // an older save taken mid-lift still holds the previous act's clock and checkpoint
   if (gameState.checkpoint && actOf(gameState.checkpoint.completedSectors) !== currentAct()) startAct();
   else if (gameState.secondsLeft <= 0) restoreCheckpoint();
   return true;
 }
 
+// the open puzzle reports its solved parts at every save, so a reload mid-puzzle keeps them
+let partSource = null;
+export function setPartSource(fn) { partSource = fn; }
+
 export function saveGame() {
+  partSource?.();
   writeJson(SAVE_KEY, {
     completedSectors: gameState.completedSectors,
     score: gameState.score,
     secondsLeft: gameState.secondsLeft,
     timesCaught: gameState.timesCaught,
+    everCaught: gameState.everCaught,
+    pendingCatch: gameState.pendingCatch,
     checkpoint: gameState.checkpoint,
     difficulty: gameState.difficulty,
     collected: gameState.collected,
