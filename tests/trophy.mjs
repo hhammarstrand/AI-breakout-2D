@@ -30,7 +30,9 @@ await ev(() => { const gs = window.__blackout.gameState; gs.completedSectors = 9
 await wait(1100);
 await solveUplink({ ev, press, wait });
 console.log("trophies", await ev(() => JSON.stringify(window.__blackout.gameState.achievements)));
-await wait(16000); await page.screenshot({ path: `${SHOTS}/t-ending.png` });
+// the epilogue's length depends on the run (time card, run-state lines): wait for it to finish
+for (let i = 0; i < 80 && !(await ev(() => window.__blackout.game.top._finished)); i++) await wait(500);
+await wait(1500); await page.screenshot({ path: `${SHOTS}/t-ending.png` });
 const got = await ev(() => window.__blackout.gameState.achievements);
 if (!["dawn", "ghost", "speedrun", "veteran"].every((id) => got.includes(id))) { console.log("FAIL ending trophies", got); process.exitCode = 1; }
 await press("ArrowUp"); await press("Enter"); await wait(2500); // RETURN TO TITLE

@@ -11,6 +11,7 @@ import { CodeLockScene } from "./codelock-scene.js";
 import { BattleScene } from "./battle-scene.js";
 import { award, checkCollections } from "../ui/trophies.js";
 import { track } from "../telemetry.js";
+import { t } from "../i18n/index.js";
 
 const SAFE_IDS = ["safe-lobby", "safe-research", "safe-core"];
 import { Lighting, collectLights } from "../engine/lighting.js";
@@ -129,11 +130,13 @@ export class WorldScene {
       }
     }
     this._sparkTimer = 1;
-    this._echoSaid = new Set();
+    // barks already said this run: persisted, so ECHO doesn't re-introduce itself after a reload or a lift
+    this._echoSaid = new Set(gameState.echoSaid);
     this._echoCooldown = 2;
     this._idle = 0;
     this._iris = { dir: "open", t: 0 };
-    this._alarm = false;
+    // a CONTINUE under 5:00 starts in alarm mode without replaying the five-minute warning
+    this._alarm = gameState.secondsLeft <= ALARM_SECONDS;
     this.seen = new Set(); // pickups and the safe the player has come close to, for the MAP
   }
 
@@ -238,6 +241,7 @@ export class WorldScene {
     }
     this._echoThink(dt);
     this._paThink(dt);
+    this._radioThink();
     this.camera.follow(this.player.centerX, this.player.centerY);
 
     if (input.wasPressed("interact")) this._tryInteract();
@@ -258,6 +262,7 @@ export class WorldScene {
 
   _takeLift(stage, info) {
     track.cleared(stage);
+    this.toast.hold?.(); // trophy toasts wait until the next floor, not over the lift's act title
     if (gameState.checkpoint && gameState.timesCaught === gameState.checkpoint.timesCaught) award("ghost");
     completeSector(stage);
     startAct(); // the next act's clock and checkpoint are saved before the ride even starts
@@ -302,7 +307,7 @@ export class WorldScene {
           if (next) {
             setTimeout(() => this.toast.show(`🔓 ${next.label} UNLOCKED — ${next.name}`, "info"), 700);
           }
-          this.dialog.show(this.map.act === 1 ? "Operator" : "Reyes // radio", [
+          this.dialog.show(this.map.act === 1 ? "Reyes" : "Reyes // radio", [
             ...(report ?? [`[${label}] cleared.`]),
           ], () => { if (PA_CLEAR[sectorNum]) this.pa.say(PA_CLEAR[sectorNum]); },
           this.npcProfile("operator") ?? { accent: "#4ae6ff", lookId: "operator" });
@@ -718,7 +723,29 @@ export class WorldScene {
 
   _echoOnce(key, text) {
     if (this._echoSaid.has(key)) return;
-    if (this._echo(text)) this._echoSaid.add(key);
+    if (this._echo(text)) this._markSaid(key);
+  }
+
+  _markSaid(key) {
+    this._echoSaid.add(key);
+    if (!gameState.echoSaid.includes(key)) gameState.echoSaid.push(key);
+  }
+
+  // Radio calls (map.radio): one-off character beats once a stage is cleared, when the player has
+  // stopped walking and nothing else is talking. They never gate anything.
+  _radioThink() {
+    if (this._time < 8 || this._idle < 1.5 || this.dialog.isOpen || this.pa.current || this.drone.speaking) return;
+    const call = (this.map.radio ?? []).find((c) => gameState.completedSectors >= c.after && !this._echoSaid.has(c.key));
+    if (!call) return;
+    this._markSaid(call.key);
+    saveGame();
+    this.sfx.play("drone");
+    const play = (i) => {
+      const [speaker, lines, lookId] = call.calls[i];
+      this.dialog.show(speaker, lines, i + 1 < call.calls.length ? () => play(i + 1) : null,
+        { accent: "#4ae6ff", lookId: lookId ?? "operator" });
+    };
+    play(0);
   }
 
   _echoThink(dt) {
@@ -889,7 +916,7 @@ export class WorldScene {
     const cy = ((target.y - this.camera.y) | 0) + bob;
     const ctx = renderer.ctx;
     ctx.font = "bold 7px ui-monospace, monospace";
-    const labelW = Math.ceil(ctx.measureText(verb).width);
+    const labelW = Math.ceil(ctx.measureText(t(verb)).width); // Swedish verbs run longer
     const bw = 14 + labelW + 6;
     const bx = cx - (bw >> 1);
     const by = cy - 7;

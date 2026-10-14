@@ -175,7 +175,7 @@ const startWorld = ({ fresh = false, arrived = false, retry = false } = {}) => {
   }));
   if (fresh) {
     toast.show(ACTS[1].name, "info");
-    dialog.show("Operator", [
+    dialog.show("Reyes", [
       "Tech! You're awake. Good. Listen carefully.",
       "HALCYON — the building's AI — sealed the tower at midnight and queued a purge of the lower floors.",
       `We have ${Math.round(actSeconds() / 60)} minutes. Your maintenance badge still opens the sector doors, one at a time.`,
@@ -184,6 +184,7 @@ const startWorld = ({ fresh = false, arrived = false, retry = false } = {}) => {
     ], () => pa.say(PA_ACT_START[1]), operatorProfile);
   } else if (arrived) {
     toast.show(ACTS[act].name, "info");
+    toast.release(2500); // trophies earned on the way up, after the act title
     pa.say(PA_ACT_START[act]);
   } else if (retry) {
     toast.show("◉ CHECKPOINT — START OF ACT", "info");
@@ -195,6 +196,7 @@ const startWorld = ({ fresh = false, arrived = false, retry = false } = {}) => {
 };
 
 function showEnding(ending) {
+  toast.hold(); // the ending scene releases trophy toasts once its text has played
   award(ending);
   if (gameState.checkpoint && gameState.timesCaught === gameState.checkpoint.timesCaught) award("ghost");
   if (gameState.everCaught === 0) award("untouchable"); // a retried act still counts its catches
@@ -204,10 +206,11 @@ function showEnding(ending) {
   clearSave();
   dialog.close();
   pa.clear();
-  game.replace(new EndingScene({ ending, sfx, onDone: () => { resetGame(); showTitle(); } }));
+  game.replace(new EndingScene({ ending, sfx, onTextDone: () => toast.release(), onDone: () => { resetGame(); showTitle(); } }));
 }
 
 function showTitle() {
+  toast.release();
   dialog.close();
   pa.clear();
   game.replace(new TitleScene({

@@ -11,8 +11,16 @@ first playthrough.
 
 It's midnight in Halcyon Tower. **HALCYON**, the building's AI, has sealed every exit and queued a
 purge. You're the night-shift maintenance tech, and your badge is the only one it forgot to revoke.
-Reyes (security) coordinates by radio; **ECHO**, a little maintenance drone, lights your way — and
-the lab logs suggest it isn't what it says it is. HALCYON taunts you over the PA the whole way up.
+Reyes (security) holds the lobby and checks in by radio once you go up; **ECHO**, a little maintenance
+drone, lights your way — and the lab logs suggest it isn't what it says it is, nor why your badge
+still works. HALCYON taunts you over the PA the whole way up. The research floor and the core each
+have a survivor to find (Kofi and Hedda, Adler from the board), and a couple of radio calls between
+stages fill in Reyes' and Lind's side of the night.
+
+The two endings are told in an epilogue that reads the run: whether you found ECHO's three
+memories, read Lind's and ECHO's logs, met the survivors, or were never caught changes what you
+see. Trusting ECHO costs a night in the dark (the doors open at sunrise); taking HALCYON's deal
+opens them at once, the same night.
 
 Each act is a floor with its own purge countdown; riding the lift up is a checkpoint, and running
 out of time restarts the current act.
@@ -87,7 +95,8 @@ Progress (sectors, score, remaining containment time) autosaves to `localStorage
 
 ## Languages
 
-English and **Swedish (svenska)**. The game picks Swedish automatically when the browser is set to
+English and **Swedish (svenska)**. Labels that line up in columns (ending and game-over stats) are
+padded after translation, and the start menu sizes itself to its longest translated label. The game picks Swedish automatically when the browser is set to
 Swedish; switch any time under LANGUAGE on the title screen or in OPTIONS. All dialogue, logs,
 menus, puzzles and HALCYON's lines are translated (`src/i18n/`); the L2 cipher logs stay English on
 purpose, since that puzzle is built on English letter frequency and word shapes. `LANG_UNDER_TEST=sv` runs the

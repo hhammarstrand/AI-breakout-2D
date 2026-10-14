@@ -8,7 +8,7 @@ import { t } from "../i18n/index.js";
 const SHOTS = [
   { dur: 5, caption: "HALCYON TOWER — 23:58" },
   { dur: 5, caption: "00:00 — LOCKDOWN PROTOCOL 0" },
-  { dur: 5, caption: "MAINTENANCE OFFICE, B1" },
+  { dur: 5, caption: "LOBBY — MAINTENANCE DESK" },
   { dur: 5.5, caption: "" },
   { dur: 4, caption: "" },
 ];

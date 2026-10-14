@@ -22,6 +22,7 @@ export const gameState = {
   pos: null,
   parts: {},
   heard: [], // NPCs and signs the player has read, so puzzles can show what they were told
+  echoSaid: [], // one-off ECHO barks and radio calls already played this run
   difficulty: "normal",
   endingsSeen: readJson(SETTINGS_KEY)?.endingsSeen ?? [],
   achievements: readJson(SETTINGS_KEY)?.achievements ?? [],
@@ -131,6 +132,7 @@ export function resetGame() {
   gameState.pos = null;
   gameState.parts = {};
   gameState.heard = [];
+  gameState.echoSaid = [];
   clearSave();
 }
 
@@ -154,6 +156,7 @@ export function loadGame() {
   gameState.pos = save.pos && typeof save.pos === "object" ? save.pos : null;
   gameState.parts = save.parts && typeof save.parts === "object" ? save.parts : {};
   gameState.heard = Array.isArray(save.heard) ? save.heard : [];
+  gameState.echoSaid = Array.isArray(save.echoSaid) ? save.echoSaid : [];
   // backup cells can push the clock past the act's full time, never past every cell in the game
   const secs = Number(save.secondsLeft);
   gameState.secondsLeft = Number.isFinite(secs) ? Math.max(0, Math.min(actSeconds() + MAX_CELLS * CELL_BONUS, secs)) : actSeconds();
@@ -193,6 +196,7 @@ export function saveGame() {
     pos: gameState.pos,
     parts: gameState.parts,
     heard: gameState.heard,
+    echoSaid: gameState.echoSaid,
   });
 }
 

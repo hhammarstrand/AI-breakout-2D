@@ -1,4 +1,6 @@
-import { gameState } from "../state.js";
+import { gameState, currentAct } from "../state.js";
+import { ACTS } from "../story.js";
+import { t } from "../i18n/index.js";
 import { music } from "../audio/music.js";
 import { Menu } from "./menu.js";
 
@@ -36,15 +38,17 @@ export class GameOverScene {
     renderer.text("PURGE COMPLETE", w / 2 + shake, h / 2 - 40, {
       color: "#ff5a5a", size: 24, align: "center", baseline: "middle", weight: "bold",
     });
-    renderer.text("HALCYON sealed the lower floors. Nobody walked out.", w / 2, h / 2 - 12, {
+    // the state is back at this act's checkpoint, so currentAct() is the floor that was purged
+    renderer.text(`HALCYON sealed ${ACTS[currentAct()].purge}. Nobody walked out.`, w / 2, h / 2 - 12, {
       color: "#ffaaaa", size: 9, align: "center", baseline: "middle",
     });
-    renderer.text(`STAGES CLEARED   ${this.stats.cleared}/${gameState.totalSectors}`, w / 2, h / 2 + 14, {
-      color: "#cffcff", size: 10, align: "center", baseline: "middle",
-    });
-    renderer.text(`FINAL SCORE      ${this.stats.score}`, w / 2, h / 2 + 28, {
-      color: "#cffcff", size: 10, align: "center", baseline: "middle",
-    });
+    // labels are padded after translation, so the values line up in either language
+    const rows = [["STAGES CLEARED", `${this.stats.cleared}/${gameState.totalSectors}`], ["FINAL SCORE", `${this.stats.score}`]];
+    const pad = Math.max(...rows.map(([l]) => t(l).length)) + 3;
+    const lines = rows.map(([l, v]) => t(l).padEnd(pad) + v);
+    renderer.ctx.font = "normal 10px ui-monospace, \"SF Mono\", Menlo, Consolas, monospace";
+    const x = w / 2 - Math.max(...lines.map((s) => renderer.ctx.measureText(s).width)) / 2;
+    lines.forEach((s, i) => renderer.text(s, x, h / 2 + 14 + i * 14, { color: "#cffcff", size: 10, baseline: "middle" }));
     if (this._t > 1.2) this.menu.draw(renderer, w / 2, h / 2 + 62, this._t);
   }
 }

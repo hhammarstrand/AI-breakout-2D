@@ -183,7 +183,7 @@ export class Sector2Scene {
         aborted: false,
         report: [
           "[L2] All three logs decrypted.",
-          "...Tech. ECHO is part of HALCYON. A piece of the core that broke away.",
+          "...Tech. That last line. I'm not going to pretend I didn't read it.",
           "Second fragment is ORION. That's two of three.",
           "L3 is open. HALCYON says only an agent can walk the door-control maze. That means ECHO.",
         ],

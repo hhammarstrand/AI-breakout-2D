@@ -300,6 +300,19 @@ export const LOOKS = {
     style: "hoodie", top: "#3a9a7a", topShade: "#24644e", accent: "#e8e8e8",
     pants: "#2a3040", pantsShade: "#1c2030",
   },
+  // research-floor survivor and the board member in the core (fix/story)
+  hedda: {
+    ...base("light"),
+    hair: "#c8642a", hairShade: "#8a4018", hairStyle: "long", glasses: "#2a2a3a",
+    style: "coat", top: "#6a4a9a", topShade: "#46306a", coat: "#e8eef0", coatShade: "#b0bcc4", accent: "#c8a0ff", sleeve: "#e8eef0",
+    pants: "#2a2a3a", pantsShade: "#1c1c28",
+  },
+  adler: {
+    ...base("tan"),
+    hair: "#8a8a8a", hairShade: "#5a5a5a", hairStyle: "short",
+    style: "uniform", top: "#2a2a34", topShade: "#18181e", accent: "#d8c070", belt: "#141414",
+    pants: "#24242c", pantsShade: "#16161c",
+  },
   lind: {
     ...base("deep"),
     hair: "#d0d0d8", hairShade: "#9a9aa4", hairStyle: "bun", glasses: "#c8a040",

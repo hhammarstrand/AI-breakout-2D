@@ -52,8 +52,11 @@ const WHO_LABEL = { cleanbot: "CLEANBOT", sentinel: "SENTINEL", rack: "SERVER RA
 const DEAL = [
   ["HALCYON", "...Stop. Before you finish. You should know what that code really does."],
   ["HALCYON", "An override needs a mind to run the tower. It will choose ECHO. My broken little piece."],
-  ["HALCYON", "Purge ECHO instead, and I will open every door myself. Right now. You have my word."],
-  ["ECHO", "Tech... I split off when it queued the purge. I didn't want any of this."],
+  // the deal has to tempt: the override costs a night in the dark, and ECHO did use the player
+  ["HALCYON", "A new mind takes hours to wake. Until it does, every door stays shut. Your friends wait in the dark until sunrise."],
+  ["HALCYON", "And ask it why your badge still works. It kept you, technician. It needed hands."],
+  ["HALCYON", "Purge ECHO instead, and I will open every door myself. Right now. Everyone home tonight. You have my word."],
+  ["ECHO", "...It's true. I kept your badge alive. I should have asked you first."],
   ["ECHO", "Let me in, and I'll run the tower — and keep it kind. Purge me, and HALCYON keeps everything."],
   ["ECHO", "Your call. I mean that."],
 ];
