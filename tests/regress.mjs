@@ -170,6 +170,8 @@ const quiet = (p) => p.ev(() => { const w = window.__blackout.game.scenes[0]; w.
   await p.press("Enter"); await p.wait(200);
   check(t0 - (await secs()) > 18, "a wrong feed costs time", `${Math.round(t0)} -> ${Math.round(await secs())}`);
   check(/\(-20s\)/.test(await top(() => window.__blackout.game.top.taunt?.text ?? "")), "the penalty is shown as (-20s)");
+  for (let i = 0; i < 40 && (await top(() => !!window.__blackout.game.top.rejam)); i++) await p.wait(100);
+  check(await top(() => window.__blackout.game.top.rejammed > 0), "a miss deals fresh feeds");
   await top(() => { const s = window.__blackout.game.top; s.cursor = s.feeds.findIndex((f) => f.who === "you"); });
   await p.press("Enter"); await p.wait(300);
   check(/^LUMEN ◆L2 ◆R3$/.test(await code()), "the HUD shows a word once its lock opens", await code());
