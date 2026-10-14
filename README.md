@@ -138,9 +138,26 @@ campaign test in Swedish.
   Rules live in `src/world/puzzle-rules.js` (shared with the solver); the live rooms in
   `src/world/floor-puzzles.js`.
 - **Hack battles** — when a sentinel spots you, a "!" pops over your head and a turn-based
-  battle starts. ECHO has PING, SPOOF, OVERLOAD and PATCH; the sentinel telegraphs its next move,
-  so SPOOF its PURGE BOLT and PATCH when low. Win and it crashes for 30 s; lose and you're tagged
-  (−60 s, back to the floor's start).
+  battle starts. The purge clock keeps running through the fight (it's shown in the corner), so
+  every encounter costs real time. The sentinel telegraphs its next move (NEXT:); a LOCK-ON
+  becomes a PURGE BOLT the turn after, and an unspoofed bolt can finish ECHO on its own.
+  - *Classes* — one per floor, each with its own sprite, stats, moves and a weakness that hits for
+    half again (the battle says EXPLOIT FOUND the first time, then shows WEAK: on the status box).
+    **WATCHER** (lobby, amber dome): TRACE, SCAN, LOCK-ON; weak to OVERLOAD. **HUNTER** (research,
+    violet with antennae, faster patrols): LEECH steals integrity; weak to JAM. **WARDEN** (core,
+    plated steel, slow): CRUSH, and a FIREWALL that halves your hits while it's telegraphed; weak
+    to FORK.
+  - *ECHO grows* — PING, SPOOF, OVERLOAD, PATCH in the lobby; JAM (breaks a charging LOCK-ON) on the
+    research floor; FORK (two hits through a FIREWALL) in the core, plus +10 integrity per floor.
+  - *BAG* burns a backup cell for +50 integrity (that cell then can't buy time). *RUN* breaks away
+    by chance (60/45/30 % by class) and costs 20 s; it needs `Enter`, since it costs time.
+  - Win and it crashes for 30 s; flee and it reels for 6 s; lose and you're tagged (−60 s, back to
+    the floor's start). Balance is checked by `node tests/battle-sim.mjs` (10,000 seeded fights per
+    class): pressing PING every turn wins 33 % / 27 % / 18 % (WATCHER/HUNTER/WARDEN); reading NEXT
+    (SPOOF or JAM the bolt, PATCH below 45, use the weakness) wins 100 % in about 4–5 turns.
+  - Juice: HP bars drain, hits freeze the frame for a beat, damage numbers, screen shake, one effect
+    per move (ping rings, overload arcs, spoof double, jam static, the charged bolt beam) and a
+    crash / tagged / got-away beat at the end.
 - **Start menu** — BAG (use cells, see code chips), LOGS (re-read what you found), MAP (the floor
   with you, people, sentinels, capsules and the safe), OPTIONS and SAVE.
 - **Touch controls** — on phones and tablets a D-pad with A / B / START / SELECT appears.
@@ -159,8 +176,9 @@ campaign test in Swedish.
   Toggle **CRT FX** in the title or pause menu; without WebGL it falls back to the plain canvas.
 - **Sentinels** — patrol bots sweep the corridor and lobby with red, ray-cast vision cones. A
   detection meter fills while they can see you (faster up close, much faster with your flashlight
-  on). Get caught and you lose 60 seconds and are sent back to the spawn. Kill your light with
-  `F` to sneak.
+  on). A full meter starts a hack battle; lose it and you lose 60 seconds and are sent back to the
+  spawn. Kill your light with `F` to sneak. Signs are solid and read from beside them; the lobby's
+  door signs sit two rows clear of both patrol lanes.
 
 - **Dynamic lighting** — the building is dark. Your flashlight is ray-cast against the walls and
   casts real shadows; lamps, terminals, server racks and doors glow in their own colours, some
@@ -175,7 +193,9 @@ campaign test in Swedish.
 ## Trophies
 
 Ten achievements persist across runs (Reader, Archivist, Safecracker, Script Kiddie, Ghost,
-Untouchable, New Dawn, Standby, Overclocked, Veteran). See them under TROPHIES in the start menu;
+Untouchable, New Dawn, Standby, Overclocked, Veteran). Ghost (clear an act) and Untouchable (the
+whole game) mean no sentinel ever spotted you: every encounter counts, won, lost or fled. The
+ending shows SPOTTED/CAUGHT for the run. See them under TROPHIES in the start menu;
 the title screen shows your count.
 
 ## Playtest reports

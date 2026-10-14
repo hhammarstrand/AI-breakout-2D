@@ -106,8 +106,8 @@ export const coreMap = {
   ],
   npcs: [],
   sentinels: [
-    { name: "WARDEN-1", path: [{ c: 2, r: 10, wait: 1.5 }, { c: 29, r: 10, wait: 1.5 }] },
-    { name: "WARDEN-2", path: [{ c: 28, r: 15, wait: 2 }, { c: 3, r: 15, wait: 2 }] },
+    { name: "WARDEN-1", kind: "warden", path: [{ c: 2, r: 10, wait: 1.5 }, { c: 29, r: 10, wait: 1.5 }] },
+    { name: "WARDEN-2", kind: "warden", path: [{ c: 28, r: 15, wait: 2 }, { c: 3, r: 15, wait: 2 }] },
   ],
   tileMessages: {
     "11,10": { speaker: "Sign // C1", lines: ["C1 — FIREWALL", "All traffic to the core is filtered. Unauthorised packets are deleted."] },

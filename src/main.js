@@ -25,7 +25,7 @@ import { newRun, track } from "./telemetry.js";
 import { ACTS, PA_ACT_START } from "./story.js";
 import {
   gameState, hasSave, loadGame, resetGame, saveGame, clearSave, setSfx, setCrt, setMusic, recordEnding,
-  currentAct, startAct, restoreCheckpoint, actSeconds, setLanguage, setPenaltyListener,
+  currentAct, startAct, restoreCheckpoint, actSeconds, setLanguage, setPenaltyListener, actUnspotted,
 } from "./state.js";
 
 const canvas = document.getElementById("game");
@@ -196,8 +196,8 @@ const startWorld = ({ fresh = false, arrived = false, retry = false } = {}) => {
 
 function showEnding(ending) {
   award(ending);
-  if (gameState.checkpoint && gameState.timesCaught === gameState.checkpoint.timesCaught) award("ghost");
-  if (gameState.everCaught === 0) award("untouchable"); // a retried act still counts its catches
+  if (actUnspotted()) award("ghost");
+  if (gameState.everSpotted === 0) award("untouchable"); // never spotted, even in a retried act
   if (gameState.secondsLeft >= 600) award("speedrun");
   if (gameState.difficulty === "hard") award("veteran");
   recordEnding(ending);

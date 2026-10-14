@@ -23,6 +23,13 @@ Map sanity check (no browser): every capsule, safe, NPC and door must be reachab
 node --experimental-default-type=module tests/maps.mjs
 ```
 
+Battle balance (no browser): 10,000 seeded fights per sentinel class, PING spam vs reading the
+telegraph; exits 1 if spam wins over 40 % or good play under 95 %:
+
+```bash
+node tests/battle-sim.mjs [fights]
+```
+
 Env vars: `BASE` (default `http://localhost:8123/`), `SHOTS` (screenshot dir, default `shots`),
 `PW` (path to the playwright package if it isn't resolvable). The game exposes internals on
 `window.__blackout` only when loaded with `?debug`.

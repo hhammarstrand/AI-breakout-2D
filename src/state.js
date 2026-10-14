@@ -15,6 +15,8 @@ export const gameState = {
   timesCaught: 0,
   everCaught: 0, // whole run, never rolled back by a checkpoint
   pendingCatch: false, // spotted, battle not won yet
+  timesSpotted: 0, // sentinel encounters; a retry rolls it back with the act (Ghost)
+  everSpotted: 0, // encounters over the whole run (Untouchable, the ending stats)
   checkpoint: null,
   collected: [],
   items: {},
@@ -92,10 +94,17 @@ export function startAct() {
     completedSectors: gameState.completedSectors,
     score: gameState.score,
     timesCaught: gameState.timesCaught,
+    timesSpotted: gameState.timesSpotted,
     collected: [...gameState.collected],
     items: { ...gameState.items },
   };
   saveGame();
+}
+
+// Ghost: no sentinel spotted the player since this act's checkpoint
+export function actUnspotted() {
+  const cp = gameState.checkpoint;
+  return !!cp && gameState.timesSpotted === (Number(cp.timesSpotted ?? cp.timesCaught) || 0);
 }
 
 export function restoreCheckpoint() {
@@ -104,6 +113,7 @@ export function restoreCheckpoint() {
   gameState.completedSectors = cp.completedSectors;
   gameState.score = cp.score;
   gameState.timesCaught = cp.timesCaught;
+  gameState.timesSpotted = Number(cp.timesSpotted ?? cp.timesCaught) || 0;
   if (Array.isArray(cp.collected)) gameState.collected = [...cp.collected];
   if (cp.items && typeof cp.items === "object") gameState.items = { ...cp.items };
   gameState.secondsLeft = actSeconds();
@@ -122,6 +132,8 @@ export function resetGame() {
   gameState.score = 0;
   gameState.timesCaught = 0;
   gameState.everCaught = 0;
+  gameState.timesSpotted = 0;
+  gameState.everSpotted = 0;
   gameState.pendingCatch = false;
   gameState.checkpoint = null;
   gameState.difficulty = "normal";
@@ -146,6 +158,9 @@ export function loadGame() {
   gameState.score = Number(save.score) || 0;
   gameState.timesCaught = Number(save.timesCaught) || 0;
   gameState.everCaught = Math.max(Number(save.everCaught) || 0, gameState.timesCaught);
+  // every catch began with being spotted, so older saves still count those
+  gameState.timesSpotted = Math.max(Number(save.timesSpotted) || 0, gameState.timesCaught);
+  gameState.everSpotted = Math.max(Number(save.everSpotted) || 0, gameState.everCaught, gameState.timesSpotted);
   gameState.checkpoint = save.checkpoint ?? null;
   gameState.difficulty = DIFFICULTY[save.difficulty] ? save.difficulty : "normal";
   gameState.collected = Array.isArray(save.collected) ? save.collected : [];
@@ -184,6 +199,8 @@ export function saveGame() {
     secondsLeft: gameState.secondsLeft,
     timesCaught: gameState.timesCaught,
     everCaught: gameState.everCaught,
+    timesSpotted: gameState.timesSpotted,
+    everSpotted: gameState.everSpotted,
     pendingCatch: gameState.pendingCatch,
     checkpoint: gameState.checkpoint,
     difficulty: gameState.difficulty,

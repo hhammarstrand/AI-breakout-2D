@@ -35,7 +35,7 @@ export const track = {
   caught() { tel().caught = (tel().caught ?? 0) + 1; },
   hint() { stage().hints++; },
   cleared(id) { stage(id).cleared = true; saveGame(); },
-  battle(won) { tel().battles[won ? "won" : "lost"]++; },
+  battle(result) { const b = tel().battles; b[result] = (b[result] ?? 0) + 1; }, // won / lost / fled
   gameOver() { tel().deaths++; },
   cellUsed() { tel().cellsUsed++; },
 };
@@ -58,7 +58,8 @@ export function buildReport({ ending, rating }) {
     ending,
     rating,
     totalMinutes: +(t.playSeconds / 60).toFixed(1),
-    timesSpotted: gameState.timesCaught,
+    timesSpotted: gameState.everSpotted,
+    timesCaught: gameState.everCaught,
     score: gameState.score,
     logsFound: gameState.collected.filter((id) => id.startsWith("log-")).length,
     safesOpened: gameState.collected.filter((id) => id.startsWith("safe-")).length,
