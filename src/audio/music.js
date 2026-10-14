@@ -332,9 +332,8 @@ export class Music {
     this.current = null;
     s.master.gain.cancelScheduledValues(s.ctx.currentTime);
     s.master.gain.setTargetAtTime(0, s.ctx.currentTime, FADE / 4);
-    clearInterval(s.timer);
-    // scheduled notes die out under the fade; then cut the session's long-lived nodes loose
-    setTimeout(() => { for (const n of s.nodes) n.disconnect(); }, FADE * 1000 + 600);
+    // keep playing under the fade, then stop and cut the session's long-lived nodes loose
+    setTimeout(() => { clearInterval(s.timer); for (const n of s.nodes) n.disconnect(); }, FADE * 1000 + 600);
   }
 
   _start(name) {
@@ -413,7 +412,8 @@ export class Music {
     const barDur = s.stepDur * STEPS_PER_BAR;
 
     if (inBar === 0 && tr.pad) for (const n of chord.slice(0, 3)) this._pad(s, mtof(n), t, barDur * 1.05, tr.pad / 3);
-    if (tr.bass && tr.bass[inBar] === "x") this._bass(s, s.base, mtof(chord[0] - 24), t, s.stepDur * 2.5, 0.22);
+    const low = chord[0] - (chord[0] < 52 ? 12 : 24); // keep the bass above ~40 Hz
+    if (tr.bass && tr.bass[inBar] === "x") this._bass(s, s.base, mtof(low), t, s.stepDur * 2.5, 0.22);
     for (const ev of bar.lead) if (ev.step === inBar) this._lead(s, mtof(ev.midi), t, ev.len * s.stepDur);
     if (tr.arp && step % tr.arp.every === 0) {
       const idx = tr.arp.pattern[(step / tr.arp.every) % tr.arp.pattern.length];
