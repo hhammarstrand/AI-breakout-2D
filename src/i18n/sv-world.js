@@ -215,7 +215,7 @@ export const SV_WORLD = {
   "Standby": "Viloläge", "STANDBY": "VILOLÄGE",
   "Take HALCYON's deal.": "Ta HALCYONs erbjudande.",
   "Overclocked": "Överklockad", "OVERCLOCKED": "ÖVERKLOCKAD",
-  "Reach the ending with 10:00 or more on the clock.": "Nå slutet med 10:00 eller mer kvar på klockan.",
+  "Reach the ending with half of Act III's clock or more left.": "Nå slutet med minst halva akt III:s klocka kvar.",
   "Veteran": "Veteran", "VETERAN": "VETERAN",
   "Finish the game on HARD.": "Klara spelet på SVÅR.",
   // floor puzzles: signs, ECHO and hints (maps)

@@ -1,5 +1,6 @@
 import { gameState, penalize, scaledPenalty } from "../state.js";
 import { music } from "../audio/music.js";
+import { PauseScene, drawClockPaused } from "./pause-scene.js";
 
 // C1 — firewall run. An action beat: steer a data packet up and down through scrolling firewall
 // gates for RUN_TIME seconds. ECHO flies ahead and its cyan wake marks the next open gap.
@@ -60,7 +61,8 @@ export class FirewallScene {
 
   update(dt, input) {
     this._t += dt;
-    this.hud.update(dt);
+    // the start card is reading, not running: nothing is moving yet
+    if (this.mode !== "ready") this.hud.update(dt);
     if (this.mode === "ready") {
       if (input.wasPressed("pause")) { this.onResult({ success: false, aborted: true }); return; }
       if (input.wasPressed("interact") || input.wasPressed("submit") || input.wasPressed("up") || input.wasPressed("down")) {
@@ -88,6 +90,11 @@ export class FirewallScene {
       return;
     }
 
+    // mid-run Esc is a real pause (the run freezes under it), with a way out
+    if (input.wasPressed("pause")) {
+      this.game.push(new PauseScene({ sfx: this.sfx, abortLabel: "LEAVE THE RUN", onAbort: () => this.onResult({ success: false, aborted: true }) }));
+      return;
+    }
     const p = this.progress;
     const speed = (SPEED_START + (SPEED_END - SPEED_START) * p) * this.tuning.speed;
     this.elapsed += dt;
@@ -227,11 +234,12 @@ export class FirewallScene {
     renderer.text(`${Math.floor(this.progress * 100)}%`, w - 8, 13, { color: "#0aff7a", size: 9, align: "right", baseline: "middle", weight: "bold" });
 
     renderer.fillRect(0, h - 26, w, 26, "#1a0610");
-    renderer.text("[↑↓] steer the packet — follow ECHO's wake through the gaps", 8, h - 13, { color: "#a85a6a", size: 8, baseline: "middle" });
+    renderer.text("[↑↓] steer the packet — follow ECHO's wake through the gaps   [esc] pause", 8, h - 13, { color: "#a85a6a", size: 8, baseline: "middle" });
 
     if (this.mode === "ready") {
       renderer.fillRect(w / 2 - 130, 120, 260, 70, "rgba(0,0,0,0.85)");
       renderer.strokeRect(w / 2 - 130, 120, 260, 70, "#ff3a5a", 1);
+      drawClockPaused(renderer, w / 2 + 126, 114);
       renderer.text(this.attempt > 1 ? "PACKET DELETED — TRY AGAIN" : "HALCYON FIREWALL", w / 2, 138, { color: "#ff5a6a", size: 11, align: "center", baseline: "middle", weight: "bold" });
       renderer.text(this.reachedCheckpoint ? "Restarting from the checkpoint at 50%." : `Survive ${RUN_TIME}s. Three hits and you're deleted.`, w / 2, 156, { color: "#ffc0c8", size: 8, align: "center", baseline: "middle" });
       if (Math.floor(this._t * 2) & 1) renderer.text("[space] start run", w / 2, 174, { color: "#4ae6ff", size: 9, align: "center", baseline: "middle" });

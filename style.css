@@ -134,6 +134,19 @@ html, body {
 #hud-timer.danger .hud-value { color: var(--warn); animation: blink 0.5s steps(1) infinite; }
 #hud-timer.danger #hud-timer-fill { background: var(--warn); }
 @keyframes blink { 50% { opacity: 0.25; } }
+/* the clock isn't ticking (menu, pause, conversation, briefing, hint, battle) */
+#hud-timer.paused .hud-value { opacity: 0.55; animation: none; }
+#hud-timer.paused .hud-label { visibility: hidden; }
+#hud-timer.paused::after {
+  content: attr(data-paused);
+  position: absolute;
+  left: 10px;
+  top: 2px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--amber);
+}
 
 .hud-btn {
   align-self: center;

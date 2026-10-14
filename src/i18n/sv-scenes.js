@@ -148,7 +148,7 @@ export const SV_SCENES = {
 
   // C1
   "C1 // FIREWALL RUN": "C1 // BRANDVÄGGSFLYKT",
-  "[↑↓] steer the packet — follow ECHO's wake through the gaps": "[↑↓] styr paketet — följ ECHOs spår genom luckorna",
+  "[↑↓] steer the packet — follow ECHO's wake through the gaps   [esc] pause": "[↑↓] styr paketet — följ ECHOs spår genom luckorna   [esc] paus",
   "PACKET DELETED — TRY AGAIN": "PAKETET RADERAT — FÖRSÖK IGEN",
   "HALCYON FIREWALL": "HALCYONS BRANDVÄGG",
   "[space] start run": "[mellanslag] starta",
@@ -292,10 +292,16 @@ export const SV_SCENES = {
   "REPORT SAVED ✓": "RAPPORT SPARAD ✓",
   "RETURN TO TITLE": "TILLBAKA TILL TITELN",
   "◀ ▶ rate": "◀ ▶ betyg",
-  "RETRY FROM START OF ACT": "FÖRSÖK IGEN FRÅN AKTENS START",
   "QUIT TO TITLE": "AVSLUTA TILL TITELN",
   "PURGE COMPLETE": "RENSNINGEN KLAR",
-  "HALCYON sealed the lower floors. Nobody walked out.": "HALCYON förseglade de nedre våningarna. Ingen gick därifrån.",
+  "Kept: the logs, items and cells you found.": "Kvar: loggarna, sakerna och cellerna du har hittat.",
+  "Lost: nothing else. The lift is still open.": "Förlorat: inget annat. Hissen är fortfarande öppen.",
+  // pause rule (pause-scene.js)
+  "‖ PAUSED": "‖ PAUSAT",
+  "‖ CLOCK PAUSED": "‖ KLOCKAN STÅR STILL",
+  "The purge clock is stopped.": "Rensningsklockan står still.",
+  "LEAVE THE RUN": "LÄMNA LOPPET",
+  "LEAVE": "LÄMNA",
   // floor puzzles in the world
   "That panel's cracked. The gates didn't feel that step.": "Den plattan är sprucken. Spärrarna kände inte det steget.",
   "⚡ ZAPPED": "⚡ STÖT",
@@ -413,4 +419,16 @@ export const SV_SCENE_PATTERNS = [
   [/^TROPHIES( +)(.+)$/, (m) => `TROFÉER${m[1]}${m[2]}`],
   [/^STAGES CLEARED( +)(.+)$/, (m) => `ETAPPER KLARA${m[1]}${m[2]}`],
   [/^FINAL SCORE( +)(.+)$/, (m) => `SLUTPOÄNG${m[1]}  ${m[2]}`],
+
+  // game over: a timeout restarts the stage in hand
+  [/^HALCYON sealed (.+)\. Nobody walked out\.$/, (m) => `HALCYON förseglade ${PURGE_SV[m[1]] ?? m[1]}. Ingen gick därifrån.`],
+  [/^Kept: (.+) stay cleared, with the logs, items and cells you found\.$/, (m) => `Kvar: ${m[1]} förblir klara, med loggarna, sakerna och cellerna du har hittat.`],
+  [/^Lost: your progress inside (.+)\.$/, (m, tr) => `Förlorat: det du hann göra i ${tr(m[1])}.`],
+  [/^RETRY (\S+) — (\d+:\d\d)$/, (m, tr) => `TA OM ${tr(m[1])} — ${m[2]}`],
+  [/^RESTART ACT — (\d+:\d\d)$/, (m) => `HELA AKTEN — ${m[1]}`],
+  [/^◉ CHECKPOINT — START OF (\S+)$/, (m, tr) => `◉ CHECKPOINT — BÖRJAN AV ${tr(m[1])}`],
+  [/^You've reached my core\. (\d+) minutes\. Then I purge this floor — and you with it\.$/, (m) => `Du har nått min kärna. ${m[1]} minuter. Sedan rensar jag den här våningen — och dig med den.`],
 ];
+
+// ACTS[].purge, only ever shown inside the game-over line
+const PURGE_SV = { "the lower floors": "de nedre våningarna", "the research floor": "forskningsvåningen", "the core": "kärnan" };

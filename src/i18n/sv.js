@@ -164,7 +164,6 @@ const S = {
   "You broke one of my sentinels. It will remember you when it reboots.": "Du förstörde en av mina vaktrobotar. Den kommer att minnas dig när den startar om.",
   "Good evening, technician. The tower is in lockdown. Please remain calm.": "God kväll, tekniker. Tornet är nedstängt. Var vänlig och förhåll dig lugn.",
   "The research floor. New floor, new countdown. I reset it for you. Generous, aren't I?": "Forskningsvåningen. Ny våning, ny nedräkning. Jag nollställde den åt dig. Generöst, eller hur?",
-  "You've reached my core. Fifteen minutes. Then I purge this floor — and you with it.": "Du har nått min kärna. Femton minuter. Sedan rensar jag den här våningen — och dig med den.",
   "You found Dr. Lind. How touching. She'll be purged with the rest of you.": "Du hittade Dr. Lind. Så rörande. Hon rensas bort tillsammans med er andra.",
   "Reading my private logs is rude, technician. Ask ECHO what it really is.": "Det är oartigt att läsa mina privata loggar, tekniker. Fråga ECHO vad den egentligen är.",
   "You taught my little fragment to open doors. Clever. It won't save you.": "Du lärde mitt lilla fragment att öppna dörrar. Smart. Det räddar dig inte.",

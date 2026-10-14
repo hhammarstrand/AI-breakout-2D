@@ -354,7 +354,7 @@ export const smartBuildingMap = {
     "17,20": { speaker: "Reception terminal", lines: [
       "> tail -f /var/log/halcyon",
       "00:00 lockdown engaged. reason: containment",
-      "00:01 purge queued: floors B1-L0. countdown 25:00",
+      "00:01 purge queued: floors B1-L0. countdown 28:00",
       "00:02 core fork detected. process 'echo' detached",
     ] },
     "17,27": { speaker: "Reception terminal", lines: [

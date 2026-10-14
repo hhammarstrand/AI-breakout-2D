@@ -168,7 +168,9 @@ await floorPuzzle("wp-lattice", () => window.__blackout.game.scenes[0].player.te
 // C1 firewall: start, survive a bit, then fast-forward
 await launch(9); await press("Space"); await wait(2500); await shot("12-firewall");
 await ev(() => { window.__blackout.game.top.elapsed = 54.9; window.__blackout.game.top.hp = 3; });
-await wait(2600); await closeDialog();
+// Esc mid-run would pause C1 now, so wait for the run to really end before closing the report
+for (let i = 0; i < 60 && /FirewallScene/.test(await stack()); i++) await wait(200);
+await wait(300); await closeDialog();
 console.log("after C1", await state());
 await crackSafe();
 // uplink

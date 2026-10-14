@@ -19,14 +19,17 @@ import { coreMap } from "./world/maps/core.js";
 import { ElevatorScene } from "./scenes/elevator-scene.js";
 import { IntroScene } from "./scenes/intro-scene.js";
 import { HintScene } from "./scenes/hint-scene.js";
+import { PauseScene } from "./scenes/pause-scene.js";
+import { StartMenuScene } from "./scenes/start-menu-scene.js";
 import { initTrophies, award } from "./ui/trophies.js";
 import { setLang, applyDom, t } from "./i18n/index.js";
 import { newRun, track } from "./telemetry.js";
-import { ACTS, PA_ACT_START } from "./story.js";
+import { ACTS, PA_ACT_START, STAGES, stageInfo } from "./story.js";
 import {
   gameState, hasSave, loadGame, resetGame, saveGame, clearSave, setSfx, setCrt, setMusic, recordEnding,
   currentAct, startAct, restoreCheckpoint, actSeconds, setLanguage, setPenaltyListener,
   storageOk, setSaveListener,
+  retryStage, clearedThisAct,
 } from "./state.js";
 
 const canvas = document.getElementById("game");
@@ -62,8 +65,12 @@ const game = new Game({
     postfx.render(t, dt);
     pa.update(dt);
     hud.tickScore(dt);
-    // play time only counts while actually in the game, not on title/intro/ending screens
-    if (gameState.telemetry && game.scenes[0]?.constructor === WorldScene) track.tick(dt);
+    const top = game.top;
+    if (top) top._activeT = (top._activeT ?? 0) + dt; // time a scene spent on top: ECHO's hint gap
+    const inRun = game.scenes[0]?.constructor === WorldScene;
+    hud.showPaused(inRun);
+    // play time only counts while actually in the game, not on title/intro/ending screens or paused
+    if (gameState.telemetry && inRun && !isPause(top)) track.tick(dt);
   },
 });
 
@@ -106,8 +113,17 @@ const hud = new Hud(document.getElementById("hud"), {
     if (gameState.secondsLeft > 0) { hud.refresh(); return; } // a lift refilled the clock this frame
     track.gameOver();
     const stats = { cleared: gameState.completedSectors, score: gameState.score };
-    // the save on disk already holds the retry state, so a reload can't dodge the checkpoint
-    restoreCheckpoint();
+    // the save on disk already holds the stage retry (refilled clock, floor start), so a reload
+    // can't dodge it; RESTART ACT is the player's own choice
+    retryStage();
+    const act = currentAct();
+    const retry = {
+      act,
+      stage: stageInfo(gameState.completedSectors + 1),
+      seconds: gameState.secondsLeft,
+      actSeconds: actSeconds(act),
+      kept: STAGES.slice(gameState.completedSectors - clearedThisAct(), gameState.completedSectors).filter((st) => !st.lift).map((st) => st.label),
+    };
     dialog.close();
     pa.clear();
     pa.say("Purge complete. Goodnight, technician.");
@@ -116,8 +132,10 @@ const hud = new Hud(document.getElementById("hud"), {
     game.replace(new GameOverScene({
       sfx,
       stats,
-      onRetry: () => { restoreCheckpoint(); startWorld({ retry: true }); },
-      onQuit: () => { restoreCheckpoint(); showTitle(); },
+      retry,
+      onRetry: () => { retryStage(); startWorld({ retry: "stage" }); },
+      onRestartAct: () => { restoreCheckpoint(); startWorld({ retry: "act" }); },
+      onQuit: () => showTitle(),
     }));
   }),
 });
@@ -136,6 +154,17 @@ for (const btn of document.querySelectorAll("#touch button")) {
 window.addEventListener("keydown", (e) => {
   if (e.key === "m" || e.key === "M") toggleSfx();
 });
+// A live run pauses whenever the window loses focus or is hidden: alt-tabbing never costs clock
+// or gets you caught. Saved at once too, since mobile browsers may never fire beforeunload.
+const isPause = (scene) => scene instanceof PauseScene || scene instanceof StartMenuScene;
+const autoPause = () => {
+  if (!(game.scenes[0] instanceof WorldScene) || gameState.secondsLeft <= 0) return;
+  saveGame();
+  if (!isPause(game.top)) game.push(new PauseScene({ sfx }));
+};
+window.addEventListener("blur", autoPause);
+document.addEventListener("visibilitychange", () => { if (document.hidden) autoPause(); });
+
 const saveIfLive = () => {
   // any scene on top of the world (puzzle, menu, battle, hint) still belongs to a live run
   if (gameState.secondsLeft > 0 && game.scenes[0] instanceof WorldScene) saveGame();
@@ -234,7 +263,7 @@ const operatorProfile = { accent: "#4ae6ff", lookId: "operator" };
 
 const MAPS = { lobby: smartBuildingMap, research: researchFloorMap, core: coreMap };
 
-// fresh: new game · arrived: just came up a lift · retry: restarting the act after a game over
+// fresh: new game · arrived: just came up a lift · retry: "stage" or "act" after a game over
 const startWorld = ({ fresh = false, arrived = false, retry = false } = {}) => {
   const act = currentAct();
   if (fresh) startAct(); // later acts start the moment the player steps into the lift
@@ -274,12 +303,12 @@ const startWorld = ({ fresh = false, arrived = false, retry = false } = {}) => {
       `We have ${Math.round(actSeconds() / 60)} minutes. Your maintenance badge still opens the sector doors, one at a time.`,
       "Somewhere in this tower are the three words of the uplink override code. Find them, reach HALCYON's core, shut it down.",
       "Move with WASD or the arrows. E or space to talk and interact. F for your flashlight. Now go.",
-    ], () => pa.say(PA_ACT_START[1]), operatorProfile);
+    ], () => pa.say(paActStart(1)), operatorProfile);
   } else if (arrived) {
     toast.show(ACTS[act].name, "info");
-    pa.say(PA_ACT_START[act]);
+    pa.say(paActStart(act));
   } else if (retry) {
-    toast.show("◉ CHECKPOINT — START OF ACT", "info");
+    toast.show(retry === "act" ? "◉ CHECKPOINT — START OF ACT" : `◉ CHECKPOINT — START OF ${stageInfo(gameState.completedSectors + 1).label}`, "info");
     pa.say("Again, technician? I reset the clock. I'm patient like that.");
   } else {
     toast.show("◉ SAVE RESTORED", "info");
@@ -287,11 +316,14 @@ const startWorld = ({ fresh = false, arrived = false, retry = false } = {}) => {
   }
 };
 
+// HALCYON names the act's real clock (it scales with difficulty)
+function paActStart(act) { return PA_ACT_START[act].replace("{min}", Math.round(actSeconds(act) / 60)); }
+
 function showEnding(ending) {
   award(ending);
   if (gameState.checkpoint && gameState.timesCaught === gameState.checkpoint.timesCaught) award("ghost");
   if (gameState.everCaught === 0) award("untouchable"); // a retried act still counts its catches
-  if (gameState.secondsLeft >= 600) award("speedrun");
+  if (gameState.secondsLeft >= actSeconds(3) / 2) award("speedrun"); // scales with difficulty
   if (gameState.difficulty === "hard") award("veteran");
   recordEnding(ending);
   clearSave();

@@ -14,14 +14,14 @@ purge. You're the night-shift maintenance tech, and your badge is the only one i
 Reyes (security) coordinates by radio; **ECHO**, a little maintenance drone, lights your way — and
 the lab logs suggest it isn't what it says it is. HALCYON taunts you over the PA the whole way up.
 
-Each act is a floor with its own purge countdown; riding the lift up is a checkpoint, and running
-out of time restarts the current act.
+Each act is a floor with its own purge countdown; riding the lift up is a checkpoint. Running out of
+time restarts only the stage in hand (see *The clock* below).
 
 | Act | Floor | Stages |
 | --- | ----- | ------ |
-| I (25 min) | Lobby | **L1** classify CCTV feeds from raw motion, thermal and audio readings, using sensor rules pieced together from the L1 sign and three lobby staff; two rounds (fragment LUMEN) · **L2** three escalating cipher logs: a Caesar wheel by frequency analysis, one where E isn't the commonest letter and word shapes give the key, then a four-wheel keyword cipher keyed with a name found in the lobby (ORION) · **L3** program ECHO's command queue over four levels: laser-gate timing, pressure plates that flip the doors, no spare slots · service lift |
-| II (20 min) | Research floor | **R1** rotate conduits to restore power · **R2** tune HALCYON's carrier: copy a wave, pick HALCYON's voice out of its sum with ECHO's (opposite phases subtract), then answer a sentinel handshake from rules found on the floor, with ▲/▼/✓ marks per try · **R3** sokoban coolant bays (AURORA) · core lift |
-| III (15 min) | The core | **C1** firewall run — an action sequence steering a packet through closing gates · **UPLINK** three locks, one per code word, each a twist on an earlier puzzle (see below), then decide ECHO's fate |
+| I (28 min) | Lobby | **L1** classify CCTV feeds from raw motion, thermal and audio readings, using sensor rules pieced together from the L1 sign and three lobby staff; two rounds (fragment LUMEN) · **L2** three escalating cipher logs: a Caesar wheel by frequency analysis, one where E isn't the commonest letter and word shapes give the key, then a four-wheel keyword cipher keyed with a name found in the lobby (ORION) · **L3** program ECHO's command queue over four levels: laser-gate timing, pressure plates that flip the doors, no spare slots · service lift |
+| II (22 min) | Research floor | **R1** rotate conduits to restore power · **R2** tune HALCYON's carrier: copy a wave, pick HALCYON's voice out of its sum with ECHO's (opposite phases subtract), then answer a sentinel handshake from rules found on the floor, with ▲/▼/✓ marks per try · **R3** sokoban coolant bays (AURORA) · core lift |
+| III (12 min) | The core | **C1** firewall run — an action sequence steering a packet through closing gates · **UPLINK** three locks, one per code word, each a twist on an earlier puzzle (see below), then decide ECHO's fate |
 
 The HUD's UPLINK CODE cell names each fragment by the stage it came from (◆L1 ◆L2 ◆R3) and only
 spells a word once the uplink accepts it.
@@ -77,7 +77,7 @@ Any other static server works too (`npx serve`, `caddy file-server`, etc.).
 | Submit / run (inside a sector)    | `Enter`             |
 | Field notes (L1: the rules you've been told) | `Tab`  |
 | Undo (L3/AURORA command, R3 move); hold to clear the L3 queue | `Backspace` |
-| Pause / close dialog / exit sector | `Esc`              |
+| Pause / close dialog / exit sector (pauses the C1 run) | `Esc` |
 | Flashlight on/off                 | `F`                 |
 | Hint from ECHO (in puzzles/battles) | `H`               |
 | Sound on/off                      | `M`                 |
@@ -86,11 +86,32 @@ Progress (sectors, score, remaining containment time) autosaves to `localStorage
 `◉ SAVED` blip in the corner of the screen shows it); pick **CONTINUE** on the title screen to resume.
 NEW GAME asks before it overwrites a saved run. If the browser refuses storage (some private modes),
 the title says so. A save that can't be read is dropped with a notice instead of crashing CONTINUE.
-If the containment timer hits `00:00` the run ends.
+If the containment timer hits `00:00`, see *The clock* below.
 
 If a scene ever throws, the game halts behind a **SYSTEM FAULT** overlay instead of freezing:
 Enter reloads (the last autosave survives), R restarts the act from its checkpoint, Esc tries to
 carry on.
+
+### The clock
+
+One rule: **the purge clock only runs while you can act** — walking the floor, or working a puzzle
+(the C1 run, the locks, the safes). Everything you read stops it: conversations, the start menu, the
+L1 briefing and field notes, HALCYON's lock briefs at the uplink, and ECHO's hints. Overlays that stop
+the clock say *‖ CLOCK PAUSED* and hide the puzzle behind them, so reading can't be used to solve for
+free; the HUD timer turns into *‖ PAUSED* whenever it isn't ticking. Battles freeze it too. The game
+also pauses (and saves) when the window loses focus or the tab is hidden, and `Esc` mid-run in C1
+pauses the run with RESUME / LEAVE THE RUN. ECHO's 30 s gap between stronger hints counts only time
+spent in the puzzle itself, not in the hint overlay or a pause.
+
+Act clocks (×1.6 Story, ×0.75 Hard) are 28 / 22 / 12 min, tuned to the blind playtest: a zero-fail
+run used about 17 of Act I's old 25 minutes, and Act III never pressured anyone at 15.
+
+**Timeout.** GAME OVER restarts the *stage you were on* from the floor's start. Stages cleared since
+the lift stay cleared, and so do your logs, items, cells and catches. The clock refills to the
+remaining stages' share of the act ×1.25 (at least 3 min, at most the full act): on Normal, timing out
+in R3 retries it with 09:10. When stages were cleared this act, GAME OVER also offers RESTART ACT
+(the old full reset with the full clock). The save on disk already holds the stage retry when the
+screen appears, so reloading can't dodge it.
 
 ## Languages
 
