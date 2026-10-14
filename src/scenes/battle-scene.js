@@ -329,6 +329,7 @@ export class BattleScene {
   }
 
   _victory() {
+    music.play("victory");
     this.sfx.play("success");
     this.effects.push({ kind: "crash", t0: this._anim, dur: 99 });
     this._burst(350, 92, "#ff8a3a", 40, -40, 220);
@@ -337,6 +338,7 @@ export class BattleScene {
 
   _defeat() {
     this.sfx.play("zap");
+    music.play("defeat");
     this.effects.push({ kind: "tagged", t0: this._anim, dur: 99 });
     this._burst(120, 186, "#ff3a3a", 30);
     this._shake(6);

@@ -83,7 +83,7 @@ export class PowerScene {
     this._load();
   }
 
-  onEnter() { document.body.classList.add("no-objective", "in-puzzle"); music.play("sector"); music.setIntensity(0); }
+  onEnter() { document.body.classList.add("no-objective", "in-puzzle"); music.play("circuit"); music.setIntensity(0); }
   onExit() { document.body.classList.remove("no-objective", "in-puzzle"); }
 
   get part() { return this.index; }

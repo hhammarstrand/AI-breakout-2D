@@ -1001,4 +1001,50 @@ const takeEast = async (p) => { await p.ev(() => { window.__blackout.game.scenes
   await p.browser.close();
 }
 
+// Review round 3 (audio): each puzzle family has its own track, every track is a 16-32 bar
+// composition with a melody, battles end on a jingle, and SFX vary from play to play without clipping.
+{
+  const p = await open({ save: fresh() });
+  await p.title(); await quiet(p);
+  const tracks = {};
+  for (const id of [1, 2, 3, 5, 6, 7, 9, 10]) {
+    await p.ev((id) => window.__blackout.game.scenes[0]._launchSector(id, "X"), id);
+    await p.wait(1400);
+    tracks[id] = await p.ev(() => import("./src/audio/music.js").then((m) => m.music.wanted));
+    await p.press("Escape"); await p.wait(900);
+    if ((await p.stack()) !== "WorldScene") { await p.press("Escape"); await p.wait(900); }
+  }
+  const names = Object.values(tracks);
+  check(new Set(names).size === names.length && !names.includes("sector"), "every puzzle room plays its own track", JSON.stringify(tracks));
+  const songs = await p.ev(() => import("./src/audio/music.js").then((m) => m.TRACK_NAMES.map((n) => {
+    const s = m.song(n);
+    return [n, s.loop.length, s.loop.filter((b) => b.lead.length).length];
+  })));
+  const bad = songs.filter(([n, bars, melodic]) => !["victory", "defeat"].includes(n) && (bars < 16 || bars > 32 || melodic < bars / 2));
+  check(!bad.length, "every track is 16-32 bars with a melody over most of it", JSON.stringify(bad.length ? bad : songs.map((s) => s[0] + ":" + s[1])));
+  await p.ev(() => window.__blackout.game.scenes[0]._startBattle({ name: "SENTINEL-T", x: 0, y: 0 }));
+  await p.wait(1500);
+  check(await p.ev(() => import("./src/audio/music.js").then((m) => m.music.wanted)) === "battle", "a battle plays the battle track");
+  await p.ev(() => { window.__blackout.game.top.foe.hp = 1; });
+  let jingle = null;
+  for (let i = 0; i < 30 && /Battle/.test(await p.stack()); i++) {
+    await p.press("Enter"); await p.wait(250);
+    if (/Battle/.test(await p.stack()) && !jingle) jingle = await p.ev(() => window.__blackout.game.top.phase === "won" ? import("./src/audio/music.js").then((m) => m.music.wanted) : null);
+  }
+  const after = await p.ev(() => import("./src/audio/music.js").then((m) => m.music.wanted));
+  check(jingle === "victory" && after === "lobby", "a won battle plays the victory jingle, then the floor's theme again", `${jingle} -> ${after}`);
+  const sfx = await p.ev(async () => {
+    const { Sfx } = await import("./src/audio/sfx.js");
+    const s = new Sfx(true);
+    const render = async (name) => { const ctx = new OfflineAudioContext(1, 22050, 44100); s.render(ctx, name, 0.01); return (await ctx.startRendering()).getChannelData(0); };
+    const [a, b] = [await render("door"), await render("door")];
+    let diff = 0, peak = 0;
+    for (let i = 0; i < a.length; i++) { diff += Math.abs(a[i] - b[i]); peak = Math.max(peak, Math.abs(a[i]), Math.abs(b[i])); }
+    return { diff, peak };
+  });
+  check(sfx.diff > 1 && sfx.peak < 1, "two plays of the same SFX differ (pitch jitter, noise) and don't clip", `diff=${sfx.diff.toFixed(1)} peak=${sfx.peak.toFixed(2)}`);
+  check(!p.errors.length, "no page errors from the audio checks", p.errors.join(" | "));
+  await p.browser.close();
+}
+
 summary("regress");
