@@ -1,8 +1,10 @@
 const FIXED_DT = 1000 / 60;
 
 export class Game {
-  constructor({ renderer, input, afterRender, onHint }) {
+  constructor({ renderer, input, afterRender, onHint, onError }) {
     this.onHint = onHint;
+    this.onError = onError;
+    this.halted = false; // set while the error overlay is up: no updates, last frame stays
     this.renderer = renderer;
     this.afterRender = afterRender;
     this.input = input;
@@ -47,22 +49,33 @@ export class Game {
     requestAnimationFrame(this._frame);
   }
 
+  // One bad frame must not end the session: the next frame is always queued, and the error is
+  // handed to onError (main.js shows the fault overlay) instead of killing the loop.
   _frame = (now) => {
     if (!this._running) return;
-    this.input.pollGamepads?.();
-    const delta = Math.min(now - this._lastTime, 250);
-    this._lastTime = now;
-    this._accumulator += delta;
+    try {
+      this.input.pollGamepads?.();
+      const delta = Math.min(now - this._lastTime, 250);
+      this._lastTime = now;
+      if (this.halted) { this._accumulator = 0; this.input.endFrame(); return; }
+      this._accumulator += delta;
 
-    while (this._accumulator >= FIXED_DT) {
-      this._update(FIXED_DT / 1000);
-      this.input.endFrame();
-      this._accumulator -= FIXED_DT;
+      while (this._accumulator >= FIXED_DT) {
+        this._accumulator -= FIXED_DT;
+        this._update(FIXED_DT / 1000);
+        this.input.endFrame();
+      }
+
+      this._render();
+      if (this.afterRender) this.afterRender(now / 1000, delta / 1000);
+    } catch (err) {
+      this._accumulator = 0;
+      this._deferred.length = 0;
+      this.input.endFrame(); // a key that triggered the throw must not fire again next frame
+      if (this.onError) this.onError(err); else console.error(err);
+    } finally {
+      requestAnimationFrame(this._frame);
     }
-
-    this._render();
-    if (this.afterRender) this.afterRender(now / 1000, delta / 1000);
-    requestAnimationFrame(this._frame);
   };
 
   _update(dt) {

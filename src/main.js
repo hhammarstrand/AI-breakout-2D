@@ -20,12 +20,13 @@ import { ElevatorScene } from "./scenes/elevator-scene.js";
 import { IntroScene } from "./scenes/intro-scene.js";
 import { HintScene } from "./scenes/hint-scene.js";
 import { initTrophies, award } from "./ui/trophies.js";
-import { setLang, applyDom } from "./i18n/index.js";
+import { setLang, applyDom, t } from "./i18n/index.js";
 import { newRun, track } from "./telemetry.js";
 import { ACTS, PA_ACT_START } from "./story.js";
 import {
   gameState, hasSave, loadGame, resetGame, saveGame, clearSave, setSfx, setCrt, setMusic, recordEnding,
   currentAct, startAct, restoreCheckpoint, actSeconds, setLanguage, setPenaltyListener,
+  storageOk, setSaveListener,
 } from "./state.js";
 
 const canvas = document.getElementById("game");
@@ -49,12 +50,15 @@ const pa = new PublicAddress(document.getElementById("pa"), sfx);
 const game = new Game({
   renderer,
   input,
+  onError: (err) => showFault(err),
   // H in any scene that defines `hints` opens ECHO's hint overlay
   onHint: (scene) => {
     if (!scene.hints?.length) return;
     game.push(new HintScene({ hints: scene.hints, owner: scene, sfx, hud }));
   },
   afterRender: (t, dt) => {
+    // the run's HUD and key legend mean nothing on the title, intro, lift and ending screens
+    document.body.classList.toggle("no-hud", NO_HUD.has(game.scenes[0]?.constructor));
     postfx.render(t, dt);
     pa.update(dt);
     hud.tickScore(dt);
@@ -132,10 +136,99 @@ for (const btn of document.querySelectorAll("#touch button")) {
 window.addEventListener("keydown", (e) => {
   if (e.key === "m" || e.key === "M") toggleSfx();
 });
-window.addEventListener("beforeunload", () => {
+const saveIfLive = () => {
   // any scene on top of the world (puzzle, menu, battle, hint) still belongs to a live run
   if (gameState.secondsLeft > 0 && game.scenes[0] instanceof WorldScene) saveGame();
+};
+window.addEventListener("beforeunload", saveIfLive);
+// mobile browsers often skip beforeunload; pagehide and going to the background are reliable
+window.addEventListener("pagehide", saveIfLive);
+document.addEventListener("visibilitychange", () => { if (document.hidden) saveIfLive(); });
+
+// --- save indicator -----------------------------------------------------------------------------
+// A short "SAVED" blip when the run is written, at most every few seconds; a red one when the
+// browser refuses storage, so nobody plays an hour believing they can quit safely.
+const saveInd = document.createElement("div");
+saveInd.id = "save-ind";
+saveInd.setAttribute("aria-hidden", "true");
+stageEl.appendChild(saveInd);
+let lastSaveBlip = -Infinity;
+setSaveListener((ok) => {
+  if (!(game.scenes[0] instanceof WorldScene)) return;
+  const now = performance.now();
+  if (now - lastSaveBlip < 4000) return;
+  lastSaveBlip = now;
+  saveInd.textContent = t(ok ? "◉ SAVED" : "✕ NOT SAVED");
+  saveInd.classList.toggle("bad", !ok);
+  saveInd.classList.remove("on");
+  void saveInd.offsetWidth; // restart the fade
+  saveInd.classList.add("on");
 });
+
+// --- fault overlay ------------------------------------------------------------------------------
+// An exception in a scene used to freeze the loop for good. Now the loop halts, and the player
+// can reload (the last autosave survives), restart the act from its checkpoint, or try to go on.
+const fault = document.createElement("div");
+fault.id = "fault";
+fault.className = "hidden";
+fault.setAttribute("role", "alertdialog");
+stageEl.appendChild(fault);
+let lastFault = null;
+
+const faultActions = {
+  reload: () => { location.reload(); },
+  restart: () => { if (gameState.checkpoint) restoreCheckpoint(); location.reload(); },
+  resume: () => { fault.classList.add("hidden"); game.halted = false; },
+};
+
+function showFault(err) {
+  if (err === lastFault && !fault.classList.contains("hidden")) return;
+  lastFault = err;
+  console.error(err);
+  // still surface it as an uncaught error, so consoles and tests see it
+  if (typeof reportError === "function") setTimeout(() => reportError(err));
+  game.halted = true;
+  const live = game.scenes[0] instanceof WorldScene && !!gameState.checkpoint;
+  fault.innerHTML = "";
+  const add = (tag, cls, text) => { const el = document.createElement(tag); el.className = cls; el.textContent = text; fault.appendChild(el); return el; };
+  add("div", "fault-title", t("⚠ SYSTEM FAULT"));
+  add("div", "fault-text", t("Something broke. Your run is safe up to the last autosave."));
+  add("div", "fault-detail", String(err?.message ?? err).slice(0, 160));
+  const row = add("div", "fault-actions", "");
+  const button = (label, action) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = t(label);
+    b.addEventListener("click", faultActions[action]);
+    row.appendChild(b);
+  };
+  button("[Enter] RELOAD", "reload");
+  if (live) button("[R] RESTART ACT", "restart");
+  button("[Esc] TRY TO CONTINUE", "resume");
+  fault.classList.remove("hidden");
+}
+
+// capture phase: while the overlay is up the game never sees these keys
+window.addEventListener("keydown", (e) => {
+  if (fault.classList.contains("hidden")) return;
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  if (e.key === "Enter") faultActions.reload();
+  else if ((e.key === "r" || e.key === "R") && game.scenes[0] instanceof WorldScene && gameState.checkpoint) faultActions.restart();
+  else if (e.key === "Escape") faultActions.resume();
+}, true);
+
+window.addEventListener("error", (e) => {
+  if (e.error === lastFault) return; // our own re-report
+  if (/ResizeObserver loop/.test(e.message ?? "")) return; // benign browser notice
+  showFault(e.error ?? e.message);
+});
+window.addEventListener("unhandledrejection", (e) => {
+  if (e.reason === lastFault) return;
+  showFault(e.reason);
+});
+
+const NO_HUD = new Set([TitleScene, IntroScene, ElevatorScene, EndingScene]);
 
 const operatorProfile = { accent: "#4ae6ff", lookId: "operator" };
 
@@ -212,6 +305,8 @@ function showTitle() {
   pa.clear();
   game.replace(new TitleScene({
     hasSave: hasSave(),
+    storageOk,
+    crtAvailable: postfx.ok,
     sfx,
     onToggleSfx: toggleSfx,
     onToggleCrt: toggleCrt,
@@ -225,12 +320,18 @@ function showTitle() {
       hud.refresh();
       game.replace(new IntroScene({ sfx, onDone: () => startWorld({ fresh: true }) }));
     },
-    onContinue: () => { loadGame(); startWorld(); },
+    onContinue: () => {
+      if (loadGame()) { startWorld(); return; }
+      // the save couldn't be read; loadGame() already cleared it
+      showTitle();
+      toast.show("✕ SAVE UNREADABLE — START A NEW GAME", "danger");
+    },
   }));
 }
 
 showTitle();
 game.start();
+document.body.classList.add("booted");
 
 // ?debug exposes internals for automated smoke tests.
 if (new URLSearchParams(location.search).has("debug")) window.__blackout = { game, gameState, postfx };

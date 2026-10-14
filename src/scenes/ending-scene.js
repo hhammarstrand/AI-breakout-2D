@@ -28,6 +28,9 @@ const ENDINGS = {
   },
 };
 
+// rating the run and saving a playtest report are playtest tools, not part of the game
+const DEV_TOOLS = new URLSearchParams(location.search).has("debug");
+
 const LINE_TIME = 3.2;
 const MENU_GRACE = 1; // seconds of ignored input once the stats box appears
 
@@ -40,6 +43,7 @@ export class EndingScene {
     this._t = 0;
     // after the epilogue: rate the run (0 = unrated), save a playtest report, or leave
     this.rating = 0;
+    this.options = DEV_TOOLS ? ["rate", "report", "title"] : ["title"];
     this.cursor = 0; // start on the rating, so mashing through the epilogue can't skip the stats
     this.saved = false;
     sfx.setAmbient(null);
@@ -62,13 +66,15 @@ export class EndingScene {
       return;
     }
     if (this._t < this.ending.lines.length * LINE_TIME + MENU_GRACE) return;
-    if (input.wasPressed("up")) { this.cursor = (this.cursor + 2) % 3; this.sfx.play("select"); }
-    if (input.wasPressed("down")) { this.cursor = (this.cursor + 1) % 3; this.sfx.play("select"); }
+    const n = this.options.length;
+    const opt = this.options[this.cursor];
+    if (n > 1 && input.wasPressed("up")) { this.cursor = (this.cursor + n - 1) % n; this.sfx.play("select"); }
+    if (n > 1 && input.wasPressed("down")) { this.cursor = (this.cursor + 1) % n; this.sfx.play("select"); }
     const dx = (input.wasPressed("right") ? 1 : 0) - (input.wasPressed("left") ? 1 : 0);
-    if (dx && this.cursor === 0) { this.rating = Math.max(1, Math.min(5, this.rating + dx)); this.sfx.play("select"); }
+    if (dx && opt === "rate") { this.rating = Math.max(1, Math.min(5, this.rating + dx)); this.sfx.play("select"); }
     if (!pressed) return;
-    if (this.cursor === 0) { this.rating = this.rating % 5 + 1; this.sfx.play("select"); }
-    else if (this.cursor === 1) {
+    if (opt === "rate") { this.rating = this.rating % 5 + 1; this.sfx.play("select"); }
+    else if (opt === "report") {
       downloadReport(buildReport({ ending: this.endingId, rating: this.rating || null }));
       this.saved = true;
       this.sfx.play("confirm");
@@ -146,18 +152,19 @@ export class EndingScene {
       ];
       stats.forEach((s, i) => renderer.text(s, w - 206, h - 136 + i * 12, { color: "#cfcfcf", size: 8 }));
       const stars = "★".repeat(this.rating) + "☆".repeat(5 - this.rating);
-      const items = [
-        `${t("RATE THIS RUN")}  ${stars}`,
-        this.saved ? "REPORT SAVED ✓" : "SAVE PLAYTEST REPORT",
-        "RETURN TO TITLE",
-      ];
-      items.forEach((label, i) => {
-        const y = h - 66 + i * 14;
+      const labels = {
+        rate: `${t("RATE THIS RUN")}  ${stars}`,
+        report: this.saved ? "REPORT SAVED ✓" : "SAVE PLAYTEST REPORT",
+        title: "RETURN TO TITLE",
+      };
+      const top = h - 66 + (3 - this.options.length) * 14; // a lone item sits at the bottom
+      this.options.map((o) => labels[o]).forEach((label, i) => {
+        const y = top + i * 14;
         const sel = i === this.cursor;
         if (sel) renderer.fillRect(w - 214, y - 6, 192, 12, "rgba(255,255,255,0.08)");
         renderer.text(`${sel ? "▶ " : "  "}${t(label)}`, w - 206, y, { color: sel ? this.ending.color : "#9aa4ac", size: 8, baseline: "middle", weight: sel ? "bold" : "normal" });
       });
-      if (this.cursor === 0) renderer.text("◀ ▶ rate", w - 26, h - 66, { color: "#6a7a86", size: 7, align: "right", baseline: "middle" });
+      if (this.options[this.cursor] === "rate") renderer.text("◀ ▶ rate", w - 26, h - 66, { color: "#6a7a86", size: 7, align: "right", baseline: "middle" });
     }
   }
 }

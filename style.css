@@ -24,6 +24,7 @@ html, body {
   display: grid;
   grid-template-rows: auto 1fr auto;
   height: 100vh;
+  height: 100dvh; /* mobile: the visible viewport, not the one behind the URL bar */
   width: 100%;
   margin: 0 auto;
   padding: 8px 12px;
@@ -441,3 +442,36 @@ body.calm #hud-timer.danger .hud-value { animation: none; }
 .t-a { transform: translateY(-14px); }
 #touch .t-hint { position: absolute; right: 14px; top: -34px; width: 30px; height: 30px; font-size: 12px; }
 .abtns { position: relative; }
+
+/* --- robustness: boot text, HUD on non-game screens, save blip, fault overlay ------------- */
+body.no-hud #hud, body.no-hud #legend { visibility: hidden; }
+
+#boot {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  color: var(--fg); font: 12px ui-monospace, monospace; letter-spacing: 0.1em; pointer-events: none;
+}
+#boot.failed { color: var(--warn); padding: 16px; text-align: center; letter-spacing: 0; }
+body.booted #boot { display: none; }
+
+#save-ind {
+  position: absolute; bottom: 8px; right: 8px; z-index: 6; pointer-events: none; opacity: 0;
+  font: 10px ui-monospace, monospace; color: var(--fg); text-shadow: 0 0 4px #000, 0 0 2px #000;
+}
+#save-ind.bad { color: var(--warn); }
+#save-ind.on { animation: save-blip 1.6s ease-out; }
+@keyframes save-blip { 0% { opacity: 0; } 15% { opacity: 0.9; } 70% { opacity: 0.9; } 100% { opacity: 0; } }
+
+#fault {
+  position: absolute; inset: 0; z-index: 50; display: flex; flex-direction: column; gap: 10px;
+  align-items: center; justify-content: center; padding: 16px; text-align: center;
+  background: rgba(0, 0, 0, 0.88); color: #e8eef4; font: 13px ui-monospace, monospace;
+}
+#fault.hidden { display: none; }
+#fault .fault-title { color: var(--warn); font-size: 18px; font-weight: bold; letter-spacing: 0.08em; }
+#fault .fault-detail { color: #8a96a0; font-size: 11px; max-width: 90%; overflow-wrap: anywhere; }
+#fault .fault-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+#fault button {
+  font: inherit; color: var(--fg); background: #06140c; border: 1px solid var(--fg);
+  padding: 8px 12px; min-height: 44px; cursor: pointer;
+}
+#fault button:hover, #fault button:focus-visible { background: #0a2a18; }

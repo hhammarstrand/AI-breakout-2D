@@ -54,12 +54,21 @@ export class Sfx {
   }
 
   _ensure() {
-    if (!this.ctx) {
-      const AC = window.AudioContext || window.webkitAudioContext;
-      if (!AC) return null;
-      this.ctx = new AC();
+    if (this.broken) return null;
+    try {
+      if (!this.ctx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return null;
+        this.ctx = new AC();
+      }
+      if (this.ctx.state === "suspended") this.ctx.resume()?.catch?.(() => {});
+    } catch (err) {
+      // blocked or exhausted Web Audio: play on in silence rather than fail to boot
+      console.warn("audio unavailable", err);
+      this.broken = true;
+      this.ctx = null;
+      return null;
     }
-    if (this.ctx.state === "suspended") this.ctx.resume();
     return this.ctx;
   }
 
@@ -119,6 +128,7 @@ export class Sfx {
     if (!this._ambient) return;
     const amb = this._ambient;
     this._ambient = null;
+    if (!this.ctx) return;
     const now = this.ctx.currentTime;
     amb.master.gain.setTargetAtTime(0, now, 0.15);
     for (const o of amb.nodes) o.stop(now + 0.6);

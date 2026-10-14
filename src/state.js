@@ -7,6 +7,14 @@ export const FRAGMENTS = FRAGMENT_DEFS.map((f) => f.word);
 const SAVE_KEY = "blackout2d.save.v1";
 const SETTINGS_KEY = "blackout2d.settings.v1";
 
+// Private modes and locked-down browsers can refuse storage; the title tells the player.
+export const storageOk = (() => {
+  try { localStorage.setItem("blackout2d.probe", "1"); localStorage.removeItem("blackout2d.probe"); return true; } catch { return false; }
+})();
+const SETTINGS = (() => { const v = readJson(SETTINGS_KEY); return v && typeof v === "object" ? v : {}; })();
+const bool = (v, dflt) => (typeof v === "boolean" ? v : dflt);
+const strings = (v) => (Array.isArray(v) ? v.filter((x) => typeof x === "string") : []);
+
 export const gameState = {
   totalSectors: TOTAL_SECTORS,
   completedSectors: 0,
@@ -23,14 +31,15 @@ export const gameState = {
   parts: {},
   heard: [], // NPCs and signs the player has read, so puzzles can show what they were told
   difficulty: "normal",
-  endingsSeen: readJson(SETTINGS_KEY)?.endingsSeen ?? [],
-  achievements: readJson(SETTINGS_KEY)?.achievements ?? [],
-  sfxOn: readJson(SETTINGS_KEY)?.sfxOn ?? true,
-  crtOn: readJson(SETTINGS_KEY)?.crtOn ?? true,
-  musicOn: readJson(SETTINGS_KEY)?.musicOn ?? true,
-  calmFx: readJson(SETTINGS_KEY)?.calmFx ?? false,
-  textSpeed: readJson(SETTINGS_KEY)?.textSpeed ?? "normal",
-  lang: readJson(SETTINGS_KEY)?.lang ?? (navigator.language?.toLowerCase().startsWith("sv") ? "sv" : "en"),
+  endingsSeen: strings(SETTINGS.endingsSeen),
+  achievements: strings(SETTINGS.achievements),
+  sfxOn: bool(SETTINGS.sfxOn, true),
+  // off by default: the bloom used to wash out the light UI panels, and software GL can't keep up
+  crtOn: bool(SETTINGS.crtOn, false),
+  musicOn: bool(SETTINGS.musicOn, true),
+  calmFx: bool(SETTINGS.calmFx, false),
+  textSpeed: ["slow", "normal", "fast"].includes(SETTINGS.textSpeed) ? SETTINGS.textSpeed : "normal",
+  lang: ["en", "sv"].includes(SETTINGS.lang) ? SETTINGS.lang : (navigator.language?.toLowerCase().startsWith("sv") ? "sv" : "en"),
 };
 
 export function isSectorUnlocked(num) { return num <= gameState.completedSectors + 1; }
@@ -139,21 +148,42 @@ export function hasSave() {
   return !!save && (save.secondsLeft > 0 || !!save.checkpoint);
 }
 
+// A save that can't be read (hand-edited, half-written, older schema) starts a clean slate
+// instead of throwing on the title screen. Returns false if there was nothing usable.
 export function loadGame() {
   const save = readJson(SAVE_KEY);
-  if (!save) return false;
+  if (!save || typeof save !== "object") return false;
+  try {
+    applySave(save);
+    return true;
+  } catch (err) {
+    console.warn("unreadable save, starting over", err);
+    resetGame();
+    return false;
+  }
+}
+
+function applySave(save) {
   gameState.completedSectors = clampInt(save.completedSectors, 0, TOTAL_SECTORS);
   gameState.score = Number(save.score) || 0;
   gameState.timesCaught = Number(save.timesCaught) || 0;
   gameState.everCaught = Math.max(Number(save.everCaught) || 0, gameState.timesCaught);
-  gameState.checkpoint = save.checkpoint ?? null;
+  gameState.checkpoint = validCheckpoint(save.checkpoint);
   gameState.difficulty = DIFFICULTY[save.difficulty] ? save.difficulty : "normal";
-  gameState.collected = Array.isArray(save.collected) ? save.collected : [];
-  gameState.items = save.items && typeof save.items === "object" ? save.items : {};
-  gameState.telemetry = save.telemetry && typeof save.telemetry === "object" ? save.telemetry : null;
-  gameState.pos = save.pos && typeof save.pos === "object" ? save.pos : null;
-  gameState.parts = save.parts && typeof save.parts === "object" ? save.parts : {};
-  gameState.heard = Array.isArray(save.heard) ? save.heard : [];
+  gameState.collected = strings(save.collected);
+  gameState.items = plainObject(save.items) ? save.items : {};
+  gameState.telemetry = plainObject(save.telemetry) ? save.telemetry : null;
+  gameState.pos = validPos(save.pos);
+  gameState.parts = plainObject(save.parts) ? save.parts : {};
+  gameState.heard = strings(save.heard);
+  // no usable checkpoint: rebuild one at the start of the current act, so a game over still retries
+  if (!gameState.checkpoint) {
+    gameState.checkpoint = {
+      completedSectors: Math.min(gameState.completedSectors, STAGES.findIndex((st) => st.act === currentAct())),
+      score: gameState.score, timesCaught: gameState.timesCaught,
+      collected: [...gameState.collected], items: { ...gameState.items },
+    };
+  }
   // backup cells can push the clock past the act's full time, never past every cell in the game
   const secs = Number(save.secondsLeft);
   gameState.secondsLeft = Number.isFinite(secs) ? Math.max(0, Math.min(actSeconds() + MAX_CELLS * CELL_BONUS, secs)) : actSeconds();
@@ -176,9 +206,13 @@ export function loadGame() {
 let partSource = null;
 export function setPartSource(fn) { partSource = fn; }
 
+// main.js shows a small save indicator; ok is false when the browser refused the write
+let onSave = null;
+export function setSaveListener(fn) { onSave = fn; }
+
 export function saveGame() {
   partSource?.();
-  writeJson(SAVE_KEY, {
+  const ok = writeJson(SAVE_KEY, {
     completedSectors: gameState.completedSectors,
     score: gameState.score,
     secondsLeft: gameState.secondsLeft,
@@ -194,6 +228,7 @@ export function saveGame() {
     parts: gameState.parts,
     heard: gameState.heard,
   });
+  onSave?.(ok);
 }
 
 export function clearSave() {
@@ -259,12 +294,31 @@ function writeSettings() {
 
 function clampInt(v, lo, hi) { return Math.max(lo, Math.min(hi, v | 0)); }
 
+const plainObject = (v) => !!v && typeof v === "object" && !Array.isArray(v);
+
+// a checkpoint missing its stage count would crash actOf(); anything else gets safe defaults
+function validCheckpoint(cp) {
+  if (!plainObject(cp) || !Number.isFinite(cp.completedSectors)) return null;
+  return {
+    completedSectors: clampInt(cp.completedSectors, 0, TOTAL_SECTORS),
+    score: Number(cp.score) || 0,
+    timesCaught: Number(cp.timesCaught) || 0,
+    collected: strings(cp.collected),
+    items: plainObject(cp.items) ? cp.items : {},
+  };
+}
+
+function validPos(pos) {
+  if (!plainObject(pos) || typeof pos.map !== "string" || !Number.isInteger(pos.col) || !Number.isInteger(pos.row)) return null;
+  return pos;
+}
+
 function readJson(key) {
   try { return JSON.parse(localStorage.getItem(key)); } catch { return null; }
 }
 
 function writeJson(key, value) {
-  try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* storage unavailable */ }
+  try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch { return false; /* storage unavailable */ }
 }
 
 // --- collectibles ----------------------------------------------------------------------------

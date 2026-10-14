@@ -3,10 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="BLACKOUT // Operation Lifeline: a pixel-art escape-room adventure. Outwit a rogue building AI before the purge." />
+    <meta name="theme-color" content="#000000" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23000'/%3E%3Crect x='2' y='3' width='12' height='9' fill='none' stroke='%230aff7a' stroke-width='1.5'/%3E%3Crect x='5' y='6' width='2' height='2' fill='%234ae6ff'/%3E%3Crect x='9' y='6' width='2' height='2' fill='%23ff5a5a'/%3E%3Crect x='6' y='13' width='4' height='1.5' fill='%230aff7a'/%3E%3C/svg%3E" />
     <title>BLACKOUT // Operation Lifeline — 2D</title>
     <link rel="stylesheet" href="./style.css" />
   </head>
-  <body>
+  <body class="no-hud">
     <div id="app">
       <header id="hud">
         <span class="brand" data-text="BLACKOUT // Operation Lifeline">BLACKOUT <em>//</em> Operation Lifeline</span>
@@ -32,6 +35,7 @@
 
       <main id="stage">
         <canvas id="game" width="480" height="320"></canvas>
+        <div id="boot" aria-live="polite">BOOTING…</div>
         <div id="objective" aria-live="polite"></div>
         <div id="toasts" aria-live="polite"></div>
         <div id="pa" aria-live="polite"><span class="pa-tag">◉ HALCYON</span><span class="pa-text"></span></div>
@@ -77,6 +81,15 @@
       </footer>
     </div>
 
-    <script type="module" src="./src/main.js"></script>
+    <script>
+      // Until main.js has booted, a failure leaves a message instead of a silent black screen.
+      function bootFailed(msg) {
+        if (document.body.classList.contains("booted")) return;
+        var el = document.getElementById("boot");
+        if (el) { el.className = "failed"; el.textContent = "BOOT FAILED — " + msg + " — reload to retry"; }
+      }
+      window.addEventListener("error", function (e) { bootFailed(e.message || "script error"); });
+    </script>
+    <script type="module" src="./src/main.js" onerror="bootFailed('could not load the game files')"></script>
   </body>
 </html>

@@ -82,8 +82,15 @@ Any other static server works too (`npx serve`, `caddy file-server`, etc.).
 | Hint from ECHO (in puzzles/battles) | `H`               |
 | Sound on/off                      | `M`                 |
 
-Progress (sectors, score, remaining containment time) autosaves to `localStorage`; pick
-**CONTINUE** on the title screen to resume. If the containment timer hits `00:00` the run ends.
+Progress (sectors, score, remaining containment time) autosaves to `localStorage` (a small
+`◉ SAVED` blip in the corner of the screen shows it); pick **CONTINUE** on the title screen to resume.
+NEW GAME asks before it overwrites a saved run. If the browser refuses storage (some private modes),
+the title says so. A save that can't be read is dropped with a notice instead of crashing CONTINUE.
+If the containment timer hits `00:00` the run ends.
+
+If a scene ever throws, the game halts behind a **SYSTEM FAULT** overlay instead of freezing:
+Enter reloads (the last autosave survives), R restarts the act from its checkpoint, Esc tries to
+carry on.
 
 ## Languages
 
@@ -156,7 +163,10 @@ campaign test in Swedish.
 
 - **CRT post-processing (WebGL)** — the whole frame is drawn through a shader: curved glass,
   bloom, chromatic aberration, scanlines, aperture grille, grain and glitch tears on impacts.
-  Toggle **CRT FX** in the title or pause menu; without WebGL it falls back to the plain canvas.
+  Off by default; toggle **CRT FX** in the title or pause menu. The bloom only catches near-white
+  and neon light and the grille follows source pixels, so the light UI panels stay readable. Without
+  WebGL the option shows UNAVAILABLE; if the GPU drops the context the plain canvas takes over
+  until it comes back. Software renderers get a cheaper shader at a capped resolution.
 - **Sentinels** — patrol bots sweep the corridor and lobby with red, ray-cast vision cones. A
   detection meter fills while they can see you (faster up close, much faster with your flashlight
   on). Get caught and you lose 60 seconds and are sent back to the spawn. Kill your light with
@@ -180,7 +190,7 @@ the title screen shows your count.
 
 ## Playtest reports
 
-The game keeps a small local log of each run: minutes spent per stage, puzzle attempts, failures, hints taken, battles and game overs. Nothing is sent anywhere. After the epilogue the player can rate the run (1–5 stars) and pick **SAVE PLAYTEST REPORT** to download it as `blackout-playtest-<date>.json`. Collect those files from testers to see where people get stuck (`hardestStage`) and whether a full run lands near the one-hour target (`totalMinutes`).
+The game keeps a small local log of each run: minutes spent per stage, puzzle attempts, failures, hints taken, battles and game overs. Nothing is sent anywhere. With `?debug` in the URL, the ending offers to rate the run (1–5 stars) and **SAVE PLAYTEST REPORT** to download it as `blackout-playtest-<date>.json`. Collect those files from testers to see where people get stuck (`hardestStage`) and whether a full run lands near the one-hour target (`totalMinutes`).
 
 ## Tests
 

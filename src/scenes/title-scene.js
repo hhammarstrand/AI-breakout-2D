@@ -13,8 +13,9 @@ const BOOT_LINES = [
 const COL_W = 10;
 
 export class TitleScene {
-  constructor({ hasSave, onNew, onContinue, onToggleSfx, onToggleCrt, onToggleMusic, onToggleLang, sfx }) {
+  constructor({ hasSave, storageOk = true, crtAvailable = true, onNew, onContinue, onToggleSfx, onToggleCrt, onToggleMusic, onToggleLang, sfx }) {
     this.sfx = sfx;
+    this.storageOk = storageOk;
     this._t = 0;
     this._booted = false;
     this._drops = Array.from({ length: Math.ceil(480 / COL_W) }, () => ({
@@ -29,17 +30,30 @@ export class TitleScene {
     items.push({ label: () => `LANGUAGE: ${gameState.lang === "sv" ? "SVENSKA" : "ENGLISH"}`, action: onToggleLang });
     items.push({ label: () => `SOUND: ${gameState.sfxOn ? "ON" : "OFF"}`, action: onToggleSfx });
     items.push({ label: () => `MUSIC: ${gameState.musicOn ? "ON" : "OFF"}`, action: onToggleMusic });
-    items.push({ label: () => `CRT FX: ${gameState.crtOn ? "ON" : "OFF"}`, action: onToggleCrt });
+    // without WebGL the toggle would do nothing, so say so instead of claiming ON
+    if (crtAvailable) items.push({ label: () => `CRT FX: ${gameState.crtOn ? "ON" : "OFF"}`, action: onToggleCrt });
+    else items.push({ label: "CRT FX: UNAVAILABLE", action: () => sfx.play("denied") });
     items.push({ label: () => `CALM FX: ${gameState.calmFx ? "ON" : "OFF"}`, action: () => setCalmFx(!gameState.calmFx) });
     this.mainMenu = new Menu(items, sfx);
     this.menu = this.mainMenu;
+    // with a run on disk, starting over asks first: the old save is erased the moment it begins
+    const pick = (diff) => {
+      if (!hasSave) { onNew(diff); return; }
+      this.confirmMenu.index = 0;
+      this.confirmMenu.items[1].action = () => onNew(diff);
+      this.menu = this.confirmMenu;
+    };
     this.diffMenu = new Menu([
-      { label: "STORY — relaxed timers", action: () => onNew("story") },
-      { label: "NORMAL", action: () => onNew("normal") },
-      { label: "HARD — for veterans", action: () => onNew("hard") },
+      { label: "STORY — relaxed timers", action: () => pick("story") },
+      { label: "NORMAL", action: () => pick("normal") },
+      { label: "HARD — for veterans", action: () => pick("hard") },
       { label: "BACK", action: () => { this.menu = this.mainMenu; } },
     ], sfx);
     this.diffMenu.index = 1;
+    this.confirmMenu = new Menu([
+      { label: "NO — KEEP MY RUN", action: () => { this.menu = this.mainMenu; } },
+      { label: "YES — START OVER", action: () => {} },
+    ], sfx);
   }
 
   onEnter() { document.body.classList.add("no-objective"); music.play("title"); }
@@ -90,7 +104,9 @@ export class TitleScene {
     renderer.text("// OPERATION LIFELINE //", w / 2, 134, {
       color: "#4ae6ff", size: 11, align: "center", baseline: "middle", weight: "bold",
     });
-    renderer.text(gameState.achievements.length ? `ENDINGS ${gameState.endingsSeen.length}/2 · TROPHIES ${gameState.achievements.length}/10` : "HALCYON TOWER · 00:00 · LOCKDOWN", w / 2, 150, {
+    if (this.menu === this.confirmMenu) {
+      renderer.text("Overwrite your saved run?", w / 2, 150, { color: "#ffb347", size: 9, align: "center", baseline: "middle", weight: "bold" });
+    } else renderer.text(gameState.achievements.length ? `ENDINGS ${gameState.endingsSeen.length}/2 · TROPHIES ${gameState.achievements.length}/10` : "HALCYON TOWER · 00:00 · LOCKDOWN", w / 2, 150, {
       color: "#0a8a4a", size: 8, align: "center", baseline: "middle",
     });
 
@@ -99,6 +115,11 @@ export class TitleScene {
     renderer.text("[↑↓] choose   [space/enter] select", w / 2, 272, {
       color: "#0a8a4a", size: 8, align: "center", baseline: "middle",
     });
+    if (!this.storageOk) {
+      const note = "SAVING DISABLED — progress is lost on reload";
+      renderer.fillRect(w / 2 - 150, 286, 300, 12, "rgba(0,0,0,0.85)");
+      renderer.text(note, w / 2, 292, { color: "#ffb347", size: 8, align: "center", baseline: "middle" });
+    }
     const cursor = (Math.floor(this._t * 2) & 1) ? "_" : " ";
     renderer.text(`op@blackout:~$ ${cursor}`, 16, h - 18, { color: "#0a8a4a", size: 10 });
   }

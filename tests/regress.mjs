@@ -590,4 +590,64 @@ const takeEast = async (p) => { await p.ev(() => { window.__blackout.game.scenes
   await p.browser.close();
 }
 
+// Robustness: a throwing scene doesn't kill the loop, broken saves/settings load, the HUD stays off
+// the title, NEW GAME asks before erasing a run, GPU/audio/storage failures don't block the game.
+{
+  const p = await open({ save: fresh({ checkpoint: { score: 5 }, pos: "x" }),
+    settings: { achievements: "x", lang: "de", crtOn: "yes", sfxOn: false, musicOn: false } });
+  await p.wait(2700);
+  const t = await p.ev(() => ({ hud: getComputedStyle(document.getElementById("hud")).visibility, a: window.__blackout.gameState.achievements, lang: window.__blackout.gameState.lang, crt: window.__blackout.gameState.crtOn }));
+  check(t.hud === "hidden", "the run HUD is hidden on the title screen");
+  check(Array.isArray(t.a) && (t.lang === "en" || t.lang === "sv") && t.crt === false, "malformed settings fall back to defaults", JSON.stringify(t));
+  await p.press("Enter"); await p.wait(900); // CONTINUE
+  const s = await p.state();
+  check(/^WorldScene/.test(await p.stack()) && s.checkpoint?.completedSectors === 0, "a save with a broken checkpoint continues with a rebuilt one", await p.stack());
+  check(await p.ev(() => getComputedStyle(document.getElementById("hud")).visibility) === "visible", "the HUD is back in the world");
+  await p.ev(() => { const w = window.__blackout.game.scenes[0]; const u = w.update.bind(w); let once = true;
+    w.update = (...a) => { if (once) { once = false; throw new Error("injected"); } return u(...a); }; });
+  await p.wait(300);
+  const f = await p.ev(() => ({ halted: window.__blackout.game.halted, shown: !document.getElementById("fault").classList.contains("hidden"), t: window.__blackout.game._lastTime }));
+  check(f.halted && f.shown, "a scene exception halts the game behind the fault overlay");
+  await p.press("Escape"); await p.wait(300);
+  const g = await p.ev(() => ({ halted: window.__blackout.game.halted, t: window.__blackout.game._lastTime, stack: window.__blackout.game.scenes.map((x) => x.constructor.name).join(">") }));
+  check(!g.halted && g.t > f.t && g.stack === "WorldScene", "Esc on the overlay resumes the loop", g.stack);
+  await p.browser.close();
+}
+{
+  const p = await open({ save: fresh({ completedSectors: 2 }) });
+  await p.wait(2700);
+  for (const k of ["ArrowDown", "Enter", "Enter"]) await p.press(k); // NEW GAME, NORMAL
+  check(await p.ev(() => { const s = window.__blackout.game.top; return s.menu === s.confirmMenu; }), "NEW GAME over a save asks first");
+  await p.press("Enter"); await p.wait(200); // NO is the default
+  check((await p.disk())?.completedSectors === 2 && /^TitleScene$/.test(await p.stack()), "answering NO keeps the saved run");
+  await p.ev(() => { const s = window.__blackout.game.top; s.menu = s.diffMenu; });
+  await p.press("Enter"); await p.press("ArrowDown"); await p.press("Enter"); await p.wait(300);
+  check(/IntroScene/.test(await p.stack()) && (await p.state()).completedSectors === 0, "answering YES starts over");
+  await p.browser.close();
+}
+{
+  const p = await open({ settings: { crtOn: true, sfxOn: true, musicOn: true, lang: "en" } });
+  await p.page.addInitScript(() => { window.AudioContext = function () { throw new Error("blocked"); }; });
+  await p.page.reload(); await p.wait(2700); await p.press("Enter"); await p.wait(300);
+  check(await p.ev(() => window.__blackout?.game.top.constructor.name === "TitleScene"), "a throwing AudioContext doesn't stop the boot");
+  const lost = await p.ev(async () => { const fx = window.__blackout.postfx; if (!fx.ok) return "no-webgl";
+    const ext = fx.gl.getExtension("WEBGL_lose_context"); ext.loseContext();
+    await new Promise((r) => setTimeout(r, 300)); const during = fx.enabled || document.body.classList.contains("postfx");
+    ext.restoreContext(); await new Promise((r) => setTimeout(r, 500)); return { during, after: fx.enabled }; });
+  check(lost === "no-webgl" || (!lost.during && lost.after), "WebGL context loss falls back to 2D and recovers", JSON.stringify(lost));
+  await p.browser.close();
+}
+{
+  const p = await open();
+  await p.page.addInitScript(() => { Object.defineProperty(window, "localStorage", { get() { throw new Error("denied"); } }); });
+  await p.page.reload(); await p.wait(2700);
+  check(await p.ev(() => window.__blackout.game.top.storageOk === false), "the title warns when saving is impossible");
+  await p.page.goto(p.page.url().replace("?debug", ""));
+  const opts = await p.ev(async () => { const m = await import("./src/scenes/ending-scene.js");
+    return new m.EndingScene({ ending: "dawn", sfx: { setAmbient() {}, play() {} }, onDone() {} }).options; });
+  check(opts.length === 1 && opts[0] === "title", "the ending has no playtest tools without ?debug", JSON.stringify(opts));
+  check(p.errors.length === 0, "no page errors", p.errors.join(" | "));
+  await p.browser.close();
+}
+
 summary("regress");
