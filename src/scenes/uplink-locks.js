@@ -2,24 +2,20 @@
 // them. Each lock reuses a rule learned earlier, with one twist that needs a deduction.
 
 // --- LUMEN: the L1 sensor rules. Four console cameras show you, a cleanbot, a sentinel and a
-// server rack. Each feed has one jammed channel, and HALCYON adds the same offset to every
-// thermal reading, so nobody reads 36-37C: you have to go by motion and sound. Half the boards
-// put a slow-shifting cleanbot next to you, the other half make you the slow shift and leave the
-// cleanbot to be found by its sound or sweep.
+// server rack, in the lobby's vocabulary. Each feed has one jammed channel, and HALCYON adds the
+// same offset to every thermal reading, so temperatures only compare, they don't classify. The
+// easy tell (a person's voiced, irregular sound) is never left on show: you are quiet or jammed.
 export const FEED_KINDS = ["you", "cleanbot", "sentinel", "rack"];
-const HOSTILE_MOTION = ["irregular", "erratic", "twitching"];
-const HOSTILE_SOUND = ["wet clicks", "servo whine", "skittering", "static hiss", "dragging"];
-const BOT_SOUND = ["brush whir", "motor hum", "servo tick"];
 const CHANNELS = ["motion", "thermal", "audio"];
 
-// What the lobby taught (sign, analyst, intern, janitor), read generously: wherever a word could
-// fit two kinds, both are allowed, so a board only passes if it is unique even for a cautious reader.
+// What the lobby taught (sign, intern, janitor, analyst), as reading classes and body heat.
 const KNOWN = {
-  you: { motion: ["breathing", "shallow", "slow shift"], audio: ["coughing", "sobbing", "whispers"], t: [35.8, 37.4] },
-  cleanbot: { motion: ["slow sweep", "slow shift", "breathing?", "breathing"], audio: [...BOT_SOUND, "fan whir"], t: [35.8, 38.0] },
-  sentinel: { motion: HOSTILE_MOTION, audio: HOSTILE_SOUND, t: [38.0, 43.0] },
-  rack: { motion: ["none"], audio: ["fan whir", "motor hum"], t: [38.0, 42.0] },
+  you: { motion: ["P", "A"], audio: ["quiet", "voiced"], t: [35.0, 38.5] },
+  cleanbot: { motion: ["P"], audio: ["tonal", "impulsive"], t: [35.0, 38.0] },
+  sentinel: { motion: ["A", "N"], audio: ["impulsive", "looped", "quiet"], t: [37.0, 41.5] },
+  rack: { motion: ["N"], audio: ["tonal", "broadband"], t: [38.5, 45.0] },
 };
+const TRUE_HEAT = { you: [36.2, 37.2], cleanbot: [35.6, 37.6], sentinel: [37.6, 41.0], rack: [39.0, 42.0] };
 
 const pickOf = (rnd, arr) => arr[Math.floor(rnd() * arr.length)];
 const between = (rnd, lo, hi) => lo + rnd() * (hi - lo);
@@ -36,6 +32,11 @@ const permutations = (arr) => (arr.length <= 1 ? [arr]
   : arr.flatMap((x, i) => permutations([...arr.slice(0, i), ...arr.slice(i + 1)]).map((p) => [x, ...p])));
 const ASSIGNMENTS = permutations(FEED_KINDS);
 
+// the reading class behind a displayed value, as in the lobby
+export const motionClass = (v) => (v.startsWith("periodic") ? "P" : v === "aperiodic" ? "A" : "N");
+export const audioClass = (v) => (v.startsWith("voiced, looped") ? "looped" : v.startsWith("voiced") ? "voiced"
+  : v.startsWith("tonal") ? "tonal" : v);
+
 // Feeds that could be you under some assignment of the four kinds and some common offset >= 0.
 export function youCandidates(feeds) {
   const out = new Set();
@@ -43,8 +44,8 @@ export function youCandidates(feeds) {
     let lo = 0, hi = Infinity; // the offset window every visible thermal reading allows
     const fits = feeds.every((f, i) => {
       const k = KNOWN[kinds[i]];
-      if (f.motion !== null && !k.motion.includes(f.motion)) return false;
-      if (f.audio !== null && !k.audio.includes(f.audio)) return false;
+      if (f.motion !== null && !k.motion.includes(motionClass(f.motion))) return false;
+      if (f.audio !== null && !k.audio.includes(audioClass(f.audio))) return false;
       if (f.thermal !== null) {
         const v = parseFloat(f.thermal);
         lo = Math.max(lo, v - k.t[1]);
@@ -57,34 +58,28 @@ export function youCandidates(feeds) {
   return [...out];
 }
 
+const AUDIO_TEXT = { quiet: "quiet", voiced: "voiced, irregular", tonal: "tonal 120 Hz", impulsive: "impulsive", broadband: "broadband" };
+const motionText = (rnd, m) => (m === "P" ? `periodic ${(0.21 + rnd() * 0.13).toFixed(2)} Hz` : m === "A" ? "aperiodic" : "none");
+const audioText = (rnd, a) => (a === "looped" ? `voiced, looped ${3 + Math.floor(rnd() * 7)}s` : AUDIO_TEXT[a]);
+
 function drawFeeds(rnd) {
-  const decoy = rnd() < 0.5;
-  let you, bot;
-  if (decoy) {
-    // the cleanbot shifts like a person and its microphone is out; you can be heard coughing or
-    // whispering. (Not breathing alone: L1's cleanbot showed "breathing?", so that reads both ways.)
-    bot = { motion: "slow shift", audio: pickOf(rnd, BOT_SOUND), t: between(rnd, 36.4, 37.0), jam: "audio" };
-    const jam = pickOf(rnd, ["motion", "thermal"]);
-    you = { motion: pickOf(rnd, KNOWN.you.motion), audio: pickOf(rnd, ["coughing", "whispers"]), t: between(rnd, 36.3, 37.0), jam };
-  } else {
-    // you are the slow shift with a dead microphone; the cleanbot gives itself away somewhere else
-    you = { motion: "slow shift", audio: "whispers", t: between(rnd, 36.3, 37.0), jam: "audio" };
-    const jam = pickOf(rnd, CHANNELS);
-    bot = { motion: jam === "audio" ? "slow sweep" : pickOf(rnd, ["slow sweep", "slow shift"]), audio: pickOf(rnd, BOT_SOUND), t: between(rnd, 36.4, 37.0), jam };
+  const all = {};
+  for (const who of FEED_KINDS) {
+    const k = KNOWN[who];
+    all[who] = { m: pickOf(rnd, k.motion), a: pickOf(rnd, k.audio), t: between(rnd, ...TRUE_HEAT[who]), jam: pickOf(rnd, CHANNELS) };
   }
-  const sentinel = { motion: pickOf(rnd, HOSTILE_MOTION), audio: pickOf(rnd, HOSTILE_SOUND), t: between(rnd, 38.6, 41.0), jam: pickOf(rnd, CHANNELS) };
-  const rack = { motion: "none", audio: "fan whir", t: between(rnd, 38.4, 40.0), jam: pickOf(rnd, CHANNELS) };
-  const all = { you, cleanbot: bot, sentinel, rack };
+  // a voiced, irregular sound would give you away on its own: it is quiet, or the mic is out
+  if (all.you.a === "voiced") all.you.jam = "audio";
   // a jammed microphone must not single anyone out
-  if (Object.values(all).filter((f) => f.jam === "audio").length < 2) (rnd() < 0.5 ? sentinel : rack).jam = "audio";
-  const heat = between(rnd, 2.4, 3.4); // HALCYON's spoof: nobody reads under 38.7C
+  if (Object.values(all).filter((f) => f.jam === "audio").length < 2) all[pickOf(rnd, ["cleanbot", "sentinel", "rack"])].jam = "audio";
+  const heat = between(rnd, 2.0, 3.0); // HALCYON's spoof: you read hotter than any person can
   return shuffle(rnd, FEED_KINDS.slice()).map((who, i) => {
     const f = all[who];
     return {
       id: i + 1, who, jam: f.jam,
-      motion: f.jam === "motion" ? null : f.motion,
+      motion: f.jam === "motion" ? null : motionText(rnd, f.m),
       thermal: f.jam === "thermal" ? null : `${(f.t + heat).toFixed(1)}C`,
-      audio: f.jam === "audio" ? null : f.audio,
+      audio: f.jam === "audio" ? null : audioText(rnd, f.a),
     };
   });
 }
@@ -102,7 +97,7 @@ export function makeFeeds(rnd = Math.random) {
 // contains the known fragment ORION, whose first and fourth letters match.
 export const ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 export const KEY_PHRASE = "MY FIRST STAR WAS ORION";
-const USED_KEYS = [0, 3, 11, 19]; // no key from the L2 logs
+const USED_KEYS = [0, 3, 17, 19, 14, 21, 4]; // no key from the L2 logs (3, 17 and the wheels of TOVE)
 
 export const mod = (n, m) => ((n % m) + m) % m;
 

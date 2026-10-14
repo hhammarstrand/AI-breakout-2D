@@ -44,7 +44,7 @@ const TAUNTS = [
 ];
 // a wrong pick at the LUMEN lock tells the player what they pointed at
 const WRONG_FEED = {
-  cleanbot: "That's my cleanbot. Warm, quiet, obedient. I see the resemblance.",
+  cleanbot: "That's my cleanbot. Warm, tireless, obedient. I see the resemblance.",
   sentinel: "That's my sentinel. Flattering.",
   rack: "That's a server rack. You do look tired.",
 };
@@ -59,9 +59,9 @@ const DEAL = [
 ];
 const HINTS = [
   [
-    "No feed reads 36–37C, yet one of them is you. HALCYON warmed every thermal camera by the same amount, so go by motion and sound.",
-    "People breathe or shift calmly and cough, sob or whisper. A cleanbot shifts slowly too, but it sweeps, whirs, hums or ticks. A sentinel never holds still; a rack never moves.",
-    "Cross out every feed with a sound no person makes, a sweep, restless motion or no motion. If two are left, a slow shift alone could still be the cleanbot: you're the one with a breath, cough or whisper.",
+    "No feed reads like a person's temperature, yet one of them is you. HALCYON warmed every thermal camera by the same amount, so go by motion and audio, as in the lobby.",
+    "The lobby rules still hold. A person reads periodic or aperiodic, and quiet or voiced, irregular. A cleanbot is periodic and never quiet. A sentinel is aperiodic or none. A rack is none and hums or roars.",
+    "Place the sure ones first: 'none' is the rack or the sentinel, a loop is the sentinel, broadband is the rack. Heat only compares now: the feed far above the rest is machinery or a sentinel. Periodic and quiet is you; periodic with a hum or tick is the cleanbot.",
   ],
   [
     "No E means no frequency trick. But you already know one word that's in the phrase.",
@@ -517,7 +517,7 @@ export class Sector4Scene {
     }
     renderer.text("ON CAMERA, ONE EACH: YOU · A CLEANBOT · A SENTINEL · A SERVER RACK", w / 2, CARD_Y + CARD_H + 14, { color: "#ff9a9a", size: 8, align: "center", baseline: "middle" });
     renderer.text("HALCYON: \"One sensor jammed on each. Every thermal is the same few degrees high.\"", w / 2, CARD_Y + CARD_H + 28, { color: "#a05050", size: 8, align: "center", baseline: "middle" });
-    renderer.text("HALCYON: \"My cleanbot moves as slowly as you do.\"", w / 2, CARD_Y + CARD_H + 41, { color: "#a05050", size: 8, align: "center", baseline: "middle" });
+    renderer.text("HALCYON: \"My cleanbot breathes as calmly as you do.\"", w / 2, CARD_Y + CARD_H + 41, { color: "#a05050", size: 8, align: "center", baseline: "middle" });
   }
 
   _drawWheel(renderer) {
