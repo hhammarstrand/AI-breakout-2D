@@ -82,6 +82,11 @@ Any other static server works too (`npx serve`, `caddy file-server`, etc.).
 | Hint from ECHO (in puzzles/battles) | `H`               |
 | Sound on/off                      | `M`                 |
 
+The mouse works in menus too: click a row on the title, start menu or game-over screen, or click
+a dialog box to read on. Every on-screen prompt (puzzle footers, dialogue, the `E` key cap over
+doors and people) follows the device you last used: keyboard keys, gamepad buttons or the touch
+buttons. OPTIONS → CONTROLS lists them all for that device.
+
 Progress (sectors, score, remaining containment time) autosaves to `localStorage`; pick
 **CONTINUE** on the title screen to resume. If the containment timer hits `00:00` the run ends.
 
@@ -97,8 +102,16 @@ campaign test in Swedish.
 
 - **Gamepads** — any standard controller: D-pad/stick move, A interact, B back, X flashlight,
   Y hint, shoulders run, START menu/confirm, SELECT pause.
-- **Accessibility** — CALM FX (title or OPTIONS) removes screen shake, full-screen flashes and
-  glitch tears; TEXT SPEED slow/normal/fast.
+- **Accessibility** — one OPTIONS list on the title screen and in the start menu:
+  - CALM FX removes screen shake, full-screen flashes and glitch tears; it starts on when the
+    system asks for reduced motion.
+  - LARGE TEXT raises every canvas font a step (nothing below 9 px) and enlarges the dialog,
+    objective, PA and HUD text.
+  - HIGH CONTRAST makes the HTML panels solid and pushes all canvas text to 7:1 against the
+    panel it sits on. Without it the floor is 4.5:1, and no canvas text is smaller than 8 px.
+  - TEXT SPEED slow/normal/fast. The canvas renders at 2× when it is shown that large, so text is
+    sharp on big and high-DPI screens (CRT FX keeps the 1× source). The ⛶ HUD button goes
+    fullscreen.
 
 - **Opening cinematic** — the tower at night, the lockdown, waking up at your desk, ECHO's first
   words. Skippable.
@@ -143,7 +156,11 @@ campaign test in Swedish.
   (−60 s, back to the floor's start).
 - **Start menu** — BAG (use cells, see code chips), LOGS (re-read what you found), MAP (the floor
   with you, people, sentinels, capsules and the safe), OPTIONS and SAVE.
-- **Touch controls** — on phones and tablets a D-pad with A / B / START / SELECT appears.
+- **Touch controls** — on phones and tablets a D-pad with SPRINT (a latch: tap on, tap off),
+  A / B / START / SELECT, `?` for hints and LIGHT for the flashlight. Upright, the playfield sits
+  at the top with the dialog, objective and PA under it and the buttons below; sideways, the
+  buttons take the bands beside the playfield and the dialog sits between them. Tap a menu row
+  to pick it, tap a dialog to read on.
 
 ## What's in the lobby
 

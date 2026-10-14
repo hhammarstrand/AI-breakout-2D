@@ -1,5 +1,6 @@
-import { gameState, setCalmFx } from "../state.js";
+import { gameState } from "../state.js";
 import { Menu } from "./menu.js";
+import { optionItems } from "../ui/options.js";
 import { music } from "../audio/music.js";
 
 const GLYPHS = "01アイウエオカキクケコサシスセソ$#%&*<>/\\{}=+";
@@ -26,12 +27,12 @@ export class TitleScene {
     const items = [];
     if (hasSave) items.push({ label: "CONTINUE", action: onContinue });
     items.push({ label: "NEW GAME", action: () => { this.menu = this.diffMenu; } });
-    items.push({ label: () => `LANGUAGE: ${gameState.lang === "sv" ? "SVENSKA" : "ENGLISH"}`, action: onToggleLang });
-    items.push({ label: () => `SOUND: ${gameState.sfxOn ? "ON" : "OFF"}`, action: onToggleSfx });
-    items.push({ label: () => `MUSIC: ${gameState.musicOn ? "ON" : "OFF"}`, action: onToggleMusic });
-    items.push({ label: () => `CRT FX: ${gameState.crtOn ? "ON" : "OFF"}`, action: onToggleCrt });
-    items.push({ label: () => `CALM FX: ${gameState.calmFx ? "ON" : "OFF"}`, action: () => setCalmFx(!gameState.calmFx) });
+    // the same OPTIONS list as the in-game start menu; LANGUAGE stays on the front page too
+    const [language, ...rest] = optionItems();
+    items.push(language);
+    items.push({ label: "OPTIONS", action: () => { this.menu = this.optionsMenu; this.optionsMenu.index = 0; } });
     this.mainMenu = new Menu(items, sfx);
+    this.optionsMenu = new Menu([...rest, { label: "BACK", action: () => { this.menu = this.mainMenu; } }], sfx);
     this.menu = this.mainMenu;
     this.diffMenu = new Menu([
       { label: "STORY — relaxed timers", action: () => onNew("story") },
@@ -59,6 +60,7 @@ export class TitleScene {
       return;
     }
     if (!this._booted) { this._booted = true; this.sfx.play("boot"); input.consumeAnyPressed(); return; }
+    if (this.menu !== this.mainMenu && input.wasPressed("pause")) { this.menu = this.mainMenu; this.sfx.play("select"); return; }
     this.menu.update(input);
   }
 
@@ -71,10 +73,10 @@ export class TitleScene {
     if (!this._bootDone) { this._drawBoot(renderer); return; }
 
     // vignette panel behind the logo
-    renderer.fillRect(40, 62, w - 80, 222, "rgba(0, 8, 3, 0.82)");
+    renderer.fillRect(40, 62, w - 80, 222, "rgba(0, 8, 3, 0.94)"); // the rain mustn't show through the menu
     renderer.strokeRect(40, 62, w - 80, 222, "#0a8a4a", 1);
 
-    const glitch = (this._t % 3.7) < 0.12;
+    const glitch = !gameState.calmFx && (this._t % 3.7) < 0.12;
     const jx = glitch ? (Math.random() * 6 - 3) : 0;
     const title = "BLACKOUT";
     if (glitch) {
@@ -94,7 +96,8 @@ export class TitleScene {
       color: "#0a8a4a", size: 8, align: "center", baseline: "middle",
     });
 
-    this.menu.draw(renderer, w / 2, 168, this._t, 13);
+    if (this.menu === this.optionsMenu) this.menu.draw(renderer, w / 2, 162, this._t, 13);
+    else this.menu.draw(renderer, w / 2, 168, this._t, 13);
 
     renderer.text("[↑↓] choose   [space/enter] select", w / 2, 272, {
       color: "#0a8a4a", size: 8, align: "center", baseline: "middle",

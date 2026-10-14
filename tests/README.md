@@ -8,11 +8,11 @@ node tests/campaign.mjs dawn   # all three acts, every stage, ending A (use "sta
 node tests/pokemon.mjs         # grid movement, capsules, safe code lock, start menu
 node tests/battle.mjs          # spotted "!" encounter and a full hack battle
 node tests/retry.mjs           # real sokoban inputs, game over and checkpoint retry
-node tests/mobile.mjs          # emulated phone: D-pad, A/B/START
+node tests/mobile.mjs          # emulated phones: D-pad, A/B/START, LIGHT, SPRINT, dialog clear of the buttons
 node tests/intro.mjs           # difficulty menu, opening cinematic, hints, scaled penalties
 node tests/trophy.mjs          # achievement unlocks, ending stats, trophy menu
 node tests/playtest.mjs        # rate the run and download the playtest report JSON
-node tests/regress.mjs         # save/checkpoint, timer, hint, scene-stack, L1, L2, L3 and uplink regressions (exits 1 on failure)
+node tests/regress.mjs         # save/checkpoint, timer, hint, scene-stack, L1, L2, L3, uplink, prompt/pointer/readability regressions (exits 1 on failure)
 node tests/gamepad.mjs         # fake standard gamepad drives menus and movement; calm FX
 node tests/fuzz.mjs            # random input mashed into every scene type, reports page errors
 ```

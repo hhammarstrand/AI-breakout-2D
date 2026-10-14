@@ -1,5 +1,8 @@
 import { t } from "../i18n/index.js";
-import { gameState, collectedFragments, useItem, saveGame, setCalmFx, cycleTextSpeed } from "../state.js";
+import { gameState, collectedFragments, useItem, saveGame } from "../state.js";
+import { optionItems } from "../ui/options.js";
+import { controlsSheet } from "../ui/prompts.js";
+import { getLang } from "../i18n/index.js";
 import { LOGS, ITEMS, CELL_BONUS, ACTS, ACHIEVEMENTS } from "../story.js";
 import { track } from "../telemetry.js";
 import { TILE, TILE_SIZE } from "../world/tilemap.js";
@@ -32,8 +35,19 @@ export class StartMenuScene {
   update(dt, input) {
     this._t += dt;
     if (this.note) { this.note.time -= dt; if (this.note.time <= 0) this.note = null; }
-    const back = input.wasPressed("pause") || input.wasPressed("back") || input.wasPressed("menu");
-    const ok = input.wasPressed("interact") || input.wasPressed("submit");
+    let back = input.wasPressed("pause") || input.wasPressed("back") || input.wasPressed("menu");
+    let ok = input.wasPressed("interact") || input.wasPressed("submit");
+    // pointer: a tap on a row picks it (a second tap uses a BAG item); a tap off the boxes goes back
+    const hit = this._hit(input.hover, input.hoverMoved);
+    if (hit?.list === "options") this.index = hit.i;
+    else if (hit?.list === "entries") this.sub = hit.i;
+    const tap = this._hit(input.tap, true);
+    if (input.tap) {
+      if (this.reading) ok = true;
+      else if (!tap) back = true;
+      else if (tap.list === "options") { if (this.panel && this.index === tap.i) return; this.index = tap.i; this.panel = null; this.reading = null; ok = true; }
+      else if (tap.list === "entries") { const again = this.sub === tap.i; this.sub = tap.i; ok = again || this.panel !== "BAG"; }
+    }
 
     if (!this.panel) {
       if (back) { this._close(); return; }
@@ -54,6 +68,22 @@ export class StartMenuScene {
       if (input.wasPressed("down")) { this.sub = (this.sub + 1) % list.length; this.sfx.play("select"); }
     }
     if (ok && list[this.sub]?.action) list[this.sub].action();
+  }
+
+  // Which row a pointer is on, from the boxes drawn last frame.
+  _hit(p, moved) {
+    if (!p || !moved || !this._layout) return null;
+    const { opt, list } = this._layout;
+    if (p.x >= opt.x && p.x < opt.x + opt.w && p.y >= opt.y && p.y < opt.y + opt.h) {
+      const i = Math.floor((p.y - opt.y0) / opt.rowH);
+      return i >= 0 && i < OPTIONS.length ? { list: "options", i } : { list: "box" };
+    }
+    if (list && !this.reading && p.x >= list.x && p.x < list.x + list.w && p.y >= list.y && p.y < list.y + list.h) {
+      const i = Math.floor((p.y - list.y0) / list.rowH);
+      return i >= 0 && i < list.n ? { list: "entries", i } : { list: "box" };
+    }
+    if (this.reading || (this.panel && p.x < 360)) return { list: "box" }; // inside the open panel or log
+    return null;
   }
 
   _open(name) {
@@ -102,12 +132,8 @@ export class StartMenuScene {
         });
       case "OPTIONS":
         return [
-          { label: `LANGUAGE: ${gameState.lang === "sv" ? "SVENSKA" : "ENGLISH"}`, action: () => this.onToggleLang() },
-          { label: `SOUND: ${gameState.sfxOn ? "ON" : "OFF"}`, action: () => this.onToggleSfx() },
-          { label: `MUSIC: ${gameState.musicOn ? "ON" : "OFF"}`, action: () => this.onToggleMusic() },
-          { label: `CRT FX: ${gameState.crtOn ? "ON" : "OFF"}`, action: () => this.onToggleCrt() },
-          { label: `CALM FX: ${gameState.calmFx ? "ON" : "OFF"}`, desc: "No screen shake, flashes or glitch tears.", action: () => setCalmFx(!gameState.calmFx) },
-          { label: `TEXT SPEED: ${gameState.textSpeed.toUpperCase()}`, action: () => cycleTextSpeed() },
+          ...optionItems().map((o) => ({ ...o, label: o.label(), action: () => { o.action(); this.sfx.play("confirm"); } })),
+          { label: "CONTROLS", desc: "Controls for the device you last used.", action: () => { this.reading = { title: "CONTROLS", lines: controlsSheet(getLang()) }; this.sfx.play("confirm"); } },
         ];
       default:
         return [];
@@ -119,6 +145,7 @@ export class StartMenuScene {
     renderer.fillRect(0, 0, w, h, "rgba(0,0,0,0.35)");
     // option column
     const mx = w - 112, my = 10;
+    this._layout = { opt: { x: mx, y: my, w: 102, h: OPTIONS.length * 18 + 14, y0: my + 5, rowH: 18 }, list: null };
     this._box(renderer, mx, my, 102, OPTIONS.length * 18 + 14);
     OPTIONS.forEach((o, i) => {
       const y = my + 14 + i * 18;
@@ -155,6 +182,7 @@ export class StartMenuScene {
       renderer.text(this.panel === "LOGS" ? "No logs yet. Look for glinting capsules." : "Empty.", x + 14, y + 40, { color: "#4a4a5a", size: 9, baseline: "middle" });
     }
     const rowH = list.length > 8 ? 15 : 18;
+    this._layout.list = { x, y, w: bw, h: bh, y0: y + 36 - rowH / 2, rowH, n: list.length };
     list.forEach((e, i) => {
       const ly = y + 36 + i * rowH;
       if (i === this.sub) renderer.fillRect(x + 8, ly - rowH / 2, bw - 16, rowH, "#c8d8e8");
@@ -178,16 +206,21 @@ export class StartMenuScene {
 
   _drawLog(renderer) {
     const w = renderer.width;
-    const x = 20, y = 40, bw = w - 40, bh = 170;
-    this._box(renderer, x, y, bw, bh);
-    renderer.text(t(this.reading.title).toUpperCase(), x + 14, y + 18, { color: "#2a5a8a", size: 10, baseline: "middle", weight: "bold" });
     const ctx = renderer.ctx;
     ctx.font = "normal 9px ui-monospace, monospace";
+    const parts = this.reading.lines.map((line) => wrap(ctx, line, w - 70));
+    const lineH = /\b9px/.test(ctx.font) ? 13 : 14; // LARGE TEXT draws it at 10px
+    const need = parts.reduce((n, p) => n + p.length * lineH + 5, 0) + 60;
+    const bh = Math.min(renderer.height - 20, Math.max(170, need));
+    const x = 20, y = Math.max(10, 40 - (bh - 170)), bw = w - 40;
+    this._box(renderer, x, y, bw, bh);
+    renderer.text(t(this.reading.title).toUpperCase(), x + 14, y + 18, { color: "#2a5a8a", size: 10, baseline: "middle", weight: "bold" });
+    ctx.font = "normal 9px ui-monospace, monospace";
     let ly = y + 40;
-    for (const line of this.reading.lines) {
-      for (const part of wrap(ctx, line, bw - 30)) {
+    for (const lineParts of parts) {
+      for (const part of lineParts) {
         renderer.text(part, x + 14, ly, { color: "#0a0812", size: 9, baseline: "middle" });
-        ly += 13;
+        ly += lineH;
       }
       ly += 5;
     }

@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>BLACKOUT // Operation Lifeline — 2D</title>
     <link rel="stylesheet" href="./style.css" />
   </head>
@@ -28,6 +28,7 @@
           <span class="timer-bar"><span id="hud-timer-fill"></span></span>
         </div>
         <button type="button" class="hud-btn" id="hud-sfx" tabindex="-1">♪ SFX ON</button>
+        <button type="button" class="hud-btn" id="hud-fullscreen" tabindex="-1" aria-label="Fullscreen" title="Fullscreen">⛶</button>
       </header>
 
       <main id="stage">
@@ -47,14 +48,18 @@
           <div class="dialog-hint">▼</div>
         </div>
         <div id="touch" aria-hidden="true">
-          <div class="dpad">
-            <button data-action="up" class="t-up">▲</button>
-            <button data-action="left" class="t-left">◀</button>
-            <button data-action="right" class="t-right">▶</button>
-            <button data-action="down" class="t-down">▼</button>
+          <div class="lbtns">
+            <button data-action="run" data-toggle class="t-run" data-i18n="SPRINT">SPRINT</button>
+            <div class="dpad">
+              <button data-action="up" class="t-up">▲</button>
+              <button data-action="left" class="t-left">◀</button>
+              <button data-action="right" class="t-right">▶</button>
+              <button data-action="down" class="t-down">▼</button>
+            </div>
           </div>
           <div class="abtns">
             <button data-action="hint" class="t-hint">?</button>
+            <button data-action="flashlight" class="t-light" data-i18n="LIGHT">LIGHT</button>
             <button data-action="pause" class="t-select">SELECT</button>
             <button data-action="submit" class="t-start">START</button>
             <button data-action="back" class="t-b">B</button>
@@ -66,14 +71,14 @@
       </main>
 
       <footer id="legend">
-        <span><span data-i18n="move">move</span> <kbd>WASD</kbd>/<kbd data-i18n="arrows">arrows</kbd></span>
-        <span><span data-i18n="interact">interact</span> <kbd>space</kbd>/<kbd>E</kbd></span>
-        <span><span data-i18n="run">run</span> <kbd>Shift</kbd></span>
-        <span><span data-i18n="menu">menu</span> <kbd>Tab</kbd></span>
-        <span><span data-i18n="flashlight">flashlight</span> <kbd>F</kbd></span>
-        <span><span data-i18n="hint">hint</span> <kbd>H</kbd></span>
-        <span><span data-i18n="pause">pause</span> <kbd>Esc</kbd></span>
-        <span><span data-i18n="sound">sound</span> <kbd>M</kbd></span>
+        <span><span data-i18n="move">move</span> <span class="keys" data-glyph="move"><kbd>WASD</kbd>/<kbd data-i18n="arrows">arrows</kbd></span></span>
+        <span><span data-i18n="interact">interact</span> <span class="keys" data-glyph="interact"><kbd>space</kbd>/<kbd>E</kbd></span></span>
+        <span><span data-i18n="run">run</span> <span class="keys" data-glyph="run"><kbd>Shift</kbd></span></span>
+        <span><span data-i18n="menu">menu</span> <span class="keys" data-glyph="menu"><kbd>Tab</kbd></span></span>
+        <span><span data-i18n="flashlight">flashlight</span> <span class="keys" data-glyph="flashlight"><kbd>F</kbd></span></span>
+        <span><span data-i18n="hint">hint</span> <span class="keys" data-glyph="hint"><kbd>H</kbd></span></span>
+        <span><span data-i18n="pause">pause</span> <span class="keys" data-glyph="pause"><kbd>Esc</kbd></span></span>
+        <span class="kb-only"><span data-i18n="sound">sound</span> <kbd>M</kbd></span>
       </footer>
     </div>
 

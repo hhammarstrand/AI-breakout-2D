@@ -28,7 +28,10 @@ export const gameState = {
   sfxOn: readJson(SETTINGS_KEY)?.sfxOn ?? true,
   crtOn: readJson(SETTINGS_KEY)?.crtOn ?? true,
   musicOn: readJson(SETTINGS_KEY)?.musicOn ?? true,
-  calmFx: readJson(SETTINGS_KEY)?.calmFx ?? false,
+  // motion-sensitive players get calm effects before they ever find the option
+  calmFx: readJson(SETTINGS_KEY)?.calmFx ?? (typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches),
+  largeText: readJson(SETTINGS_KEY)?.largeText ?? false,
+  highContrast: readJson(SETTINGS_KEY)?.highContrast ?? false,
   textSpeed: readJson(SETTINGS_KEY)?.textSpeed ?? "normal",
   lang: readJson(SETTINGS_KEY)?.lang ?? (navigator.language?.toLowerCase().startsWith("sv") ? "sv" : "en"),
 };
@@ -227,6 +230,16 @@ export function cycleTextSpeed() {
   writeSettings();
 }
 
+export function setLargeText(on) {
+  gameState.largeText = on;
+  writeSettings();
+}
+
+export function setHighContrast(on) {
+  gameState.highContrast = on;
+  writeSettings();
+}
+
 export function setCrt(on) {
   gameState.crtOn = on;
   writeSettings();
@@ -253,6 +266,7 @@ function writeSettings() {
   writeJson(SETTINGS_KEY, {
     sfxOn: gameState.sfxOn, crtOn: gameState.crtOn, musicOn: gameState.musicOn,
     calmFx: gameState.calmFx, textSpeed: gameState.textSpeed, lang: gameState.lang,
+    largeText: gameState.largeText, highContrast: gameState.highContrast,
     endingsSeen: gameState.endingsSeen, achievements: gameState.achievements,
   });
 }

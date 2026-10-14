@@ -1,4 +1,5 @@
 import { SV, SV_PATTERNS } from "./sv.js";
+import { localizePrompts } from "../ui/prompts.js";
 
 // Render-time translation: every place that puts text on screen passes it through t().
 // English is the source language; Swedish looks the exact string up, then tries patterns for
@@ -8,9 +9,10 @@ let lang = "en";
 export function setLang(l) { lang = l === "sv" ? "sv" : "en"; }
 export function getLang() { return lang; }
 
+// Key names in the result follow the last-used input device (see ui/prompts.js).
 export function t(s) {
-  if (lang === "en" || typeof s !== "string" || s === "") return s;
-  return translate(s);
+  if (typeof s !== "string" || s === "") return s;
+  return localizePrompts(lang === "en" ? s : translate(s), lang);
 }
 
 function translate(s) {

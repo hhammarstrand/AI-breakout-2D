@@ -1,3 +1,5 @@
+import { setDevice } from "../ui/prompts.js";
+
 const KEY_ALIASES = {
   ArrowUp: "up", w: "up", W: "up",
   ArrowDown: "down", s: "down", S: "down",
@@ -22,6 +24,7 @@ export class Input {
     target.addEventListener("keydown", (event) => {
       const action = KEY_ALIASES[event.key];
       if (!action) return;
+      setDevice("keyboard");
       if (!this._down.has(action)) this._pressed.add(action);
       this._down.add(action);
       this._anyPressed = true;
@@ -35,7 +38,14 @@ export class Input {
     });
 
     target.addEventListener("blur", () => this._down.clear());
+    this.tap = null; // {x, y} in canvas pixels for one frame after a click or tap on the canvas
+    this.hover = null; // last mouse position over the canvas, while it is there
+    this.hoverMoved = false;
   }
+
+  // Pointer on the canvas, already mapped to canvas pixels by the caller.
+  tapAt(x, y) { this.tap = { x, y }; this._anyPressed = true; }
+  hoverAt(x, y) { this.hover = x === null ? null : { x, y }; this.hoverMoved = x !== null; }
 
   // virtual buttons (touch controls) feed the same action stream as the keyboard
   press(action) {
@@ -67,7 +77,7 @@ export class Input {
       if (b(9)) want.add("submit");
     }
     this._pad ??= new Set();
-    for (const a of want) if (!this._pad.has(a)) this.press(a);
+    for (const a of want) if (!this._pad.has(a)) { this.press(a); setDevice("gamepad"); }
     for (const a of this._pad) if (!want.has(a)) this.release(a);
     this._pad = want;
   }
@@ -75,5 +85,5 @@ export class Input {
   isDown(action) { return this._down.has(action); }
   wasPressed(action) { return this._pressed.has(action); }
   consumeAnyPressed() { const v = this._anyPressed; this._anyPressed = false; return v; }
-  endFrame() { this._pressed.clear(); }
+  endFrame() { this._pressed.clear(); this.tap = null; this.hoverMoved = false; }
 }

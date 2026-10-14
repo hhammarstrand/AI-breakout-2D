@@ -1,7 +1,7 @@
 :root {
   --bg: #000;
   --fg: #0aff7a;
-  --fg-dim: #0a8a4a;
+  --fg-dim: #1f9c58; /* 4.5:1+ on the dark panels */
   --cyan: #4ae6ff;
   --amber: #ffaa3a;
   --warn: #ff5a5a;
@@ -24,6 +24,7 @@ html, body {
   display: grid;
   grid-template-rows: auto 1fr auto;
   height: 100vh;
+  height: 100dvh; /* mobile browsers: the visible height, not under the URL bar */
   width: 100%;
   margin: 0 auto;
   padding: 8px 12px;
@@ -99,8 +100,8 @@ html, body {
   font-size: 9px;
   font-weight: 700;
   padding: 1px 4px;
-  border: 1px solid #1a4a30;
-  color: #1a4a30;
+  border: 1px solid #2f7a4e;
+  color: #3a9a64;
 }
 .pips i.done { background: var(--fg); border-color: var(--fg); color: #000; box-shadow: 0 0 8px var(--fg); }
 .pips i.active { color: var(--cyan); border-color: var(--cyan); animation: pip-pulse 1.2s ease-in-out infinite; }
@@ -159,6 +160,13 @@ html, body {
   background: #000;
   overflow: hidden;
   min-height: 0;
+  container-type: size; /* overlays size themselves against the letterboxed playfield */
+}
+/* the playfield's on-screen size (the canvas keeps 3:2), and CSS px per game pixel */
+#stage > * {
+  --play-w: min(100cqw, 150cqh);
+  --play-h: min(100cqh, 66.667cqw);
+  --u: calc(var(--play-h) / 320);
 }
 
 #stage.shake { animation: shake 0.35s linear; }
@@ -231,7 +239,7 @@ body.postfx #stage.glitch #game { animation: none; }
   bottom: 8px;
   left: 8px;
   max-width: 70%;
-  font-size: 11px;
+  font-size: clamp(11px, calc(var(--u) * 5.5), 17px);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--fg);
@@ -263,7 +271,7 @@ body.no-objective #objective { display: none; }
   gap: 10px;
   align-items: baseline;
   padding: 6px 12px;
-  font-size: 13px;
+  font-size: clamp(13px, calc(var(--u) * 6.5), 19px);
   letter-spacing: 0.04em;
   color: #ffd0d0;
   background: rgba(30, 0, 4, 0.88);
@@ -290,7 +298,7 @@ body.in-battle #pa, body.in-puzzle #pa { display: none; } /* announcements would
   pointer-events: none;
 }
 .toast {
-  font-size: 12px;
+  font-size: clamp(12px, calc(var(--u) * 6), 17px);
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -322,8 +330,9 @@ body.in-battle #pa, body.in-puzzle #pa { display: none; } /* announcements would
   border: 2px solid var(--fg);
   background: rgba(0, 20, 8, 0.94);
   padding: 10px 14px 22px 10px;
-  font-size: 14px;
+  font-size: clamp(14px, calc(var(--u) * 7.5), 22px);
   line-height: 1.4;
+  z-index: 6; /* never under the touch buttons */
   box-shadow:
     0 0 0 3px #000,
     0 0 0 4px var(--speaker),
@@ -353,7 +362,7 @@ body.in-battle #pa, body.in-puzzle #pa { display: none; } /* announcements would
   text-transform: uppercase;
   padding: 1px 6px;
 }
-.dialog-page { font-size: 10px; color: var(--fg-dim); letter-spacing: 0.1em; }
+.dialog-page { font-size: 11px; color: #3ac07a; letter-spacing: 0.1em; }
 .dialog-text { color: var(--fg); white-space: pre-wrap; min-height: 2.8em; }
 
 .dialog-hint {
@@ -406,15 +415,40 @@ body.calm #hud-timer.danger .hud-value { animation: none; }
     align-items: flex-end;
     position: absolute;
     inset: auto 0 0 0;
-    padding: 10px 14px;
+    padding: 10px 12px max(10px, env(safe-area-inset-bottom));
     pointer-events: none;
     z-index: 5;
   }
   #legend { display: none; }
-  #objective { bottom: auto; top: 8px; max-width: 46%; font-size: 9px; }
+  #objective { bottom: auto; top: 8px; max-width: 46%; font-size: 10px; }
   #app { padding: 4px; gap: 4px; }
   #hud { font-size: 10px; gap: 6px; padding: 4px 6px; }
   #hud .brand { display: none; }
+  .dialog { padding: 8px 10px 18px 8px; gap: 8px; font-size: 14px; }
+  .dialog-portrait { width: 44px; height: 44px; }
+}
+/* Phone upright: the playfield sits at the top, the dialog and PA right under it, the buttons
+   at the bottom, so nothing the player must read is under a thumb. */
+@media (hover: none) and (pointer: coarse) and (orientation: portrait) {
+  #stage { align-items: flex-start; }
+  #game { height: auto; aspect-ratio: 3 / 2; }
+  .dialog { top: calc(var(--play-h) + 8px); bottom: auto; left: 0; right: 0; }
+  #objective { top: calc(var(--play-h) + 8px); left: 0; max-width: 100%; font-size: 11px; }
+  #pa { top: calc(var(--play-h) + 58px); max-width: 96%; width: max-content; }
+}
+/* Phone sideways: the buttons take the bands either side of the playfield; the dialog stays
+   between them. */
+@media (hover: none) and (pointer: coarse) and (orientation: landscape) {
+  .dialog {
+    --dw: min(calc(var(--play-w) - 8px), calc(100cqw - 300px));
+    width: var(--dw);
+    left: calc((100cqw - var(--dw)) / 2);
+    right: auto;
+    bottom: 6px;
+  }
+  #objective { left: 4px; max-width: max(130px, calc((100cqw - var(--play-w)) / 2 - 8px)); }
+  #toasts { max-width: max(130px, calc((100cqw - var(--play-w)) / 2 - 8px)); right: 4px; }
+  #pa { top: 6px; max-width: min(70%, calc(var(--play-w) - 16px)); }
 }
 #touch button {
   pointer-events: auto;
@@ -429,15 +463,48 @@ body.calm #hud-timer.danger .hud-value { animation: none; }
   -webkit-user-select: none;
 }
 #touch button.held { background: rgba(10, 255, 122, 0.35); }
+.lbtns { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
 .dpad { position: relative; width: 132px; height: 132px; }
-.dpad button { position: absolute; width: 44px; height: 44px; border-radius: 8px; }
+.dpad button { position: absolute; width: 44px; height: 44px; border-radius: 8px; font-size: 14px; }
 .t-up { left: 44px; top: 0; }
 .t-down { left: 44px; bottom: 0; }
 .t-left { left: 0; top: 44px; }
 .t-right { right: 0; top: 44px; }
-.abtns { display: grid; grid-template-columns: 56px 56px; grid-template-rows: auto 56px; gap: 24px 8px; align-items: end; }
-#touch .t-start, #touch .t-select { height: 22px; border-radius: 11px !important; font-size: 7px; letter-spacing: 0; padding: 0; }
+.abtns { display: grid; grid-template-columns: 56px 56px; grid-auto-rows: auto; gap: 10px; align-items: center; justify-items: center; }
+/* pills: at least 44px tall to hit, labels 11px */
+#touch .t-start, #touch .t-select, #touch .t-light, #touch .t-run {
+  width: 56px; height: 44px; border-radius: 14px; font-size: 11px; letter-spacing: 0; padding: 0;
+}
+#touch .t-run { width: 72px; height: 40px; }
+#touch .t-run.held { color: #000; background: var(--fg); }
+#touch .t-hint { width: 44px; height: 44px; font-size: 16px; }
+#touch .t-light { color: #ffd15a; border-color: rgba(255, 209, 90, 0.7); }
 .t-a, .t-b { width: 56px; height: 56px; font-size: 18px; }
-.t-a { transform: translateY(-14px); }
-#touch .t-hint { position: absolute; right: 14px; top: -34px; width: 30px; height: 30px; font-size: 12px; }
-.abtns { position: relative; }
+
+/* ---------- OPTIONS: LARGE TEXT / HIGH CONTRAST ---------- */
+
+body.large-text .dialog { font-size: clamp(17px, calc(var(--u) * 9), 26px); }
+body.large-text .dialog-speaker { font-size: 13px; }
+body.large-text #objective { font-size: clamp(13px, calc(var(--u) * 6.5), 20px); }
+body.large-text #pa { font-size: clamp(15px, calc(var(--u) * 7.5), 22px); }
+body.large-text .toast { font-size: clamp(14px, calc(var(--u) * 7), 20px); }
+body.large-text .hud-label { font-size: 11px; }
+body.large-text .hud-value { font-size: 17px; }
+body.large-text #legend { font-size: 13px; }
+
+body.high-contrast { --fg-dim: #7fe0a8; }
+body.high-contrast .dialog { background: #000; border-width: 3px; }
+body.high-contrast .dialog-text { color: #fff; }
+body.high-contrast .dialog-page { color: #cfe; }
+body.high-contrast #objective { background: #000; color: #fff; border-left-width: 4px; }
+body.high-contrast #pa { background: #1a0003; color: #fff; }
+body.high-contrast .toast { background: #000; }
+body.high-contrast #hud { background: #000; }
+body.high-contrast .hud-label, body.high-contrast #legend { color: #cfe8dc; }
+body.high-contrast .pips i { color: #9fdcb8; border-color: #9fdcb8; }
+body.high-contrast #touch button { background: rgba(0, 0, 0, 0.85); border-color: var(--fg); }
+
+/* the run's HUD stays hidden outside a run */
+body.no-hud #hud { border-color: transparent; background: none; box-shadow: none; }
+body.no-hud #hud > :not(.hud-btn):not(.brand) { visibility: hidden; }
+body[data-device="touch"] #legend .kb-only { display: none; }

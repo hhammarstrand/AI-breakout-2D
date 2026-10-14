@@ -38,6 +38,14 @@ const S = {
   "CRT FX": "CRT-EFFEKT",
   "CALM FX": "LUGNA EFFEKTER",
   "TEXT SPEED": "TEXTHASTIGHET",
+  "LARGE TEXT": "STOR TEXT",
+  "HIGH CONTRAST": "HÖG KONTRAST",
+  "CONTROLS": "KONTROLLER",
+  "SPRINT": "SPRING",
+  "LIGHT": "LJUS",
+  "Bigger text in the game and in dialogue boxes.": "Större text i spelet och i dialogrutorna.",
+  "Solid panels and brighter text everywhere.": "Täckande paneler och ljusare text överallt.",
+  "Controls for the device you last used.": "Kontrollerna för enheten du senast använde.",
   "LANGUAGE": "SPRÅK",
   "ENGLISH": "ENGLISH",
   "SVENSKA": "SVENSKA",
@@ -236,7 +244,9 @@ const S = {
   "Tech! You're awake. Good. Listen carefully.": "Tekniker! Du är vaken. Bra. Lyssna noga.",
   "HALCYON — the building's AI — sealed the tower at midnight and queued a purge of the lower floors.": "HALCYON — byggnadens AI — stängde tornet vid midnatt och köade en rensning av de nedre våningarna.",
   "Somewhere in this tower are the three words of the uplink override code. Find them, reach HALCYON's core, shut it down.": "Någonstans i tornet finns de tre orden i uplinkens åsidosättningskod. Hitta dem, ta dig till HALCYONs kärna och stäng av den.",
-  "Move with WASD or the arrows. E or space to talk and interact. F for your flashlight. Now go.": "Gå med WASD eller piltangenterna. E eller mellanslag för att prata och interagera. F för ficklampan. Gå nu.",
+  "Move with WASD or the arrows, Shift to run. E or space to talk and interact. Tab for the menu, F for your flashlight. Now go.": "Gå med WASD eller piltangenterna, Shift för att springa. E eller mellanslag för att prata och interagera. Tab för menyn, F för ficklampan. Gå nu.",
+  "Move with the D-pad, tap SPRINT to run. A to talk and interact, B to go back, START for the menu. LIGHT for your flashlight. Now go.": "Gå med styrkorset, tryck på SPRING för att springa. A för att prata och interagera, B för att backa, START för menyn. LJUS för ficklampan. Gå nu.",
+  "Move with the D-pad or stick, shoulders to run. A to talk and interact, B to go back, START for the menu. X for your flashlight. Now go.": "Gå med styrkorset eller spaken, axelknapparna för att springa. A för att prata och interagera, B för att backa, START för menyn. X för ficklampan. Gå nu.",
 };
 
 export const SV = { ...S, ...SV_WORLD, ...SV_SCENES };
