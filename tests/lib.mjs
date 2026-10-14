@@ -54,10 +54,11 @@ export async function solveUplink({ ev, press, wait }, choice = 0) {
   await ev(() => { const s = window.__blackout.game.top; s.cursor = s.feeds.findIndex((f) => f.who === "you"); });
   await press("Enter"); await wait(1900);
   await talkUntil("lock");
-  await ev(() => { const s = window.__blackout.game.top; s.rotation = s.key; });
+  await ev(() => { const s = window.__blackout.game.top; s.keys = [...s.key]; });
   await press("Enter"); await wait(1900);
   await talkUntil("lock");
-  for (const k of ["ArrowDown", "ArrowDown", "ArrowRight", "Space", "ArrowRight", "ArrowUp"]) await press(k);
+  // AURORA: onto the plate (door shuts), off over the A gate on an odd step, back on (door opens)
+  for (const k of ["ArrowRight", "ArrowDown", "ArrowUp", "ArrowDown", "ArrowRight", "ArrowRight"]) await press(k);
   await press("Enter");
   for (let i = 0; i < 100 && (await phase()) !== "deal"; i++) await wait(100);
   await talkUntil("choice");

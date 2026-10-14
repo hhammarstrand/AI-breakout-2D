@@ -61,7 +61,7 @@ const LATTICE = {
   hints: [
     "A corner panel has only two neighbours, so the trace must pass through both of them. The same goes for any panel squeezed between a pillar and a wall.",
     "Mark those forced links first: they fill in most of the trace on their own. The vault socket ends the trace, so it uses only one neighbour — the panel left of it, pinned by the pillar.",
-    "From the entry socket go down to the bottom row, then zig-zag up to the top-left corner. Run the top row east and zig-zag down the east side into the vault socket.",
+    "Draw every forced link before you take a step. Joined up, they leave only a few separate runs, and only one order connects them from the entry socket to the vault socket. If a run would strand a panel, the order is wrong.",
   ],
 };
 
@@ -88,7 +88,7 @@ export const coreMap = {
     hints: [
       "HALCYON's 'first minute' log is in the C1 alcove. A terminal in the main hall remembers what came after its first boot.",
       "The code is the clock time of its first word: the boot time plus 67 minutes, as HH MM. Carry past the hour.",
-      "21:58 plus 2 minutes is 22:00. Add the other 65 minutes to that.",
+      "Add on a clock, not on plain digits: from the boot time, first count up to the next full hour, then add what's left of the 67 minutes. The boot time is in the C1 alcove log, the 67 on the main hall terminal.",
     ],
   },
   pickups: [

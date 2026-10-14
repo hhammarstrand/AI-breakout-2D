@@ -23,7 +23,7 @@ export const LEVELS = [
     hints: [
       "The number on each tile is the step ECHO lands there. Every command is one step, waits too.",
       "Compare the number on the A gate with A's rule. A detour won't help: it adds two steps, so odd stays odd and even stays even.",
-      "Put one WAIT (space) anywhere before the A gate, never on it. Then walk on to G.",
+      "The A gate's number is even, and A is live on even steps. One WAIT anywhere before the gate, never on it, makes that number odd.",
     ],
   },
   {
@@ -40,9 +40,9 @@ export const LEVELS = [
     ],
     brief: "Keycard (C) first, then G. Now there are B gates too.",
     hints: [
-      "Two tiles side by side are always reached on back-to-back steps: one odd, one even.",
-      "ECHO can't wait on a gate, so a timing fix has to happen on a free tile between gates. And two A gates in a row can never both be safe.",
-      "Wait once in the gap between the top A and B. Skip the double A: take the bottom corridor, and wait once in its gap too.",
+      "No step numbers from here on: count them. The slot counter shows how many commands are queued, so the next command lands on that number plus one.",
+      "Two tiles side by side are always reached on back-to-back steps: one odd, one even. ECHO can't wait on a gate, so a timing fix has to happen on a free tile between gates.",
+      "Two A gates in a row can never both be dark, so that corridor is closed: look for another way to G. Before each gate, count its step; where the gate would be live, add one wait on the free tile just before it.",
     ],
   },
   {
@@ -59,7 +59,7 @@ export const LEVELS = [
     hints: [
       "Only moving onto the plate flips the doors. Waiting on it does nothing.",
       "You can't avoid crossing the plate, and that shuts the door to the keycard. Count how many times ECHO steps on it before each door.",
-      "Cross the plate, step off and back on, fetch the keycard, then step onto the plate a third time before the shut door.",
+      "Count plate arrivals: after an odd number the doors are flipped, after an even number they're back. Before each door, work out which it needs, and step off and back onto the plate to change the count.",
     ],
   },
   {
@@ -76,7 +76,7 @@ export const LEVELS = [
     hints: [
       "Same doors as before, now with gates around the plate. Fix each gate's timing with as few waits as possible.",
       "The A and B gates beside the plate need a wait between them, and the plate is the only free tile there. Stepping back off and on again keeps the timing.",
-      "Wait once before the first A and once on the plate. Step back onto A and onto the plate again, fetch the keycard, then cross B onto the plate and back before the shut door.",
+      "Solve it in two halves: first the gates around the plate (a wait on the plate fixes the timing without flipping anything), then the door count, as in SWITCHBACK. Recount every gate after each change.",
     ],
   },
 ];
@@ -88,7 +88,7 @@ const CLEAR_HOLD = 0.6;
 const PENALTY = { gate: 20, wall: 10, door: 10, short: 10, chip: 10 };
 const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0], wait: [0, 0] };
 const GLYPH = { up: "↑", down: "↓", left: "←", right: "→", wait: "W" };
-// tiles whose effect depends on timing; after level 1 only these carry step numbers
+// tiles whose effect depends on timing (they get stacked step numbers in level 1's preview)
 const TIMED = new Set(["A", "B", "P", "O", "D"]);
 
 export function gateLive(tile, step) {
@@ -155,6 +155,7 @@ export class Sector3Scene {
     this.oy = Math.max(32, Math.round(152 - (this.h * CELL) / 2));
     this.rows.forEach((r, y) => [...r].forEach((ch, x) => { if (ch === "S") this.start = { x, y }; }));
     this.queue = [];
+    this.failMark = null;
     this._reset();
     this.message = { text: lv.brief, color: "#4ae6ff", time: 6 };
   }
@@ -207,7 +208,7 @@ export class Sector3Scene {
       if (input.wasPressed(dir)) this._push(dir);
     }
     if (input.wasPressed("interact")) this._push("wait");
-    if (input.wasPressed("back") && this.queue.length) { this.queue.pop(); this.sfx.play("select"); }
+    if (input.wasPressed("back") && this.queue.length) { this.queue.pop(); this.failMark = null; this.sfx.play("select"); }
     // holding backspace wipes the whole queue, so a long route can be rewritten quickly
     this._backHeld = input.isDown("back") ? this._backHeld + dt : 0;
     if (this._backHeld >= CLEAR_HOLD && this.queue.length) {
@@ -230,6 +231,7 @@ export class Sector3Scene {
       return;
     }
     this.queue.push(cmd);
+    this.failMark = null;
     this.sfx.play("blip");
   }
 
@@ -243,6 +245,11 @@ export class Sector3Scene {
       return;
     }
     const r = stepEcho(this.rows, this.sim, this.queue[this.runIndex++]);
+    if (r.fail) {
+      // the tile it failed on keeps that step number in the preview until the queue changes
+      const [dx, dy] = DIRS[this.queue[this.runIndex - 1]];
+      this.failMark = { x: this.sim.x + dx, y: this.sim.y + dy, step: r.step };
+    }
     if (r.fail === "wall" || r.fail === "door") {
       this.sim.step = r.step;
       this._fail(r.fail, r.fail === "wall" ? `Step ${r.step}: ECHO walked into a wall.` : `Step ${r.step}: ECHO hit a shut door.`);
@@ -414,9 +421,11 @@ export class Sector3Scene {
   }
 
   // Where the queued route goes, without timing: walls are the only thing the preview checks
-  // (red X); gates and doors depend on the step count, which the player has to work out.
+  // (red X); gates and doors depend on the step count, which the player has to work out. Level 1
+  // is the tutorial and numbers every tile; later levels number nothing but the tile a failed run
+  // stopped on (the slot counter still says how many steps are queued).
   _plan() {
-    const all = this.level === 0; // level 1 numbers every tile; later levels only the timed ones
+    const all = this.level === 0;
     let { x, y } = this.start;
     const path = [{ x, y }], waits = [], bumps = [];
     const marks = new Map(); // tile -> step numbers ECHO spends on it
@@ -425,7 +434,7 @@ export class Sector3Scene {
       if (this.tile(x + dx, y + dy) !== "#") { x += dx; y += dy; } else bumps.push({ x: x + dx, y: y + dy });
       if (cmd === "wait") waits.push({ x, y });
       path.push({ x, y });
-      if (all || TIMED.has(this.tile(x, y))) {
+      if (all) {
         const k = `${x},${y}`;
         if (!marks.has(k)) marks.set(k, { x, y, steps: [] });
         marks.get(k).steps.push(i + 1);
@@ -469,6 +478,14 @@ export class Sector3Scene {
     ctx.font = "bold 7px ui-monospace, monospace";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
+    const fm = this.failMark;
+    if (fm && !marks.has(`${fm.x},${fm.y}`)) {
+      const label = String(fm.step), tw = Math.ceil(ctx.measureText(label).width);
+      const mx = this.ox + fm.x * CELL + CELL / 2, my = this.oy + fm.y * CELL + CELL / 2;
+      renderer.fillRect(mx - tw / 2 - 1, my - 4, tw + 2, 8, "rgba(40,0,8,0.95)");
+      ctx.fillStyle = "#ff5a5a";
+      ctx.fillText(label, mx, my);
+    }
     for (const { x, y, steps } of marks.values()) {
       const timed = TIMED.has(this.tile(x, y));
       if (!timed) {

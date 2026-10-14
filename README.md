@@ -19,8 +19,8 @@ out of time restarts the current act.
 
 | Act | Floor | Stages |
 | --- | ----- | ------ |
-| I (25 min) | Lobby | **L1** classify CCTV feeds from raw motion, thermal and audio readings, using sensor rules pieced together from the L1 sign and three lobby staff; two rounds (fragment LUMEN) · **L2** three escalating cipher logs: a Caesar wheel by frequency analysis, one where E isn't the commonest letter and word shapes give the key, then a four-wheel keyword cipher keyed with a name found in the lobby (ORION) · **L3** program ECHO's command queue over four levels: laser-gate timing, pressure plates that flip the doors, no spare slots · service lift |
-| II (20 min) | Research floor | **R1** rotate conduits to restore power · **R2** tune HALCYON's carrier: copy a wave, pick HALCYON's voice out of its sum with ECHO's (opposite phases subtract), then answer a sentinel handshake from rules found on the floor, with ▲/▼/✓ marks per try · **R3** sokoban coolant bays (AURORA) · core lift |
+| I (25 min) | Lobby | **L1** classify CCTV feeds from raw motion, thermal and audio readings, using sensor rules pieced together from the L1 sign and three lobby staff; two rounds (fragment LUMEN) · **L2** three escalating cipher logs: a Caesar wheel by frequency analysis (the tutorial), one where E isn't the commonest letter and the live decode only probes one short word at a time, so word shapes (THE, A, OFF) give the key, then a four-wheel keyword cipher with no live decode and no short words, keyed with a name found in the lobby (ORION) · **L3** program ECHO's command queue over four levels: laser-gate timing, pressure plates that flip the doors, no spare slots; only level 1's preview numbers the steps, later levels have to be counted (a failed run marks the step it failed on) · service lift |
+| II (20 min) | Research floor | **R1** rotate conduits to restore power (`Space` clockwise, `Backspace` back) · **R2** tune HALCYON's carrier: copy a wave, pick HALCYON's voice out of its sum with ECHO's (opposite phases subtract), then answer a sentinel handshake from rules found on the floor, with ▲/▼/✓ marks per try; a repeated transmission is refused for free, and stepping out keeps the handshake's values and dials · **R3** sokoban coolant bays (AURORA) · core lift |
 | III (15 min) | The core | **C1** firewall run — an action sequence steering a packet through closing gates · **UPLINK** three locks, one per code word, each a twist on an earlier puzzle (see below), then decide ECHO's fate |
 
 The HUD's UPLINK CODE cell names each fragment by the stage it came from (◆L1 ◆L2 ◆R3) and only
@@ -28,19 +28,22 @@ spells a word once the uplink accepts it.
 
 ### The uplink
 
-HALCYON puts a lock on every word of the code, and each one asks you to use something you learned
-on the way up, bent by one new rule:
+HALCYON puts a lock on every word of the code. Each one combines things learned on the way up, so
+the finale is the hardest stretch rather than a recap:
 
-- **LUMEN** — four console cameras (you, a cleanbot, a sentinel, a server rack), one sensor jammed
-  on each and every thermal reading pushed up by the same few degrees, so nobody reads 36–37C.
-  Find yourself with L1's motion and sound rules; HALCYON warns that its cleanbot moves as slowly
-  as you do. Boards are random per visit and only kept if exactly one feed can be you.
-- **ORION** — HALCYON's key phrase on L2's cipher wheel with a new key and no live decode. It has
-  no E, so frequency analysis fails; the crib is the fragment it names: find the five-letter word
-  whose first and fourth letters match, and turn the wheel until it reads ORION.
+- **LUMEN** — five console cameras (you, a cleanbot, a sentinel, a server rack, an empty office), a
+  sensor jammed on each and a second one on two of them, and every thermal reading pushed up by the
+  same few degrees, so nobody reads 36–37C and heat only compares. Find yourself with L1's motion,
+  sound and heat rules (`Tab` shows the field notes from the lobby); HALCYON warns that its cleanbot
+  breathes as calmly as you do. Boards are random per visit and only kept if exactly one feed can be you.
+- **ORION** — HALCYON's key phrase on two cipher wheels that take turns (L2's keyword log), with no
+  live decode and no E, so frequency analysis fails. The crib is the fragment it names (L2's word
+  shapes): ORION's O, I and N fall on one wheel and R, O on the other, so only the five-letter word
+  whose 1st, 3rd and 5th letters one wheel turns into O, I, N can be it; that sets both wheels.
 - **AURORA** — six commands, one per letter, and ECHO must reach the socket on exactly the sixth,
-  through L3's alternating gates. Working backwards rules out the short way (its B gate would be
-  live on step 5) and puts the long way's single wait in the only place that works.
+  through L3's alternating gates and its pressure plate. The socket's only door shuts when ECHO
+  arrives on the plate, so the program has to step off over the gate that is dark on that beat and
+  back on. Of the 15 625 possible programs exactly one works.
 
 **L1 in detail.** Each camera feed shows neutral readings: MOTION (`periodic 0.27 Hz`, `aperiodic`,
 `none`), THERMAL in °C and AUDIO (`quiet`, `voiced, irregular`, `voiced, looped 6s`, `tonal 120 Hz`,
@@ -75,8 +78,8 @@ Any other static server works too (`npx serve`, `caddy file-server`, etc.).
 | Interact / cycle tag / wait (L3, AURORA) | `Space` / `E` |
 | Reset a floor puzzle (hold)       | `E`                 |
 | Submit / run (inside a sector)    | `Enter`             |
-| Field notes (L1: the rules you've been told) | `Tab`  |
-| Undo (L3/AURORA command, R3 move); hold to clear the L3 queue | `Backspace` |
+| Field notes (L1 and the LUMEN lock: the rules you've been told) | `Tab`  |
+| Undo (L3/AURORA command, R3 move); hold to clear the L3 queue; turn back (R1) | `Backspace` |
 | Pause / close dialog / exit sector | `Esc`              |
 | Flashlight on/off                 | `F`                 |
 | Hint from ECHO (in puzzles/battles) | `H`               |
@@ -105,7 +108,8 @@ campaign test in Swedish.
 - **Difficulty** — STORY (×1.6 time, sentinels slower to spot you, half penalties), NORMAL, HARD
   (×0.75 time, sharper sentinels, ×1.5 penalties), chosen at NEW GAME.
 - **Hints** — press `H` (or `?` on touch) in any puzzle, battle or safe for ECHO's hints, from a
-  nudge to nearly the answer.
+  nudge to where the deciding clue is or the exact method. No tier states the answer (no keys,
+  codes or routes): the clues in the world still have to be found and combined.
 
 ## Explore like it's a Pokémon game
 
@@ -120,7 +124,7 @@ campaign test in Swedish.
   reshuffled the old code from the plaque under three rules found in three places. Core: the minute
   HALCYON first spoke, worked out from its boot log and a memory-log offset. Each safe holds a
   backup cell (+90 s) and an ECHO memory, a data log found nowhere else. A wrong code costs 5 s;
-  ECHO's hints go from where to look, to how to combine, to nearly the answer.
+  ECHO's hints go from where to look, to how to combine, to the exact method and where each piece is.
 - **Floor puzzles** — each floor hides one optional, Pokémon-gym-style room built into the map
   itself, guarding a spare backup cell. A sign at the door states the rules; the room is shielded,
   so sentinels never see in. Solved rooms stay solved in the save (`wp-*` ids).

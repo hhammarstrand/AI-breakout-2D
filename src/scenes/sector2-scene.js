@@ -1,13 +1,14 @@
 import { music } from "../audio/music.js";
 import { penalize, scaledPenalty } from "../state.js";
 import { t } from "../i18n/index.js";
-import { LOGS, ALPHA, mod, crypt, wheelOf, letterCounts } from "./cipher-logs.js";
+import { LOGS, ALPHA, mod, crypt, wheelOf, letterCounts, shortWords, PROBE_MAX } from "./cipher-logs.js";
 
 // Sector 2 — three intercepted logs that escalate (see cipher-logs.js). Log 1 is the tutorial: the
 // frequency panel says the tallest bar is about E and only the three commonest letters decode
-// live, so the player has to use that rule. Log 2 breaks the rule (T beats E) and drops the label,
-// but decodes everything live so word shapes can be tested. Log 3 needs a keyword from the lobby;
-// with 26^4 settings, turning reels until it reads is hopeless.
+// live, so the player has to use that rule. Log 2 breaks the rule (T beats E) and drops the label;
+// its live decode is a probe on one short word at a time, so the player tests word shapes (THE,
+// A, OFF) rather than spinning until the whole log reads. Log 3 has no live decode and no short
+// words: it needs the keyword from the lobby, and 26^4 settings can't be tried blind.
 const REVEALED = 3;
 const TIME_PENALTY = 30;
 
@@ -19,12 +20,12 @@ const HINTS = [
     "The key is how far the orange letter lies past E, counting forward. E to G would be 2.",
   ],
   [
-    "Short notes don't follow the rules: E isn't the tallest bar here. Read the words instead.",
-    "A one-letter word can only be A or I. A three-letter word that keeps coming back is almost always THE.",
-    "Turn the wheel until the three-letter word that appears three times reads THE. The lone letter should then read A.",
+    "Short notes don't follow the rules: E isn't the tallest bar here. Read the words instead: ↑↓ moves the probe from one short word to the next.",
+    "A one-letter word can only be A or I. A three-letter word that keeps coming back is almost always THE, and a short word ending in a double letter is often OFF, ALL or ADD.",
+    "Probe the three-letter word you see most often and turn the key until it reads THE. Then probe the others: if the lone letter reads A and every short word is English, lock in.",
   ],
   [
-    "Each wheel is its own Caesar shift, and they take turns: wheel 1 decodes letter 1, wheel 2 letter 2, and so on.",
+    "There is no live decode here, and no short word to probe. Each wheel is its own Caesar shift, and they take turns: wheel 1 decodes letter 1, wheel 2 letter 2, and so on.",
     "The key is Dr. Lind's password. She told you what she uses for every key she sets. Find out that name.",
     "Lind's daughter signed the drawing on Lind's workstation, south-west in the lobby. Lind's voice memo names her too. Dial the name, one letter per wheel.",
   ],
@@ -110,6 +111,9 @@ export class Sector2Scene {
     this.revealed = this.log.tutorial ? new Set(
       [...ALPHA].map((ch, i) => [ch, this.freq[i]]).sort((a, b) => b[1] - a[1]).slice(0, REVEALED).map(([ch]) => ch),
     ) : null;
+    // log 2 decodes one short word at a time; the keyword log decodes nothing until it's solved
+    this.probes = !this.log.tutorial && this.wheels === 1 ? shortWords(this.cipher) : null;
+    this.probe = 0;
     this._hintsShown = 0; // a new log starts again from the gentlest hint
   }
 
@@ -137,6 +141,11 @@ export class Sector2Scene {
       if (input.wasPressed("right")) this._select(1);
       if (input.wasPressed("up")) this._turn(1);
       if (input.wasPressed("down")) this._turn(-1);
+    } else if (this.probes) {
+      if (input.wasPressed("left")) this._turn(-1);
+      if (input.wasPressed("right")) this._turn(1);
+      if (input.wasPressed("up")) this._moveProbe(-1);
+      if (input.wasPressed("down")) this._moveProbe(1);
     } else {
       if (input.wasPressed("left") || input.wasPressed("up")) this._turn(-1);
       if (input.wasPressed("right") || input.wasPressed("down")) this._turn(1);
@@ -147,6 +156,21 @@ export class Sector2Scene {
   _select(step) {
     this.sel = mod(this.sel + step, this.wheels);
     this.sfx.play("select");
+  }
+
+  _moveProbe(step) {
+    this.probe = mod(this.probe + step, this.probes.length);
+    this.sfx.play("select");
+    const { start, end } = this.probes[this.probe];
+    for (let i = start; i < end; i++) this.scramble[i] = Math.max(this.scramble[i], 0.12);
+  }
+
+  // is character i decoded on screen right now?
+  _shown(i) {
+    if (this.stamp > 0 || this.cipher[i] === " ") return true;
+    if (this.revealed) return this.revealed.has(this.cipher[i]);
+    if (this.probes) { const p = this.probes[this.probe]; return i >= p.start && i < p.end; }
+    return false;
   }
 
   _turn(step) {
@@ -357,7 +381,18 @@ export class Sector2Scene {
     ctx.font = "9px ui-monospace, monospace";
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
-    this._drawChars(ctx, cLines, x, top + 15, 12, (ch, k) => [ch, multi && ch !== " " ? WHEEL_COLORS[this.wheelAt[k]] : "#ffd8a0"]);
+    const probed = this.probes && !solved ? this.probes[this.probe] : null;
+    const cw0 = this._drawChars(ctx, cLines, x, top + 15, 12, (ch, k) => [ch, multi && ch !== " " ? WHEEL_COLORS[this.wheelAt[k]]
+      : probed && k >= probed.start && k < probed.end ? "#ffffff" : probed ? "#a08060" : "#ffd8a0"]);
+    if (probed) {
+      // underline the probed word where wrapping put it
+      let k = 0;
+      cLines.forEach((line, li) => {
+        const from = Math.max(probed.start, k), to = Math.min(probed.end, k + line.length);
+        if (from < to) renderer.fillRect(x + (from - k) * cw0, top + 15 + li * 12 + 10, (to - from) * cw0 - 1, 1, "#4ae6ff");
+        k += line.length + 1;
+      });
+    }
 
     const hy = top + 26 + cLines.length * 12;
     if (multi) {
@@ -381,11 +416,11 @@ export class Sector2Scene {
 
     // live decode with scramble ripple
     const dy = hy + 52;
-    const label = solved ? "DECODED OUTPUT" : this.revealed ? `PARTIAL DECODE — top ${REVEALED} letters` : "LIVE DECODE";
+    const label = solved ? "DECODED OUTPUT" : this.revealed ? `PARTIAL DECODE — top ${REVEALED} letters`
+      : this.probes ? `LIVE PROBE — one word of ${PROBE_MAX} letters or fewer` : "NO LIVE DECODE — dial the whole key";
     renderer.text(label, x, dy, { color: "#0aff7a", size: 8, weight: "bold" });
     const full = crypt(this.cipher, this.keys, -1);
-    const decoded = [...full].map((ch, i) =>
-      solved || ch === " " || !this.revealed || this.revealed.has(this.cipher[i]) ? ch : "·").join("");
+    const decoded = [...full].map((ch, i) => (this._shown(i) ? ch : "·")).join("");
     const lines = wrap(decoded, WRAP);
     renderer.fillRect(x - 4, dy + 11, PANEL_W, lines.length * 13 + 6, "rgba(0,30,12,0.6)");
     renderer.strokeRect(x - 4, dy + 11, PANEL_W, lines.length * 13 + 6, solved ? "#0aff7a" : "#0a4a2a", 1);
@@ -411,7 +446,8 @@ export class Sector2Scene {
   _drawFooter(renderer, w, h) {
     renderer.fillRect(0, h - FOOTER_H, w, FOOTER_H, "#061a26");
     renderer.fillRect(0, h - FOOTER_H, w, 1, "#4ae6ff");
-    const keys = this.wheels > 1 ? "[←→] pick wheel   [↑↓] turn   [enter] lock in   [esc] exit" : "[←→] rotate key   [enter] lock in   [esc] exit";
+    const keys = this.wheels > 1 ? "[←→] pick wheel   [↑↓] turn   [enter] lock in   [esc] exit"
+      : this.probes ? "[←→] rotate key   [↑↓] probe word   [enter] lock in   [esc] exit" : "[←→] rotate key   [enter] lock in   [esc] exit";
     renderer.text(keys, 8, h - FOOTER_H / 2, { color: "#1a8a9a", size: 8, baseline: "middle" });
   }
 

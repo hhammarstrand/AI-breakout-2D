@@ -102,7 +102,7 @@ const COLD_STORE = {
   hints: [
     "A canister only stops when it hits something — a vent won't stop it. Find what could hold one still right on a vent.",
     "The tank stops a canister one tile short of it, in line with the lone west vent. Of the two east vents, the bottom one has to be filled first.",
-    "Shove the top-left canister east into its neighbour, then down onto the tank and west onto the vent. Send the other two east and down — the one in the top row goes first.",
+    "Work backwards from each vent: what could stop a canister right on it, and from which side would it have to slide in? A canister already on a vent is something to stop against, which is why the order matters.",
   ],
 };
 
@@ -131,7 +131,7 @@ export const researchFloorMap = {
     hints: [
       "Kofi's memo is in the supply room, south-west, and his lab terminal is in the west wing. The old code is on a plaque by the arrival lift.",
       "Use the plaque year's four digits. Every digit moves to a new place, the 0 can't go first, and the last digit is odd.",
-      "The last digit has to be the 3, since the 1 was already last. Then only one digit can go first.",
+      "Make a grid: four places, four digits. In each place cross out the digit the plaque had there, then apply the memo and the terminal. One place is left with a single digit; fill it, cross that digit out everywhere else, and repeat.",
     ],
   },
   pickups: [

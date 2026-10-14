@@ -16,6 +16,7 @@ const CELL = 34;
 const DONE_TIME = 1.6;
 
 const rotCW = (m) => ((m << 1) | (m >> 3)) & 15;
+const rotCCW = (m) => ((m >> 1) | ((m & 1) << 3)) & 15;
 
 function generate(spec) {
   // keep drawing trees until there are enough dead ends to hang every outlet on
@@ -147,10 +148,12 @@ export class PowerScene {
     if (input.wasPressed("right")) c.x = (c.x + 1) % cols;
     if (input.wasPressed("up")) c.y = (c.y + rows - 1) % rows;
     if (input.wasPressed("down")) c.y = (c.y + 1) % rows;
-    if (input.wasPressed("interact") || input.wasPressed("submit")) {
+    // Space/Enter turn clockwise, Backspace back the other way, so no piece costs three presses
+    const ccw = input.wasPressed("back");
+    if (ccw || input.wasPressed("interact") || input.wasPressed("submit")) {
       const cell = this.cell(c.x, c.y);
       if (cell.bolted) { this.sfx.play("denied"); return; }
-      cell.mask = rotCW(cell.mask);
+      cell.mask = ccw ? rotCCW(cell.mask) : rotCW(cell.mask);
       cell.spin = 0.12;
       this.sfx.play("select");
       const before = this.lit.litOuts;
@@ -239,7 +242,7 @@ export class PowerScene {
 
     renderer.fillRect(0, h - 22, w, 22, "#1e1806");
     renderer.fillRect(0, h - 22, w, 1, "#ffd15a");
-    renderer.text("[arrows] move   [space] rotate   power every piece, no loose ends   [esc] exit", 8, h - 11, { color: "#a8904a", size: 8, baseline: "middle" });
+    renderer.text("[arrows] move   [space] rotate ↻   [backspace] ↺   no loose ends   [esc] exit", 8, h - 11, { color: "#a8904a", size: 8, baseline: "middle" });
     if (this.done > 0) {
       renderer.text("GRID ONLINE", w / 2, gy + rows * CELL + 16, { color: "#0aff7a", size: 12, align: "center", baseline: "middle", weight: "bold" });
     }

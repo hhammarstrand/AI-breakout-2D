@@ -172,7 +172,7 @@ const LASERS = {
   hints: [
     "The gates swap every time a floor sensor feels a step. Walk into a gate while it's lit: it switches off as you move in.",
     "Walking around never changes which gates are lit when you come back to a spot. Only a cracked panel skips a beat — and after a skip, the gate behind you stays shut.",
-    "Go south through the first gate and skip a beat on the cracked panel in that room's corner. Head east, come up into the north-east room, and skip again on its cracked panel before you try the override gate.",
+    "Plan on the beat: from the start pad each sensor step swaps the gates, so whether a gate is lit when you reach it depends only on how many steps it is from the pad, odd or even. Where the count comes out wrong, skip a beat on a cracked panel before that gate. There are two panels, and you need both, in the right order.",
   ],
 };
 
@@ -203,9 +203,9 @@ export const smartBuildingMap = {
     inside: "Inside, wrapped in a lab coat: a BACKUP CELL and a memory shard.",
     echo: "That shard has my tag on it. From before I was me.",
     hints: [
-      "Four screens froze when HALCYON killed them: a CCTV monitor in the L1 alcove, a console in the L3 alcove, and a desk on each side of the lobby. Reyes's shift notes are in the L1 alcove too.",
+      "Reyes re-keyed the safe from the screens HALCYON froze. Her shift notes in the L1 alcove say how.",
       "Take the last digit of each frozen clock, in the order the screens died. The night crossed midnight: every 23:xx came before any 00:xx.",
-      "The cleanbot dock died first (23:53) and the west desk last (00:04). Which of the other two died before midnight?",
+      "The four frozen screens: a CCTV monitor in the L1 alcove, a console in the L3 alcove, and a desk on each side of the lobby. Write their times down and sort them as one night, then read the last digits in that order.",
     ],
   },
   pickups: [
@@ -303,10 +303,9 @@ export const smartBuildingMap = {
         [
           "Thank you. I was in that room for six hours.",
           "I built HALCYON's language layer. Its logs use a rotating alphabet — a Caesar shift.",
-          "Count the letters first. In English the commonest one is nearly always E: line it up with E.",
-          "Nearly. Short notes lie. Then read the words: a lone letter is A or I, and a three-letter word that keeps coming back is THE.",
-          "Its private logs use a keyword instead: one wheel per letter of the key, taking turns. It learned that from me.",
-          "Every key I've ever set is my daughter's name. It watched me type it every morning. Her drawing's still on my desk.",
+          "I taught it to count letters before it could read. It learned to hide from counting, too.",
+          "Its private logs use a keyword instead. It learned that from me.",
+          "Every key I've ever set is my daughter's name. It watched me type it every morning.",
           "And take this — the first uplink fragment: LUMEN. I hid it in my notes before it locked us out.",
         ],
         [
