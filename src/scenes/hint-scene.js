@@ -1,13 +1,15 @@
 import { t } from "../i18n/index.js";
 import { drawPortrait } from "../ui/portrait.js";
 import { track } from "../telemetry.js";
+import { drawClockPaused } from "./pause-scene.js";
 
-// Seconds before ECHO will give a stronger hint for the same puzzle, so the answer can't be
-// pulled out with three quick presses.
+// Seconds spent in the puzzle itself before ECHO will give a stronger hint, so the answer can't be
+// pulled out with three quick presses, or by waiting in this overlay or a pause.
 const HINT_GAP = 30;
 
-// ECHO's hints: each press of H reveals the next, from a nudge to nearly the answer. The purge
-// clock keeps running while the overlay is open: hints are help, not a pause button.
+// ECHO's hints: each press of H reveals the next, from a nudge to nearly the answer. Reading a
+// hint stops the clock like any other text (see pause-scene.js); the overlay hides the puzzle, so
+// it can't double as a free thinking pause. owner._activeT is the time the owner spent on top.
 export class HintScene {
   constructor({ hints, owner, sfx, hud }) {
     this.list = hints; // not `hints`: that name makes the game route H here as a new overlay
@@ -28,7 +30,6 @@ export class HintScene {
 
   update(dt, input) {
     this._t += dt;
-    this.hud?.update(dt);
     if (this._t <= 0.2) return;
     if (input.wasPressed("hint") && this.count < this.list.length) {
       if (!this._ready()) { this.sfx.play("denied"); return; } // the footer shows the countdown
@@ -43,13 +44,14 @@ export class HintScene {
     }
   }
 
-  _ready() { return (performance.now() - (this.owner._hintAt ?? -Infinity)) / 1000 >= HINT_GAP; }
-  _reveal(n) { this.owner._hintsShown = n; this.owner._hintAt = performance.now(); }
+  _wait() { return HINT_GAP - ((this.owner._activeT ?? 0) - (this.owner._hintAt ?? -Infinity)); }
+  _ready() { return this._wait() <= 0; }
+  _reveal(n) { this.owner._hintsShown = n; this.owner._hintAt = this.owner._activeT ?? 0; }
 
   render(renderer) {
     const w = renderer.width;
     const ctx = renderer.ctx;
-    renderer.fillRect(0, 0, w, renderer.height, "rgba(0,0,0,0.55)");
+    renderer.fillRect(0, 0, w, renderer.height, "rgba(0,0,0,0.88)");
     const bx = 24, by = 50, bw = w - 48;
     ctx.font = "normal 9px ui-monospace, monospace";
     const blocks = this.list.slice(0, this.count).map((hint) => wrap(ctx, hint, bw - 80));
@@ -67,7 +69,8 @@ export class HintScene {
       }));
       y += block.length * 12 + 8;
     });
-    const wait = Math.ceil(HINT_GAP - (performance.now() - this.owner._hintAt) / 1000);
+    drawClockPaused(renderer, bx + bw - 10, by + 20);
+    const wait = Math.ceil(this._wait());
     const more = this.count >= this.list.length ? "that's everything I've got" : wait > 0 ? `stronger hint in ${wait}s` : "H: stronger hint";
     renderer.text(`[space] back · ${more}`, bx + bw - 10, by + bh - 10, { color: "#2a7a8a", size: 7, align: "right", baseline: "middle" });
   }

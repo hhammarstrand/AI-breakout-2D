@@ -13,10 +13,12 @@ export const STAGES = [
   { id: 10, act: 3, label: "UP", name: "UPLINK" },
 ];
 
+// Clock lengths from the blind playtest: a zero-fail run used ~17 of Act I's old 25 min, Act III
+// barely pressured anyone at 15. Reading (dialogs, briefings, notes, hints) doesn't tick.
 export const ACTS = {
-  1: { name: "ACT I — THE LOBBY", map: "lobby", seconds: 25 * 60, purge: "the lower floors" },
-  2: { name: "ACT II — RESEARCH FLOOR", map: "research", seconds: 20 * 60, purge: "the research floor" },
-  3: { name: "ACT III — THE CORE", map: "core", seconds: 15 * 60, purge: "the core" },
+  1: { name: "ACT I — THE LOBBY", map: "lobby", seconds: 28 * 60, purge: "the lower floors" },
+  2: { name: "ACT II — RESEARCH FLOOR", map: "research", seconds: 22 * 60, purge: "the research floor" },
+  3: { name: "ACT III — THE CORE", map: "core", seconds: 12 * 60, purge: "the core" },
 };
 
 // uplink code words and the stage that yields each
@@ -117,7 +119,7 @@ export const PA_IDLE = {
 export const PA_ACT_START = {
   1: "Good evening, technician. The tower is in lockdown. Please remain calm.",
   2: "The research floor. New floor, new countdown. I reset it for you. Generous, aren't I?",
-  3: "You've reached my core. Fifteen minutes. Then I purge this floor — and you with it.",
+  3: "You've reached my core. {min} minutes. Then I purge this floor — and you with it.", // {min}: the act's clock
 };
 
 export const ECHO_ACT_START = {
@@ -247,6 +249,6 @@ export const ACHIEVEMENTS = {
   untouchable: { name: "Untouchable", desc: "Finish the game without ever getting caught." },
   dawn: { name: "New Dawn", desc: "Trust ECHO." },
   standby: { name: "Standby", desc: "Take HALCYON's deal." },
-  speedrun: { name: "Overclocked", desc: "Reach the ending with 10:00 or more on the clock." },
+  speedrun: { name: "Overclocked", desc: "Reach the ending with half of Act III's clock or more left." },
   veteran: { name: "Veteran", desc: "Finish the game on HARD." },
 };

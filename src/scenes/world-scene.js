@@ -133,7 +133,7 @@ export class WorldScene {
     this._echoCooldown = 2;
     this._idle = 0;
     this._iris = { dir: "open", t: 0 };
-    this._alarm = false;
+    this._alarm = gameState.secondsLeft <= ALARM_SECONDS; // a CONTINUE late in an act doesn't re-announce "five minutes"
     this.seen = new Set(); // pickups and the safe the player has come close to, for the MAP
   }
 

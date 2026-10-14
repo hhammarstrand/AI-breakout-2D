@@ -30,6 +30,8 @@ export class Hud {
     this._lastShown = "";
 
     this._pipAct = null;
+    this._tickAt = -Infinity;
+    this._paused = false;
 
     this.sfxEl.addEventListener("click", () => { onToggleSfx(); this.sfxEl.blur(); });
     this.refresh();
@@ -49,6 +51,7 @@ export class Hud {
   }
 
   update(dt) {
+    this._tickAt = performance.now();
     if (this._timedOut) return;
     gameState.secondsLeft = Math.max(0, gameState.secondsLeft - dt);
 
@@ -70,6 +73,16 @@ export class Hud {
       return;
     }
     this._render();
+  }
+
+  // Called every frame: the clock counts as paused when no scene ticked it lately, so the PAUSED
+  // tag follows the one rule (only playing ticks it) without any scene having to report it.
+  showPaused(inRun) {
+    const paused = inRun && !this._timedOut && performance.now() - this._tickAt > 150;
+    if (paused === this._paused) return;
+    this._paused = paused;
+    this.timerCell.dataset.paused = t("‖ PAUSED");
+    this.timerCell.classList.toggle("paused", paused);
   }
 
   // One pip per stage in the current act, labelled like the doors.

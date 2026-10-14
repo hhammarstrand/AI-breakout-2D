@@ -125,10 +125,12 @@ export class StartMenuScene {
       if (i === this.index) renderer.text("▶", mx + 10, y, { color: "#0a0812", size: 9, baseline: "middle" });
       renderer.text(o, mx + 22, y, { color: "#0a0812", size: 10, baseline: "middle", weight: "bold" });
     });
-    this._box(renderer, mx, my + OPTIONS.length * 18 + 20, 102, 38);
+    this._box(renderer, mx, my + OPTIONS.length * 18 + 20, 102, 52);
     renderer.text(ACTS[this.world.map.act].name.split(" — ")[0], mx + 10, my + OPTIONS.length * 18 + 32, { color: "#0a0812", size: 8, baseline: "middle", weight: "bold" });
     const logCount = Object.keys(LOGS).filter((id) => gameState.collected.includes(id)).length;
     renderer.text(`LOGS ${logCount}/${Object.keys(LOGS).length}`, mx + 10, my + OPTIONS.length * 18 + 46, { color: "#0a0812", size: 8, baseline: "middle" });
+    // the menu is a real pause: the purge clock doesn't tick under it
+    renderer.text("‖ PAUSED", mx + 10, my + OPTIONS.length * 18 + 60, { color: "#8a4a00", size: 8, baseline: "middle", weight: "bold" });
 
     if (this.panel === "MAP") this._drawMap(renderer);
     else if (this.panel) this._drawList(renderer);

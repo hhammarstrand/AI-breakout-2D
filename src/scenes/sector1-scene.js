@@ -2,6 +2,7 @@ import { music } from "../audio/music.js";
 import { gameState, penalize, scaledPenalty } from "../state.js";
 import { CCTV_RULES } from "../story.js";
 import { t } from "../i18n/index.js";
+import { drawClockPaused } from "./pause-scene.js";
 
 // L1 — CCTV survivor search. Readings are neutral sensor values, and every value a survivor or a
 // hostile can show is shared with some other kind of feed, so no single reading decides a card.
@@ -170,7 +171,8 @@ export class Sector1Scene {
 
   update(dt, input) {
     this._t += dt;
-    this.hud.update(dt);
+    // reading the briefing or the notes doesn't cost time (both hide the grid); marking does
+    if (!this.briefing && !this.notes) this.hud.update(dt);
     for (let i = 0; i < this.stamps.length; i++) this.stamps[i] = Math.max(0, this.stamps[i] - dt);
     if (this.message) {
       this.message.time -= dt;
@@ -406,9 +408,10 @@ export class Sector1Scene {
     const bw = 420, bx = (w - bw) / 2, by = 70;
     const brief = wrap(renderer.ctx, r.brief, bw - 24, 8);
     const bh = 98 + brief.length * 11;
-    renderer.fillRect(0, 0, w, renderer.height, "rgba(0,0,0,0.5)");
+    renderer.fillRect(0, 0, w, renderer.height, "rgba(0,0,0,0.88)");
     renderer.fillRect(bx, by, bw, bh, "#03140b");
     renderer.strokeRect(bx, by, bw, bh, "#0aff7a", 2);
+    drawClockPaused(renderer, bx + bw - 12, by + 14);
     renderer.text(`FEEDS ${this.round + 1}/${ROUNDS.length} — ${r.area}`, bx + 12, by + 14, {
       color: "#0aff7a", size: 10, weight: "bold", baseline: "middle",
     });
@@ -439,9 +442,10 @@ export class Sector1Scene {
       return { label, heard, lines };
     });
     const bh = 26 + blocks.reduce((n, b) => n + 13 + b.lines.length * 10, 0) + 12;
-    renderer.fillRect(0, 0, w, renderer.height, "rgba(0,0,0,0.6)");
+    renderer.fillRect(0, 0, w, renderer.height, "rgba(0,0,0,0.88)");
     renderer.fillRect(bx, by, bw, bh, "#03140b");
     renderer.strokeRect(bx, by, bw, bh, "#4ae6ff", 2);
+    drawClockPaused(renderer, bx + bw - 10, by + 12);
     renderer.text("FIELD NOTES — what you've been told", bx + 10, by + 12, {
       color: "#4ae6ff", size: 10, weight: "bold", baseline: "middle",
     });

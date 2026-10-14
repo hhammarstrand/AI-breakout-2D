@@ -22,7 +22,8 @@ const quiet = (p) => p.ev(() => { const w = window.__blackout.game.scenes[0]; w.
   await p.browser.close();
 }
 
-// 2. GAME OVER is final even if the player reloads instead of choosing RETRY.
+// 2. A timeout restarts the stage in hand (cleared stages kept, a share of the act's clock), and
+// that retry is on disk before the player chooses, so a reload can't dodge it.
 {
   const p = await open({ save: fresh({ completedSectors: 6, score: 125, secondsLeft: 600,
     checkpoint: { completedSectors: 4, score: 75, timesCaught: 0, collected: [], items: {} } }) });
@@ -30,10 +31,17 @@ const quiet = (p) => p.ev(() => { const w = window.__blackout.game.scenes[0]; w.
   await p.ev(() => { window.__blackout.gameState.secondsLeft = 0.2; });
   await p.wait(1500);
   check(/GameOverScene/.test(await p.stack()), "running out of time shows GAME OVER", await p.stack());
-  check((await p.disk()).completedSectors === 4, "the save on disk is already back at the checkpoint");
+  const labels = await p.ev(() => window.__blackout.game.top.menu.items.map((i) => i.label).join("|"));
+  check(labels === "RETRY R3 — 09:10|RESTART ACT — 22:00|QUIT TO TITLE", "GAME OVER offers the stage retry and the act restart, with their clocks", labels);
+  const d = await p.disk();
+  check(d.completedSectors === 6 && d.score === 125 && d.secondsLeft === 550, "the save on disk already holds the stage retry", `c=${d.completedSectors} t=${d.secondsLeft}`);
   await p.reload();
   const s = await p.state();
-  check(s.completedSectors === 4 && s.score === 75, "reload after GAME OVER restarts the act", `c=${s.completedSectors} score=${s.score}`);
+  check(s.completedSectors === 6 && s.score === 125 && Math.abs(s.secondsLeft - 550) < 3, "reload after GAME OVER retries R3 with R1 and R2 kept", `c=${s.completedSectors} t=${Math.round(s.secondsLeft)}`);
+  await p.ev(() => { window.__blackout.gameState.secondsLeft = 0.2; }); await p.wait(1500);
+  await p.press("ArrowDown"); await p.press("Enter"); await p.wait(1200); // RESTART ACT
+  const r = await p.state();
+  check(r.completedSectors === 4 && r.score === 75 && r.secondsLeft > 1300, "RESTART ACT goes back to the lift with the full clock", `c=${r.completedSectors} t=${Math.round(r.secondsLeft)}`);
   await p.browser.close();
 }
 
@@ -63,11 +71,14 @@ const quiet = (p) => p.ev(() => { const w = window.__blackout.game.scenes[0]; w.
   await p.press("h"); await p.wait(300);
   check(await p.stack() === "WorldScene>HintScene", "a second H never stacks another overlay", await p.stack());
   check(await p.ev(() => window.__blackout.game.top.count) === 1, "the stronger hint waits for its cooldown");
-  await p.ev(() => { window.__blackout.game.top.owner._hintAt -= 31000; });
+  const a0 = await p.ev(() => window.__blackout.game.top.owner._activeT); await p.wait(800);
+  check(await p.ev(() => window.__blackout.game.top.owner._activeT) === a0, "waiting in the hint overlay doesn't count toward the cooldown");
+  await p.ev(() => { window.__blackout.game.top.owner._hintAt -= 31; });
   await p.press("h"); await p.wait(300);
   check(await p.ev(() => window.__blackout.game.top.count) === 2, "after the cooldown H shows the second hint in place");
   const t0 = (await p.state()).secondsLeft; await p.wait(1500);
-  check(t0 - (await p.state()).secondsLeft > 1, "the clock keeps running under the hint overlay");
+  check(Math.abs(t0 - (await p.state()).secondsLeft) < 0.05, "reading a hint pauses the clock, like any text");
+  check(await p.ev(() => document.getElementById("hud-timer").classList.contains("paused")), "the HUD timer says PAUSED");
   await p.press("Escape"); await p.wait(300);
   await p.ev(() => { const w = window.__blackout.game.scenes[0]; w.player.teleport(27, 25); w.player.facing = "up"; });
   await p.press("e"); await p.wait(300); await p.press("h"); await p.wait(300);
@@ -94,7 +105,7 @@ const quiet = (p) => p.ev(() => { const w = window.__blackout.game.scenes[0]; w.
   await p.browser.close();
 }
 
-// 6. Retrying an act brings back the pickups taken during the failed attempt, with their points.
+// 6. A stage retry keeps the pickups; restarting the act brings back the ones taken since the lift.
 {
   const p = await open({ save: fresh({ completedSectors: 1, score: 30 }) });
   await p.title(); await quiet(p);
@@ -102,10 +113,15 @@ const quiet = (p) => p.ev(() => { const w = window.__blackout.game.scenes[0]; w.
   await p.press("e"); await p.wait(300); await quiet(p);
   check((await p.state()).collected.includes("log-intern"), "picked up the intern's log");
   await p.ev(() => { window.__blackout.gameState.secondsLeft = 0.2; }); await p.wait(1500);
-  await p.press("Enter"); await p.wait(1200); // RETRY
-  const s = await p.state();
+  await p.press("Enter"); await p.wait(1200); // RETRY L2
+  let s = await p.state();
+  check(s.collected.includes("log-intern") && s.completedSectors === 1, "a stage retry keeps the capsule and L1");
+  await quiet(p);
+  await p.ev(() => { window.__blackout.gameState.secondsLeft = 0.2; }); await p.wait(1500);
+  await p.press("ArrowDown"); await p.press("Enter"); await p.wait(1200); // RESTART ACT
+  s = await p.state();
   const back = await p.ev(() => window.__blackout.game.scenes[0].pickups.some((x) => x.id === "log-intern"));
-  check(!s.collected.includes("log-intern") && back, "retry restores the capsule taken in the failed attempt");
+  check(!s.collected.includes("log-intern") && back && s.completedSectors === 0, "restarting the act restores the capsule taken in the failed attempt");
   await p.browser.close();
 }
 
@@ -577,9 +593,14 @@ const takeEast = async (p) => { await p.ev(() => { window.__blackout.game.scenes
   check(pos[0] === pos[2] && pos[1] === pos[3], "and sends the player back to the spawn point", pos.join(","));
   await quiet(p);
   await p.ev(() => { window.__blackout.gameState.secondsLeft = 0.2; }); await p.wait(1500);
-  await p.press("Enter"); await p.wait(1200); // RETRY
-  const r = await p.state();
-  check(r.timesCaught === 0 && r.everCaught === 1, "a retry rolls back the act's catches but not the run's", `act=${r.timesCaught} run=${r.everCaught}`);
+  await p.press("Enter"); await p.wait(1200); // RETRY L2
+  let r = await p.state();
+  check(r.timesCaught === 1 && r.everCaught === 1, "a stage retry keeps the act's catches", `act=${r.timesCaught} run=${r.everCaught}`);
+  await quiet(p);
+  await p.ev(() => { window.__blackout.gameState.secondsLeft = 0.2; }); await p.wait(1500);
+  await p.press("ArrowDown"); await p.press("Enter"); await p.wait(1200); // RESTART ACT
+  r = await p.state();
+  check(r.timesCaught === 0 && r.everCaught === 1, "an act restart rolls back the act's catches but not the run's", `act=${r.timesCaught} run=${r.everCaught}`);
   await p.browser.close();
 }
 {
@@ -587,6 +608,68 @@ const takeEast = async (p) => { await p.ev(() => { window.__blackout.game.scenes
     checkpoint: { completedSectors: 7, score: 0, timesCaught: 0, collected: [], items: {} } }) });
   await p.title();
   check((await p.state()).secondsLeft > 1480, "six used cells on the clock survive a reload", `t=${Math.round((await p.state()).secondsLeft)}`);
+  await p.browser.close();
+}
+
+// Pause rule: one rule: menus, focus loss and reading stop the clock; C1's run pauses on Esc.
+{
+  const p = await open({ save: fresh({ completedSectors: 1, secondsLeft: 600 }) });
+  await p.title(); await quiet(p);
+  const secs = async () => (await p.state()).secondsLeft;
+  const paused = () => p.ev(() => document.getElementById("hud-timer").classList.contains("paused"));
+  let t0 = await secs(); await p.wait(600);
+  check(t0 - await secs() > 0.3 && !(await paused()), "the clock runs while walking, with no PAUSED tag");
+  await p.press("Tab"); await p.wait(300);
+  t0 = await secs(); await p.wait(1000);
+  check(Math.abs(t0 - await secs()) < 0.05 && await paused(), "the start menu is a real pause, and the HUD says so");
+  await p.press("Escape"); await p.wait(300);
+  await p.ev(() => window.dispatchEvent(new Event("blur"))); await p.wait(200);
+  check(await p.stack() === "WorldScene>PauseScene", "losing focus pauses the run", await p.stack());
+  t0 = await secs(); await p.wait(1000);
+  check(Math.abs(t0 - await secs()) < 0.05, "no clock is lost while unfocused");
+  check(Math.abs((await p.disk()).secondsLeft - t0) < 0.5, "and the run is saved at once");
+  await p.press("Enter"); await p.wait(300);
+  check(await p.stack() === "WorldScene", "Enter resumes", await p.stack());
+  await p.ev(() => window.__blackout.game.scenes[0]._launchSector(2, "L2")); await p.wait(600);
+  t0 = await secs(); await p.wait(600);
+  check(t0 - await secs() > 0.3, "solving a puzzle runs the clock");
+  await p.press("Escape"); await p.wait(500); await quiet(p);
+  await p.ev(() => { window.__blackout.gameState.completedSectors = 0; window.__blackout.game.scenes[0]._launchSector(1, "L1"); }); await p.wait(600);
+  t0 = await secs(); await p.wait(800);
+  check(Math.abs(t0 - await secs()) < 0.05 && await paused(), "the L1 briefing pauses the clock");
+  await p.press("Enter"); await p.wait(200); await p.press("Tab"); await p.wait(200);
+  t0 = await secs(); await p.wait(800);
+  check(Math.abs(t0 - await secs()) < 0.05, "the L1 field notes pause the clock");
+  await p.press("Tab"); await p.wait(200);
+  t0 = await secs(); await p.wait(600);
+  check(t0 - await secs() > 0.3, "marking feeds runs it again");
+  await p.browser.close();
+}
+{
+  const p = await open({ save: fresh({ completedSectors: 8, secondsLeft: 600,
+    checkpoint: { completedSectors: 8, score: 0, timesCaught: 0, collected: [], items: {} } }) });
+  await p.title(); await quiet(p);
+  await p.ev(() => window.__blackout.game.scenes[0]._launchSector(9, "C1")); await p.wait(1000);
+  await p.press("Space"); await p.wait(700);
+  await p.press("Escape"); await p.wait(200);
+  check(/FirewallScene>PauseScene$/.test(await p.stack()), "Esc mid-run pauses C1", await p.stack());
+  const e0 = await p.ev(() => window.__blackout.game.scenes[1].elapsed);
+  const t0 = (await p.state()).secondsLeft; await p.wait(1500);
+  const fw = await p.ev(() => ({ e: window.__blackout.game.scenes[1].elapsed, mode: window.__blackout.game.scenes[1].mode, hp: window.__blackout.game.scenes[1].hp }));
+  check(fw.e === e0 && fw.mode === "run" && fw.hp === 3 && Math.abs(t0 - (await p.state()).secondsLeft) < 0.05, "the run and the clock freeze under the pause", JSON.stringify(fw));
+  await p.press("Enter"); await p.wait(400);
+  check(/FirewallScene$/.test(await p.stack()) && await p.ev(() => window.__blackout.game.top.elapsed) > e0, "RESUME carries on with the run");
+  await p.press("Escape"); await p.wait(200); await p.press("ArrowDown"); await p.press("Enter"); await p.wait(600);
+  check(await p.stack() === "WorldScene", "LEAVE THE RUN steps out of C1", await p.stack());
+  await p.browser.close();
+}
+
+// Late CONTINUE: under five minutes left doesn't replay the five-minute alarm.
+{
+  const p = await open({ save: fresh({ completedSectors: 1, secondsLeft: 200 }) });
+  await p.title(); await p.wait(500);
+  const said = await p.ev(() => document.querySelector("#pa .pa-text").textContent);
+  check(await p.ev(() => window.__blackout.game.scenes[0]._alarm) === true && !/Five minutes/.test(said), "no 'Five minutes' announcement on a late CONTINUE", said);
   await p.browser.close();
 }
 

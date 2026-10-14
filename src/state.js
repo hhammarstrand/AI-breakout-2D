@@ -115,6 +115,34 @@ export function restoreCheckpoint() {
   return true;
 }
 
+// Running out of time costs the stage in hand, not the act: stages cleared since the lift stay
+// cleared, and so do pickups and catches. The clock refills to the remaining stages' share of the
+// act plus some slack, since whoever timed out is slower than par (never more than the full act).
+const RETRY_SLACK = 1.25;
+const RETRY_MIN = 180;
+
+export function stageRetrySeconds() {
+  const act = currentAct();
+  const stages = STAGES.filter((s) => s.act === act && !s.lift);
+  const left = stages.filter((s) => s.id > gameState.completedSectors).length;
+  const full = actSeconds(act);
+  return Math.round(Math.min(full, Math.max(RETRY_MIN * difficulty().time, (full * left * RETRY_SLACK) / stages.length)));
+}
+
+// True when a stage retry keeps something a full act restart would throw away.
+export function clearedThisAct() {
+  return Math.max(0, gameState.completedSectors - (gameState.checkpoint?.completedSectors ?? gameState.completedSectors));
+}
+
+export function retryStage() {
+  gameState.secondsLeft = stageRetrySeconds();
+  gameState.pos = null;
+  gameState.parts = {};
+  gameState.pendingCatch = false;
+  partSource = null;
+  saveGame();
+}
+
 function actOf(completed) { return STAGES[Math.min(completed, STAGES.length - 1)].act; }
 
 export function resetGame() {
@@ -168,7 +196,7 @@ export function loadGame() {
   }
   // an older save taken mid-lift still holds the previous act's clock and checkpoint
   if (gameState.checkpoint && actOf(gameState.checkpoint.completedSectors) !== currentAct()) startAct();
-  else if (gameState.secondsLeft <= 0) restoreCheckpoint();
+  else if (gameState.secondsLeft <= 0) retryStage(); // the game over already chose the retry point
   return true;
 }
 

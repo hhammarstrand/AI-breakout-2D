@@ -38,7 +38,8 @@ await page.screenshot({ path: `${SHOTS}/c-13-gameover.png` });
 await press("Enter"); await wait(1200);
 console.log("retry", await ev(() => JSON.stringify({ map: window.__blackout.game.scenes[0].map.id, c: window.__blackout.gameState.completedSectors, t: Math.round(window.__blackout.gameState.secondsLeft) })));
 const r = await ev(() => ({ c: window.__blackout.gameState.completedSectors, t: window.__blackout.gameState.secondsLeft }));
-if (r.c !== 4 || r.t < 1100) { console.log("FAIL retry did not restore the act II checkpoint", r); process.exitCode = 1; }
+// a timeout after R3 only retries the walk to the core lift: R1-R3 stay cleared, 3 min on the clock
+if (r.c !== 7 || Math.abs(r.t - 180) > 3) { console.log("FAIL retry did not keep the act's cleared stages", r); process.exitCode = 1; }
 console.log("errors", JSON.stringify(errors));
 if (errors.length) process.exitCode = 1;
 await browser.close();

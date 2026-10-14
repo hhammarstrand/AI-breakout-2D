@@ -3,6 +3,7 @@ import { STAGES } from "../story.js";
 import { music } from "../audio/music.js";
 import { Drone } from "../entities/drone.js";
 import { t } from "../i18n/index.js";
+import { drawClockPaused } from "./pause-scene.js";
 import {
   makeFeeds, KEY_PHRASE, ALPHA, mod, shiftText, pickKey,
   DAWN_GRID, DAWN_SLOTS, DIRS, dawnStart, dawnTile, gateLive, runDawn,
@@ -162,8 +163,8 @@ export class Sector4Scene {
 
   update(dt, input) {
     this._t += dt;
-    // the welcome, the deal and the choice don't eat the clock; a lock's brief does, since the lock is on screen
-    if (this.phase === "lock" || this.phase === "brief") this.hud.update(dt);
+    // HALCYON's speeches don't eat the clock (a lock's brief dims the lock behind it); the locks do
+    if (this.phase === "lock") this.hud.update(dt);
     this.echo._t += dt;
     if (this.lock === 2 && this.echoTarget && (this.phase === "lock" || this.phase === "stamp")) {
       this.echo.x += (this.echoTarget.x - this.echo.x) * Math.min(1, dt * 14);
@@ -406,6 +407,7 @@ export class Sector4Scene {
     });
 
     if (locks) this._drawLock(renderer);
+    if (this.phase === "brief") { renderer.fillRect(0, 24, w, h - 24, "rgba(0,0,0,0.94)"); drawClockPaused(renderer, w - 8, 34); }
     if (this.phase === "stamp") this._drawStamp(renderer);
     if (this.phase === "override" || deal) this._drawOverride(renderer);
     if (this.phase === "intro" || this.phase === "brief" || this.phase === "deal") this._drawScript(renderer);
