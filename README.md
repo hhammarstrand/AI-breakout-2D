@@ -150,9 +150,14 @@ campaign test in Swedish.
 - **Pixel-art cast** — every character is painted procedurally as a paper doll (skin, hair, outfit,
   hat) with an automatic outline pass: four facings, walk cycles, blinking, NPCs that turn to watch
   you. Walls have lit top caps and panelled front faces for a 3/4 look.
-- **Adaptive soundtrack** — a WebAudio step sequencer plays original tracks for the title, lobby,
-  puzzles, finale and both endings. A tension layer (drums, driving bass, high arps) swells when a
-  sentinel is spotting you or the purge alarm is on. Toggle **MUSIC** in the title or pause menu.
+- **Adaptive soundtrack** — a small WebAudio tracker plays composed themes (lead melody, bass,
+  pad, arps, bells and drums in 16-32 bar A/B forms): one per act (lobby, research floor, core),
+  the title, the battle (intro sting plus victory and defeat jingles), a track per puzzle room
+  (logic, cipher, timing, circuit, signal, coolant, firewall, uplink) and both endings. A tension
+  layer (drums, driving bass, high arps) swells when a sentinel is spotting you or the purge alarm
+  is on. SFX layer tones with noise transients, vary their pitch a few percent per play and share
+  a small room reverb; each floor has its own ambience (mains hum, HVAC air, distant machinery,
+  fluorescent buzz, wind in the core) and footsteps. Toggle **MUSIC** in the title or pause menu.
 
 - **CRT post-processing (WebGL)** — the whole frame is drawn through a shader: curved glass,
   bloom, chromatic aberration, scanlines, aperture grille, grain and glitch tears on impacts.
@@ -210,7 +215,7 @@ style.css               CRT theme + layout
 src/
   main.js               bootstraps the game
   state.js              progress, score, timer + localStorage save
-  audio/                WebAudio SFX + adaptive music sequencer (no asset files)
+  audio/                WebAudio SFX, ambience, shared reverb bus + music tracker (no asset files)
   gfx/                  procedural pixel-art character generator
   engine/               loop, input, camera, canvas helpers, lighting, particles, WebGL post-fx
   world/                tilemap (themes, props) + maps: lobby, research floor, core
